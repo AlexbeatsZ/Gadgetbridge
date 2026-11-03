@@ -60,6 +60,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TimeZone;
 
 import nodomain.freeyourgadget.gadgetbridge.BuildConfig;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
@@ -76,6 +77,8 @@ import nodomain.freeyourgadget.gadgetbridge.activities.quicksettings.QuickSettin
 import nodomain.freeyourgadget.gadgetbridge.externalevents.TimeChangeReceiver;
 import nodomain.freeyourgadget.gadgetbridge.externalevents.comaps.CoMapsNavigationReceiverFactory;
 import nodomain.freeyourgadget.gadgetbridge.externalevents.opentracks.OpenTracksController;
+import nodomain.freeyourgadget.gadgetbridge.util.AppTimeZone;
+import nodomain.freeyourgadget.gadgetbridge.util.DateTimeUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.FileUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.GBPrefs;
@@ -224,6 +227,28 @@ public class SettingsActivity extends AbstractSettingsActivityV2 implements Acti
                         TimeChangeReceiver.scheduleNextDstChangeOrPeriodicSync(requireContext());
                         GBApplication.deviceService().onSetTime();
                     }
+                    return true;
+                });
+            }
+
+            final Preference timeZonePref = findPreference(AppTimeZone.PREF_KEY);
+            if (timeZonePref != null) {
+                updateTimeZoneSummary(timeZonePref);
+                timeZonePref.setOnPreferenceClickListener(preference -> {
+                    TimeZonePickerDialog.show(
+                            requireActivity(),
+                            R.string.pref_title_datetime_timezone,
+                            AppTimeZone.getOverrideId(),
+                            timeZoneId -> {
+                                AppTimeZone.setOverride(requireContext(), timeZoneId);
+                                updateTimeZoneSummary(timeZonePref);
+                            },
+                            R.string.pref_datetime_timezone_use_system,
+                            () -> {
+                                AppTimeZone.setOverride(requireContext(), null);
+                                updateTimeZoneSummary(timeZonePref);
+                            }
+                    );
                     return true;
                 });
             }
@@ -792,6 +817,16 @@ public class SettingsActivity extends AbstractSettingsActivityV2 implements Acti
             final String selected = GBApplication.getPrefs().getString(GBApplication.PREF_ACCENT_COLOR, GBApplication.PREF_ACCENT_COLOR_DEFAULT);
             final int index = Arrays.asList(ACCENT_COLOR_KEYS).indexOf(selected);
             accentColor.setSummary(getString(ACCENT_COLOR_NAME_RES[index == -1 ? 0 : index]));
+        }
+
+        private void updateTimeZoneSummary(final Preference timeZonePref) {
+            final TimeZone timeZone = TimeZone.getDefault();
+            if (AppTimeZone.getOverrideId() == null) {
+                timeZonePref.setSummary(getString(R.string.pref_summary_datetime_timezone_system, timeZone.getID()));
+                return;
+            }
+            final String offset = DateTimeUtils.formatUtcOffset(timeZone, System.currentTimeMillis());
+            timeZonePref.setSummary(getString(R.string.pref_summary_datetime_timezone_override, timeZone.getID(), offset));
         }
     }
 }

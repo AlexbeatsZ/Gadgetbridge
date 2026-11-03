@@ -283,6 +283,10 @@
     <string name="pref_header_datetime">Date and Time</string>
     <string name="pref_title_datetime_syctimeonconnect">Sync time</string>
     <string name="pref_summary_datetime_syctimeonconnect">Sync time to Gadgetbridge device(s) when connecting, when time or time zone changes on Android device, and periodically</string>
+    <string name="pref_title_datetime_timezone">Time zone</string>
+    <string name="pref_summary_datetime_timezone_system">System time zone (%s)</string>
+    <string name="pref_summary_datetime_timezone_override">%1$s (%2$s). Used by Gadgetbridge and synced to the device(s) instead of the system time zone</string>
+    <string name="pref_datetime_timezone_use_system">Use system time zone</string>
     <string name="pref_header_main_screen">Main screen</string>
     <string name="pref_header_devices_screen">Devices screen</string>
     <string name="pref_title_theme">Theme</string>

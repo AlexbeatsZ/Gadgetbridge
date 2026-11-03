@@ -146,6 +146,10 @@
                 android:summary="@string/pref_summary_datetime_syctimeonconnect"
                 android:title="@string/pref_title_datetime_syctimeonconnect"
                 android:icon="@drawable/ic_update" />
+            <Preference
+                android:key="datetime_timezone"
+                android:title="@string/pref_title_datetime_timezone"
+                android:icon="@drawable/ic_public" />
         </PreferenceCategory>
 
         <PreferenceCategory

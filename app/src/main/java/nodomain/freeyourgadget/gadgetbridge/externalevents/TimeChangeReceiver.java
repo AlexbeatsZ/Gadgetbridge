@@ -37,6 +37,7 @@ import java.util.GregorianCalendar;
 import nodomain.freeyourgadget.gadgetbridge.BuildConfig;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.util.AndroidUtils;
+import nodomain.freeyourgadget.gadgetbridge.util.AppTimeZone;
 import nodomain.freeyourgadget.gadgetbridge.util.DateTimeUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.GBPrefs;
@@ -56,6 +57,11 @@ public class TimeChangeReceiver extends BroadcastReceiver {
         if (action == null) {
             LOG.warn("Null action");
             return;
+        }
+
+        if (Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
+            // Android resets the process default time zone, so the override needs to be re-applied
+            AppTimeZone.apply();
         }
 
         if (!prefs.syncTime()) {

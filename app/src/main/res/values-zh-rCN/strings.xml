@@ -67,6 +67,10 @@
     <string name="pref_header_datetime">日期和时间</string>
     <string name="pref_title_datetime_syctimeonconnect">同步时间</string>
     <string name="pref_summary_datetime_syctimeonconnect">连接时、Android 设备上的时间或时区更改将定期同步到 Gadgetbridge 设备</string>
+    <string name="pref_title_datetime_timezone">时区</string>
+    <string name="pref_summary_datetime_timezone_system">系统时区 (%s)</string>
+    <string name="pref_summary_datetime_timezone_override">%1$s (%2$s)。Gadgetbridge 将使用此时区代替系统时区，并同步到设备</string>
+    <string name="pref_datetime_timezone_use_system">使用系统时区</string>
     <string name="pref_title_theme">主题</string>
     <string name="pref_theme_light">亮色</string>
     <string name="pref_theme_dark">暗色</string>

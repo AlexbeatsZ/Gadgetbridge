@@ -26,27 +26,19 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
 
 import nodomain.freeyourgadget.gadgetbridge.R;
-import nodomain.freeyourgadget.gadgetbridge.adapter.TimeZonePickerAdapter;
 import nodomain.freeyourgadget.gadgetbridge.database.DBHelper;
 import nodomain.freeyourgadget.gadgetbridge.databinding.ActivityWorldClockDetailsBinding;
-import nodomain.freeyourgadget.gadgetbridge.databinding.DialogTimezonePickerBinding;
 import nodomain.freeyourgadget.gadgetbridge.devices.DeviceCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.entities.WorldClock;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
@@ -224,47 +216,6 @@ public class WorldClockDetails extends AbstractGBActivity {
     }
 
     private void showTimeZonePicker() {
-        final DialogTimezonePickerBinding pickerBinding = DialogTimezonePickerBinding.inflate(getLayoutInflater());
-        final AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.world_clock_timezone)
-            .setView(pickerBinding.getRoot())
-            .setNegativeButton(android.R.string.cancel, null)
-            .create();
-
-        final TimeZonePickerAdapter adapter = new TimeZonePickerAdapter(worldClock.getTimeZoneId(), timeZoneId -> {
-            setTimeZone(timeZoneId);
-            dialog.dismiss();
-        });
-        pickerBinding.timezoneList.setLayoutManager(new LinearLayoutManager(this));
-        pickerBinding.timezoneList.setAdapter(adapter);
-
-        new Thread(() -> {
-            final List<TimeZonePickerAdapter.Entry> entries = TimeZonePickerAdapter.buildEntries();
-            runOnUiThread(() -> {
-                adapter.setEntries(entries);
-                final int selectedPosition = adapter.getSelectedPosition();
-                if (selectedPosition != RecyclerView.NO_POSITION) {
-                    pickerBinding.timezoneList.scrollToPosition(selectedPosition);
-                }
-            });
-        }, "TimeZonePickerLoader").start();
-
-        pickerBinding.timezoneSearch.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after) {
-            }
-
-            @Override
-            public void onTextChanged(final CharSequence s, final int start, final int before, final int count) {
-            }
-
-            @Override
-            public void afterTextChanged(final Editable s) {
-                adapter.filter(s.toString());
-                pickerBinding.timezoneList.scrollToPosition(0);
-            }
-        });
-
-        dialog.show();
+        TimeZonePickerDialog.show(this, R.string.world_clock_timezone, worldClock.getTimeZoneId(), this::setTimeZone);
     }
 }

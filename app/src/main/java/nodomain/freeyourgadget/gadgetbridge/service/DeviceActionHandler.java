@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
+import nodomain.freeyourgadget.gadgetbridge.util.AppTimeZone;
 import nodomain.freeyourgadget.gadgetbridge.util.GBPrefs;
 import nodomain.freeyourgadget.gadgetbridge.activities.appmanager.config.DynamicAppConfig;
 import nodomain.freeyourgadget.gadgetbridge.capabilities.loyaltycards.LoyaltyCard;
@@ -160,6 +161,8 @@ public class DeviceActionHandler {
                     deviceSupport.onSetCannedMessages(cannedMessagesSpec);
                 break;
             case ACTION_SETTIME:
+                // Make sure the configured time zone is still in effect (eg. after a system time zone change)
+                AppTimeZone.apply();
                 deviceSupport.onSetTime();
                 break;
             case ACTION_SETMUSICINFO:
