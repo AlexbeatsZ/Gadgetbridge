@@ -29,14 +29,23 @@ internal object MiFitnessAuthKeyImporter {
         val mac = address.replace(":", "").lowercase()
         // Android encodes the profile ID in the high digits of every app UID.
         val userId = Process.myUid() / 100_000
+        val queryCommand = command(userId, mac)
         return withTimeoutOrNull(45_000) {
-            runInterruptible(Dispatchers.IO) { readDatabase(userId, mac) }
+            runInterruptible(Dispatchers.IO) {
+                val result = readDatabase("-c", queryCommand)
+                if (result != Result.Failure.NO_DATABASE) return@runInterruptible result
+
+                // Android app data isolation can hide other apps' files even after su.
+                val retry = readDatabase("--mount-master", "-c", queryCommand)
+                // Keep the original result on su implementations without --mount-master.
+                if (retry == Result.Failure.ROOT) result else retry
+            }
         } ?: Result.Failure.ROOT
     }
 
-    private fun readDatabase(userId: Int, mac: String): Result {
+    private fun readDatabase(vararg suArguments: String): Result {
         val process = try {
-            ProcessBuilder("su", "-c", command(userId, mac)).start()
+            ProcessBuilder("su", *suArguments).start()
         } catch (_: IOException) {
             return Result.Failure.ROOT
         }
