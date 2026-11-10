@@ -3,17 +3,24 @@ package nodomain.freeyourgadget.gadgetbridge.activities
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.method.PasswordTransformationMethod
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import nodomain.freeyourgadget.gadgetbridge.GBApplication
 import nodomain.freeyourgadget.gadgetbridge.R
 import nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst
 import nodomain.freeyourgadget.gadgetbridge.databinding.ActivityAuthKeyBinding
 import nodomain.freeyourgadget.gadgetbridge.devices.DeviceCoordinator
+import nodomain.freeyourgadget.gadgetbridge.devices.huami.miband6.MiBand6Coordinator
+import nodomain.freeyourgadget.gadgetbridge.devices.huami.zeppos.watches.MiBand7Coordinator
+import nodomain.freeyourgadget.gadgetbridge.devices.xiaomi.MiFitnessAuthKeyImporter
+import nodomain.freeyourgadget.gadgetbridge.devices.xiaomi.XiaomiCoordinator
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDeviceCandidate
 import nodomain.freeyourgadget.gadgetbridge.util.DeviceHelper
 import nodomain.freeyourgadget.gadgetbridge.util.GB
@@ -71,6 +78,11 @@ class AuthKeyActivity : AbstractGBActivity() {
                     binding.secondaryAuthKeyEditText.setText(secondary)
                 }
             }
+            if (coordinator is XiaomiCoordinator || coordinator is MiBand6Coordinator ||
+                coordinator is MiBand7Coordinator
+            ) {
+                setupMiFitnessImport(macAddress)
+            }
         }
 
         binding.submitAuthKeyButton.setOnClickListener {
@@ -116,6 +128,38 @@ class AuthKeyActivity : AbstractGBActivity() {
         }
     }
 
+    private fun setupMiFitnessImport(macAddress: String) {
+        val importButton = binding.importMiFitnessAuthKeyButton
+        importButton.visibility = View.VISIBLE
+        binding.authKeyEditText.transformationMethod = PasswordTransformationMethod.getInstance()
+        importButton.setOnClickListener {
+            importButton.isEnabled = false
+            importButton.setText(R.string.auth_key_mi_fitness_importing)
+            binding.authKeyInputLayout.error = null
+            binding.authKeyEditText.isEnabled = false
+            binding.submitAuthKeyButton.isEnabled = false
+            lifecycleScope.launch {
+                val result = MiFitnessAuthKeyImporter.read(macAddress)
+                importButton.isEnabled = true
+                importButton.setText(R.string.auth_key_mi_fitness_import)
+                binding.authKeyEditText.isEnabled = true
+                binding.submitAuthKeyButton.isEnabled = true
+                when (result) {
+                    is MiFitnessAuthKeyImporter.Result.Found -> {
+                        binding.authKeyEditText.setText(result.key)
+                        Toast.makeText(
+                            this@AuthKeyActivity,
+                            R.string.auth_key_mi_fitness_imported,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    is MiFitnessAuthKeyImporter.Result.Failure -> {
+                        binding.authKeyInputLayout.error = getString(result.message)
+                    }
+                }
+            }
+        }
+    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_auth_key, menu)

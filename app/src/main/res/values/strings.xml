@@ -5788,6 +5788,15 @@
     <string name="invalid_auth_key_message">Invalid auth key - please try again</string>
     <string name="auth_key_activity_title_for">Auth key for %1$s</string>
     <string name="auth_key_explanation">This device requires an authentication key for pairing.</string>
+    <string name="auth_key_mi_fitness_import">Import from Mi Fitness (root)</string>
+    <string name="auth_key_mi_fitness_importing">Reading Mi Fitness…</string>
+    <string name="auth_key_mi_fitness_imported">Pairing key imported. Submit to continue.</string>
+    <string name="auth_key_mi_fitness_root_required">Root access is required. Allow Gadgetbridge in your root manager and try again.</string>
+    <string name="auth_key_mi_fitness_sqlite_missing">This phone does not provide the system sqlite3 tool.</string>
+    <string name="auth_key_mi_fitness_no_database">No Mi Fitness device database was found in this Android profile. Pair the device in Mi Fitness first.</string>
+    <string name="auth_key_mi_fitness_read_error">Could not read the Mi Fitness device database.</string>
+    <string name="auth_key_mi_fitness_no_match">No pairing key was found for this Bluetooth address.</string>
+    <string name="auth_key_mi_fitness_ambiguous">Mi Fitness has multiple pairing keys for this Bluetooth address. Enter the correct key manually.</string>
     <string name="help">Help</string>
     <string name="cannot_open_help_url">Could not open URL</string>
     <string name="auth_settings">Authentication settings</string>

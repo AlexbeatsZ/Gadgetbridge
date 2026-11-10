@@ -3855,6 +3855,15 @@
     <string name="invalid_auth_key_message">无效的认证密钥 - 请重试</string>
     <string name="auth_key_activity_title_for">%1$s 的认证密钥</string>
     <string name="auth_key_explanation">此设备需要认证密钥进行配对。</string>
+    <string name="auth_key_mi_fitness_import">从小米运动健康导入（Root）</string>
+    <string name="auth_key_mi_fitness_importing">正在读取小米运动健康…</string>
+    <string name="auth_key_mi_fitness_imported">已导入配对密钥，点击提交继续。</string>
+    <string name="auth_key_mi_fitness_root_required">需要 Root 权限。请在 Root 管理器中授权 Gadgetbridge 后重试。</string>
+    <string name="auth_key_mi_fitness_sqlite_missing">手机系统缺少 sqlite3 工具。</string>
+    <string name="auth_key_mi_fitness_no_database">当前 Android 用户下没有找到小米运动健康的设备数据库。请先在小米运动健康中绑定设备。</string>
+    <string name="auth_key_mi_fitness_read_error">无法读取小米运动健康的设备数据库。</string>
+    <string name="auth_key_mi_fitness_no_match">未找到这个蓝牙地址对应的配对密钥。</string>
+    <string name="auth_key_mi_fitness_ambiguous">小米运动健康为这个蓝牙地址保存了多个配对密钥，请手动填写正确的密钥。</string>
     <string name="help">帮助</string>
     <string name="cannot_open_help_url">无法打开 URL</string>
     <string name="auth_settings">认证设置</string>
