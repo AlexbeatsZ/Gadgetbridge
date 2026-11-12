@@ -6720,4 +6720,15 @@
     <string name="vendor_data_import_garmin_step_5">Select the zip file.</string>
     <string name="vendor_data_import_garmin_unknown_product">Garmin product %1$d</string>
     <string name="appmanager_everything_up_to_date_message">Everything is up to date</string>
+    <string name="pref_header_auto_export_upload">Send to server</string>
+    <string name="pref_title_auto_export_upload_enabled">Send after export</string>
+    <string name="pref_summary_auto_export_upload_enabled">Upload the exported database to your server after every automatic export. The export location becomes optional.</string>
+    <string name="pref_title_auto_export_upload_url">Server URL</string>
+    <string name="pref_title_auto_export_upload_token">Access token</string>
+    <string name="pref_summary_auto_export_upload_token_set">Set</string>
+    <string name="pref_summary_auto_export_upload_token_unset">Not set</string>
+    <string name="pref_title_auto_export_upload_status">Last upload</string>
+    <string name="auto_export_upload_status_success">Succeeded at %s</string>
+    <string name="auto_export_upload_status_failed">Failed at %1$s: %2$s</string>
+    <string name="notif_export_upload_failed_title">Failed to send database to server</string>
 </resources>

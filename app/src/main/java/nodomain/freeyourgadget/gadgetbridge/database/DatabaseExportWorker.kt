@@ -9,10 +9,12 @@ import androidx.work.WorkerParameters
 import nodomain.freeyourgadget.gadgetbridge.GBApplication
 import nodomain.freeyourgadget.gadgetbridge.GBDatabaseManager
 import nodomain.freeyourgadget.gadgetbridge.R
+import nodomain.freeyourgadget.gadgetbridge.util.FileUtils
 import nodomain.freeyourgadget.gadgetbridge.util.GB
 import nodomain.freeyourgadget.gadgetbridge.util.GBPrefs
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
 
 class DatabaseExportWorker(
     private val mContext: Context,
@@ -27,26 +29,39 @@ class DatabaseExportWorker(
             return Result.failure()
         }
 
-        val dst = GBApplication.getPrefs().getString(GBPrefs.AUTO_EXPORT_DB_LOCATION, "")
+        val prefs = GBApplication.getPrefs()
+        val dst = prefs.getString(GBPrefs.AUTO_EXPORT_DB_LOCATION, "") ?: ""
+        val upload = prefs.getBoolean(DatabaseUploader.PREF_ENABLED, false)
 
-        LOG.info("Starting DB export, dst={}", dst)
+        LOG.info("Starting DB export, dst={}, upload={}", dst, upload)
 
-        if (dst == null) {
+        if (dst.isEmpty() && !upload) {
             LOG.warn("Unable to export DB, export location not set")
             GB.updateExportFailedNotification(mContext.getString(R.string.notif_export_location_not_set), mContext)
             broadcastSuccess(false)
             return Result.failure()
         }
 
+        // When uploading, export once to a private snapshot and copy it to the SAF location,
+        // so the upload does not need read access to the user-picked document.
+        val snapshot = File(mContext.cacheDir, "auto_export_upload.db")
         try {
-            mContext.contentResolver.openOutputStream(dst.toUri()).use { out ->
-                GBDatabaseManager.exportDB(out)
+            if (upload) {
+                GBDatabaseManager.exportDB(snapshot)
+                if (dst.isNotEmpty()) {
+                    FileUtils.copyFileToURI(mContext, snapshot, dst.toUri())
+                }
+            } else {
+                mContext.contentResolver.openOutputStream(dst.toUri()).use { out ->
+                    GBDatabaseManager.exportDB(out)
+                }
             }
 
-            GBApplication.getPrefs().preferences.edit {
+            prefs.preferences.edit {
                 putLong(GBPrefs.AUTO_EXPORT_DB_LAST_EXECUTION, System.currentTimeMillis())
             }
         } catch (e: Exception) {
+            snapshot.delete()
             GB.updateExportFailedNotification(mContext.getString(R.string.notif_export_failed_title), mContext)
             LOG.error("Exception while exporting DB", e)
             broadcastSuccess(false)
@@ -54,6 +69,41 @@ class DatabaseExportWorker(
         }
 
         LOG.info("DB export completed")
+
+        if (upload) {
+            try {
+                val url = prefs.getString(DatabaseUploader.PREF_URL, DatabaseUploader.DEFAULT_URL)
+                    ?.takeIf { it.isNotBlank() } ?: DatabaseUploader.DEFAULT_URL
+                val receipt = DatabaseUploader.upload(
+                    snapshot,
+                    url,
+                    prefs.getString(DatabaseUploader.PREF_TOKEN, "") ?: ""
+                )
+                LOG.info("DB upload completed: {}", receipt)
+                prefs.preferences.edit {
+                    putLong(DatabaseUploader.PREF_LAST_SUCCESS, System.currentTimeMillis())
+                    remove(DatabaseUploader.PREF_LAST_ERROR)
+                }
+            } catch (e: Exception) {
+                LOG.error("DB upload failed (attempt {})", runAttemptCount, e)
+                prefs.preferences.edit {
+                    putString(
+                        DatabaseUploader.PREF_LAST_ERROR,
+                        "${System.currentTimeMillis()}|${e.message ?: e.javaClass.simpleName}"
+                    )
+                }
+                broadcastSuccess(false)
+                // Network may be temporarily unavailable (VPN restarting, no tailnet): let
+                // WorkManager retry with backoff a few times before waiting for the next period.
+                if (runAttemptCount < MAX_UPLOAD_RETRIES) {
+                    return Result.retry()
+                }
+                GB.updateExportFailedNotification(mContext.getString(R.string.notif_export_upload_failed_title), mContext)
+                return Result.failure()
+            } finally {
+                snapshot.delete()
+            }
+        }
 
         broadcastSuccess(true)
 
@@ -74,6 +124,8 @@ class DatabaseExportWorker(
 
     companion object {
         private val LOG: Logger = LoggerFactory.getLogger(DatabaseExportWorker::class.java)
+
+        private const val MAX_UPLOAD_RETRIES = 4
 
         const val ACTION_DATABASE_EXPORT_SUCCESS: String =
             "nodomain.freeyourgadget.gadgetbridge.action.DATABASE_EXPORT_SUCCESS"

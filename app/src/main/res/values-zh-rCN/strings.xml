@@ -5985,4 +5985,15 @@
     <string name="soundcore_equalizer_preset_classic">古典</string>
     <string name="soundcore_equalizer_preset_original">原声</string>
     <string name="workout_template_import_failed">无法导入此锻炼模板</string>
+    <string name="pref_header_auto_export_upload">发送到服务器</string>
+    <string name="pref_title_auto_export_upload_enabled">导出后自动发送</string>
+    <string name="pref_summary_auto_export_upload_enabled">每次自动导出后把数据库上传到你的服务器。启用后导出位置可以不设置。</string>
+    <string name="pref_title_auto_export_upload_url">服务器地址</string>
+    <string name="pref_title_auto_export_upload_token">访问令牌</string>
+    <string name="pref_summary_auto_export_upload_token_set">已设置</string>
+    <string name="pref_summary_auto_export_upload_token_unset">未设置</string>
+    <string name="pref_title_auto_export_upload_status">上次发送</string>
+    <string name="auto_export_upload_status_success">%s 发送成功</string>
+    <string name="auto_export_upload_status_failed">%1$s 发送失败：%2$s</string>
+    <string name="notif_export_upload_failed_title">数据库发送到服务器失败</string>
 </resources>

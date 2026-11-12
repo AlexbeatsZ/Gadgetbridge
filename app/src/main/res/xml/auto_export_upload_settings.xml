@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- Only used by the database auto export (empty key prefix) -->
+    <PreferenceCategory
+        android:key="pref_header_auto_export_upload"
+        android:title="@string/pref_header_auto_export_upload">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:dependency="auto_export_enabled"
+            android:icon="@drawable/ic_file_export"
+            android:key="auto_export_upload_enabled"
+            android:layout="@layout/preference_checkbox"
+            android:summary="@string/pref_summary_auto_export_upload_enabled"
+            android:title="@string/pref_title_auto_export_upload_enabled"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            android:dependency="auto_export_upload_enabled"
+            android:icon="@drawable/ic_link"
+            android:key="auto_export_upload_url"
+            android:title="@string/pref_title_auto_export_upload_url"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            android:dependency="auto_export_upload_enabled"
+            android:icon="@drawable/ic_vpn_key"
+            android:key="auto_export_upload_token"
+            android:title="@string/pref_title_auto_export_upload_token"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:icon="@drawable/ic_info"
+            android:key="auto_export_upload_status"
+            android:summary="@string/unknown"
+            android:title="@string/pref_title_auto_export_upload_status" />
+    </PreferenceCategory>
+</PreferenceScreen>
