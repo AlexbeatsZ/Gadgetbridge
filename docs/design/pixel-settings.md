@@ -25,3 +25,10 @@ Use existing Material/AndroidX components, large page titles, semantic surface c
 - The first preview mixed Gadgetbridge static neutral surfaces with Material dynamic colors in the other apps. Default/new Gadgetbridge theme now uses dynamic colors, including onboarding and every fallback read. Existing explicit theme choices are retained.
 - Shared color roles: page background=surface; preference/machine groups=surfaceContainerLow; main text=onSurface; summary/icons=onSurfaceVariant; section/action accents=primary. Light/dark follow the system when using dynamic colors.
 - Material Components Color Theming reference: https://github.com/material-components/material-components-android/blob/master/docs/theming/Color.md
+
+## Existing-install upgrade migration (2026.11.5)
+- K70 retained `pref_key_theme=system` after upgrading to 2026.11.4. Changing the XML default and fallback values only affected missing preferences, so the installed app kept its static system palette.
+- Preference migration 73 runs through `GBPrefsMigrator` during `GBApplication.onCreate`, before night-mode initialization and activity theme selection. It changes saved `system` to `dynamic` once. The existing migration editor persists the theme and migration version together.
+- Explicit `light`, `dark`, `dynamic`, accent, AMOLED and other saved preferences retain their values. Once migration 73 completes, a later manual `system` selection survives subsequent starts.
+- Regression coverage includes the registered migration chain, unrelated saved preferences, explicit theme choices, repeated startup after a manual change, and the production application startup path followed by light/dark theme selection.
+- Existing XML and programmatic settings explicitly reference `preference_checkbox`, overriding theme-provided layouts. Its old renderer has been replaced by a layout alias to `preference_settings`, retaining the resource ID and widget contract across existing callers. The real Settings Activity regression checks these rows resolve to the shared layout with 20dp corners and `colorSurfaceContainerLow`.
