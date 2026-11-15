@@ -99,6 +99,10 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragmentCompa
     public void onViewCreated(@NonNull final View view, @Nullable final Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(this, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+        setDivider(null);
+        final int padding = Math.round(6 * getResources().getDisplayMetrics().density);
+        getListView().setPadding(padding, padding, padding, padding * 4);
+        getListView().setClipToPadding(false);
     }
 
     @Override

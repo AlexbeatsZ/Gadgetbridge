@@ -528,9 +528,31 @@
 
     <!-- preferences screens -->
     <style name="AppPreferenceThemeOverlay" parent="@style/PreferenceThemeOverlay">
+        <item name="preferenceStyle">@style/AppSettingsPreference</item>
+        <item name="preferenceScreenStyle">@style/AppSettingsPreference</item>
+        <item name="dialogPreferenceStyle">@style/AppDialogPreference</item>
+        <item name="editTextPreferenceStyle">@style/AppEditTextPreference</item>
+        <item name="dropdownPreferenceStyle">@style/AppDropDownPreference</item>
+        <item name="checkBoxPreferenceStyle">@style/AppCheckBoxPreference</item>
         <item name="switchPreferenceCompatStyle">@style/AppSwitchPreference</item>
     </style>
+    <style name="AppSettingsPreference" parent="Preference.Material">
+        <item name="layout">@layout/preference_settings</item>
+    </style>
+    <style name="AppDialogPreference" parent="Preference.DialogPreference.Material">
+        <item name="layout">@layout/preference_settings</item>
+    </style>
+    <style name="AppEditTextPreference" parent="Preference.DialogPreference.EditTextPreference.Material">
+        <item name="layout">@layout/preference_settings</item>
+    </style>
+    <style name="AppDropDownPreference" parent="Preference.DropDown.Material">
+        <item name="layout">@layout/preference_settings</item>
+    </style>
+    <style name="AppCheckBoxPreference" parent="Preference.CheckBoxPreference.Material">
+        <item name="layout">@layout/preference_settings</item>
+    </style>
     <style name="AppSwitchPreference" parent="@style/Preference.SwitchPreferenceCompat.Material">
+        <item name="layout">@layout/preference_settings</item>
         <item name="widgetLayout">@layout/preference_material_switch</item>
     </style>
     <style name="GridTile">

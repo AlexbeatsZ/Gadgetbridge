@@ -567,7 +567,7 @@ public class GBApplication extends Application {
     }
 
     public static boolean isDarkThemeEnabled() {
-        String selectedTheme = prefs.getString("pref_key_theme", context.getString(R.string.pref_theme_value_system));
+        String selectedTheme = prefs.getString("pref_key_theme", context.getString(R.string.pref_theme_value_dynamic));
         Resources resources = context.getResources();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
@@ -585,7 +585,7 @@ public class GBApplication extends Application {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return;
         }
-        final String selectedTheme = prefs.getString("pref_key_theme", context.getString(R.string.pref_theme_value_system));
+        final String selectedTheme = prefs.getString("pref_key_theme", context.getString(R.string.pref_theme_value_dynamic));
         final int nightMode;
         if (selectedTheme.equals(context.getString(R.string.pref_theme_value_light))) {
             nightMode = UiModeManager.MODE_NIGHT_NO;
@@ -605,7 +605,7 @@ public class GBApplication extends Application {
     }
 
     public static boolean areDynamicColorsEnabled() {
-        String selectedTheme = prefs.getString("pref_key_theme", context.getString(R.string.pref_theme_value_system));
+        String selectedTheme = prefs.getString("pref_key_theme", context.getString(R.string.pref_theme_value_dynamic));
         return selectedTheme.equals(context.getString(R.string.pref_theme_value_dynamic));
     }
 

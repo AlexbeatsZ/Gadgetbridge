@@ -573,7 +573,7 @@ public class SettingsActivity extends AbstractSettingsActivityV2 implements Acti
             final SwitchPreferenceCompat contrastingSurfaces = findPreference(GBApplication.PREF_CONTRASTING_SURFACES);
 
             if (amoled_black != null) {
-                String selectedTheme = prefs.getString("pref_key_theme", requireContext().getString(R.string.pref_theme_value_system));
+                String selectedTheme = prefs.getString("pref_key_theme", requireContext().getString(R.string.pref_theme_value_dynamic));
                 if (selectedTheme.equals("light"))
                     amoled_black.setEnabled(false);
                 else

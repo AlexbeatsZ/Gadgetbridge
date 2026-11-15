@@ -19,10 +19,12 @@ package nodomain.freeyourgadget.gadgetbridge.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
+import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
@@ -196,7 +198,10 @@ public abstract class AbstractSettingsActivityV2 extends AbstractGBActivity impl
     public void setActionBarTitle(final CharSequence title) {
         final ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setTitle(title);
+            actionBar.setTitle("");
         }
+        final TextView pageTitle = findViewById(R.id.settings_page_title);
+        pageTitle.setText(title);
+        ViewCompat.setAccessibilityHeading(pageTitle, true);
     }
 }

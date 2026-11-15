@@ -51,7 +51,7 @@ public class WelcomeFragmentIntro extends Fragment {
         final View view = inflater.inflate(R.layout.fragment_welcome_intro, container, false);
         final String[] themes = getResources().getStringArray(R.array.pref_theme_values);
         final Prefs prefs = GBApplication.getPrefs();
-        final String currentTheme = prefs.getString("pref_key_theme", getString(R.string.pref_theme_value_system));
+        final String currentTheme = prefs.getString("pref_key_theme", getString(R.string.pref_theme_value_dynamic));
         final int currentThemeIndex = Arrays.asList(themes).indexOf(currentTheme);
 
         final MaterialAutoCompleteTextView themeMenu = view.findViewById(R.id.app_theme_dropdown_menu);
