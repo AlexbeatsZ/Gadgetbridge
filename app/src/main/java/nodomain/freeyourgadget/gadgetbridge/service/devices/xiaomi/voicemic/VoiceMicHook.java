@@ -17,6 +17,9 @@
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic;
 
 import android.app.AndroidAppHelper;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
+import android.os.Bundle;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -24,6 +27,7 @@ import android.media.MediaSyncEvent;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+import android.widget.TextView;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -78,6 +82,22 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
         XposedHelpers.findAndHookMethod(AudioRecord.class, "stop", stop);
         XposedHelpers.findAndHookMethod(AudioRecord.class, "release", stop);
 
+        // The band's headset microphone is silent outside calls, and opening its headset audio while the band's
+        // own assistant captures cuts the band's voice stream. During a session the assistant is refused the
+        // headset; it then records from the phone microphone, which is replaced anyway.
+        XposedHelpers.findAndHookMethod(BluetoothHeadset.class, "startVoiceRecognition", BluetoothDevice.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(final MethodHookParam param) {
+                        if (sessionActive()) {
+                            log("refused headset voice recognition during a band voice session");
+                            param.setResult(false);
+                        }
+                    }
+                });
+
+        hookAnswerText();
+
         hookRead("byte[]", byte[].class, int.class, int.class);
         hookRead("byte[]", byte[].class, int.class, int.class, int.class);
         hookRead("short[]", short[].class, int.class, int.class);
@@ -118,6 +138,50 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     private static Uri streamUri() {
         return Uri.parse("content://" + BuildConfig.APPLICATION_ID + VoiceMicContract.AUTHORITY_SUFFIX + "/"
                 + VoiceMicContract.PATH_STREAM);
+    }
+
+    private static int answerViewId;
+
+    /**
+     * The answer is shown in the assistant's floating panel (UI process); every text it sets there is reported,
+     * Gadgetbridge only uses it while it waits for an answer to a band session.
+     */
+    private static void hookAnswerText() {
+        XposedHelpers.findAndHookMethod(TextView.class, "setText", CharSequence.class, TextView.BufferType.class,
+                boolean.class, int.class, new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(final MethodHookParam param) {
+                        final TextView view = (TextView) param.thisObject;
+                        if (answerViewId == 0) {
+                            answerViewId = view.getResources().getIdentifier(VoiceMicContract.ANSWER_VIEW_ID, "id",
+                                    VoiceMicContract.ASSISTANT_PACKAGE);
+                            if (answerViewId == 0) {
+                                answerViewId = -1;
+                            }
+                        }
+                        if (answerViewId <= 0 || view.getId() != answerViewId) {
+                            return;
+                        }
+                        final CharSequence text = (CharSequence) param.args[0];
+                        if (text != null && text.toString().trim().length() > 0) {
+                            call(view.getContext().getApplicationContext(), VoiceMicContract.METHOD_ANSWER,
+                                    text.toString().trim());
+                        }
+                    }
+                });
+    }
+
+    private static boolean sessionActive() {
+        final Context context = AndroidAppHelper.currentApplication();
+        if (context == null) {
+            return false;
+        }
+        try {
+            final Bundle result = context.getContentResolver().call(streamUri(), VoiceMicContract.METHOD_IS_ACTIVE, null, null);
+            return result != null && result.getBoolean(VoiceMicContract.KEY_ACTIVE);
+        } catch (final Throwable t) {
+            return false;
+        }
     }
 
     private static void onStart(final AudioRecord record) {

@@ -51,12 +51,19 @@ public final class VoiceMicHub {
         void onAssistantStoppedListening();
     }
 
+    public interface AnswerListener {
+        /** The assistant shows (or updates while streaming) an answer text. */
+        void onAssistantAnswer(String text);
+    }
+
     private final ByteArrayOutputStream sessionAudio = new ByteArrayOutputStream();
     private boolean active;
     @Nullable
     private Writer writer;
     @Nullable
     private Listener listener;
+    @Nullable
+    private AnswerListener answerListener;
 
     public static VoiceMicHub getInstance() {
         return INSTANCE;
@@ -108,6 +115,17 @@ public final class VoiceMicHub {
             listener.onAssistantStartedListening();
         }
         return pipe[0];
+    }
+
+    /** Answers are reported whenever the assistant shows one; the listener decides whether one is expected. */
+    public synchronized void setAnswerListener(@Nullable final AnswerListener answerListener) {
+        this.answerListener = answerListener;
+    }
+
+    public synchronized void onAnswer(final String text) {
+        if (answerListener != null) {
+            answerListener.onAssistantAnswer(text);
+        }
     }
 
     public synchronized void onRecordingStopped() {

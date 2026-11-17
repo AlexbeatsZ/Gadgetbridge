@@ -88,6 +88,14 @@ public class VoiceMicProvider extends ContentProvider {
             VoiceMicHub.getInstance().onRecordingStopped();
         } else if (VoiceMicContract.METHOD_REPORT.equals(method)) {
             LOG.info("Assistant voice mic report: {}", arg);
+        } else if (VoiceMicContract.METHOD_ANSWER.equals(method)) {
+            if (arg != null) {
+                VoiceMicHub.getInstance().onAnswer(arg);
+            }
+        } else if (VoiceMicContract.METHOD_IS_ACTIVE.equals(method)) {
+            final Bundle result = new Bundle();
+            result.putBoolean(VoiceMicContract.KEY_ACTIVE, VoiceMicHub.getInstance().isActive());
+            return result;
         }
         return null;
     }

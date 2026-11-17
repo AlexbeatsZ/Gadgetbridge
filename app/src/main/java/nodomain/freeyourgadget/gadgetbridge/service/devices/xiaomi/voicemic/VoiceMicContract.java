@@ -28,6 +28,13 @@ public final class VoiceMicContract {
     public static final String METHOD_RECORDING_STOPPED = "recording_stopped";
     /** {@code ContentResolver.call} method: the assistant reports which read overload it uses. */
     public static final String METHOD_REPORT = "report";
+    /** {@code ContentResolver.call} method: whether a band voice session is handed over; result key {@link #KEY_ACTIVE}. */
+    public static final String METHOD_IS_ACTIVE = "is_active";
+    public static final String KEY_ACTIVE = "active";
+    /** {@code ContentResolver.call} method: the assistant shows an answer text, passed as arg. */
+    public static final String METHOD_ANSWER = "answer";
+    /** View id (entry name) of the assistant's answer text in the Google app's floating panel. */
+    public static final String ANSWER_VIEW_ID = "assistant_robin_text";
 
     /** Stream format: 16 kHz, mono, signed 16 bit little endian, as decoded from the band. */
     public static final int SAMPLE_RATE = 16000;
