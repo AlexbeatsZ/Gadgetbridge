@@ -119,6 +119,7 @@ public class NotificationListener extends NotificationListenerService {
 
     private final HashMap<String, Long> notificationBurstPrevention = new HashMap<>();
     private final HashMap<String, Long> notificationOldRepeatPrevention = new HashMap<>();
+    private final GoogleClockNotificationHandler googleClockAlarms = new GoogleClockNotificationHandler();
 
     private static final Set<String> GROUP_SUMMARY_WHITELIST = new HashSet<>() {{
         add("com.microsoft.office.lync15");
@@ -349,6 +350,7 @@ public class NotificationListener extends NotificationListenerService {
 
     @Override
     public void onDestroy() {
+        googleClockAlarms.clear();
         //noinspection deprecation
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mReceiver);
         unregisterReceiver(mExportedReceiver);
@@ -379,13 +381,16 @@ public class NotificationListener extends NotificationListenerService {
             NotificationSettings.Companion.fromPrefs(prefs)
         );
 
-        if (isOutsideNotificationTimes(prefs, settings)) {
-            return;
-        }
-
         final boolean ignoreWorkProfile = prefs.getBoolean("notifications_ignore_work_profile", false);
         if (ignoreWorkProfile && isWorkProfile(sbn)) {
             LOG.debug("Ignoring notification from work profile");
+            return;
+        }
+
+        // Clock alarms are ongoing full-screen notifications and must bypass ordinary message filters.
+        if (googleClockAlarms.onPosted(sbn)) return;
+
+        if (isOutsideNotificationTimes(prefs, settings)) {
             return;
         }
 
@@ -997,6 +1002,9 @@ public class NotificationListener extends NotificationListenerService {
         notificationStack.remove(sbn.getPackageName());
 
         if (isServiceNotRunningAndShouldIgnoreNotifications()) return;
+
+        // Stop a forwarded alarm even if notification schedules or app rules changed while it rang.
+        if (googleClockAlarms.onRemoved(sbn)) return;
 
         final GBPrefs prefs = GBApplication.getPrefs();
         final CompiledNotificationAppConfig appConfig = NotificationAppRepository.INSTANCE.get(sbn.getPackageName());

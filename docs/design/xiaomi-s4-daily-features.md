@@ -42,6 +42,16 @@
 - 假日感知的工作日等规则在设备端保存，当前通用闹钟 UI 的重复选择仍只有标准星期规则。其已有规则可随开关、时间等编辑保留。
 - 相同日程服务中的每周提醒也使用星期 bitmask。此前周三等日期误发为星期序号，现改为 `1 << weekdayIndex`。
 
+## 手机闹钟响铃联动
+
+- 用户明确选择手机响铃时手表一起提醒。使用 Google 时钟的正在响铃通知及 AOSP/旧版 Google 闹钟广播触发，手机结束或进入稍后提醒后结束手表本次提醒。
+- Xiaomi 原生手机闹钟协议为 type17/subtype16，Schedule 字段16。PhoneAlarm.Operation 的字段1为 ALERT0、DISMISS1、SNOOZE2，字段2为 PhoneAlarm。闹钟字段1为ID、2为 Unix 秒时间、3为标签。已与官方 3.59.2 的 AlarmConsoleService.alertBle/dismissBle 和生成模型 nh4 核对。
+- AlarmClockReceiver 发出的 GENERIC_ALARM_CLOCK 在 XiaomiSupport 中交给 XiaomiScheduleService，结束时按相同 ID 发送 DISMISS。普通消息继续通过通知服务。连接重新初始化时保留本次手机闹钟 ID，以接收稍后的结束事件。
+- K70 的 Google 时钟 9.2 (998285100)/76120021 对 ALERT/DONE 广播要求 com.google.android.deskclock.permission.RECEIVE_ALERT_BROADCASTS，其 protectionLevel=3。已在该 APK 的 csj 与 Manifest 核对，普通 App 收不到此广播。
+- 因此 GoogleClockNotificationHandler 从既有 NotificationListener 识别 Google 时钟的 CATEGORY_ALARM 加 fullScreenIntent。该版本 cvd.buildFiring 使用 Firing 通道、alarm category 和全屏 Intent，普通预告及稍后提醒通知不满足此组合。通知刷新按 key 去重，移除或变成非响铃状态时发送结束，监听服务销毁也结束已转发的提醒。
+- Google 时钟遵循应用通知允许规则，响铃入口绕过普通消息的重复、持续通知、显示时段过滤。结束路径在规则变更后仍可清理。
+- 对用户实际响铃和稍后提醒的验收已按其上课期间的要求暂停。之前已安装临时调试构建并发送过一次合成 ALERT/DONE，收到一次手表响应。临时 Google 时钟测试项已取消，并只读确认数据库中无遗留。合成广播不能证明 Google 时钟真实事件入口成立。
+
 ## 其他日常能力核查
 
 - S4 已缓存 10 个闹钟槽位、40 个提醒槽位、多城市天气能力，以及通知、显示项目、睡眠计划等能力声明。单独的能力缓存只证明初始化链路已获得响应，显示和交互仍需真机验收。

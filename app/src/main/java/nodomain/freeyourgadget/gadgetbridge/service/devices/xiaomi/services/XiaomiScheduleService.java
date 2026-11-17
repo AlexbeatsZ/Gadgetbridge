@@ -44,6 +44,8 @@ import nodomain.freeyourgadget.gadgetbridge.entities.DaoSession;
 import nodomain.freeyourgadget.gadgetbridge.entities.Device;
 import nodomain.freeyourgadget.gadgetbridge.entities.User;
 import nodomain.freeyourgadget.gadgetbridge.model.Alarm;
+import nodomain.freeyourgadget.gadgetbridge.model.NotificationSpec;
+import nodomain.freeyourgadget.gadgetbridge.model.NotificationType;
 import nodomain.freeyourgadget.gadgetbridge.model.DeviceService;
 import nodomain.freeyourgadget.gadgetbridge.model.Reminder;
 import nodomain.freeyourgadget.gadgetbridge.model.WorldClock;
@@ -51,6 +53,7 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AlarmDelete;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AlarmDetails;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AlarmInfo;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.ReminderDelete;
+import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.PhoneAlarm;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.ReminderDetails;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Reminders;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.ReminderInfo;
@@ -78,6 +81,7 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
     private static final int CMD_WORLD_CLOCKS_SET = 11;
     private static final int CMD_REMINDERS_GET = 14;
     private static final int CMD_REMINDERS_CREATE = 15;
+    private static final int CMD_PHONE_ALARM = 16;
     private static final int CMD_REMINDERS_EDIT = 17;
     private static final int CMD_REMINDERS_DELETE = 18;
 
@@ -104,6 +108,7 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
     private final Map<Integer, Alarm> watchAlarms = new HashMap<>();
     private final Map<Integer, AlarmDetails> watchAlarmDetails = new HashMap<>();
     private final Map<String, Reminder> watchReminders = new HashMap<>();
+    private final Map<Integer, PhoneAlarm> phoneAlarms = new HashMap<>();
 
     private int pendingAlarmAcks = 0;
     private boolean alarmsInitialized = false;
@@ -158,6 +163,10 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
                     handleReminders(cmd.getSchedule().getReminders());
                 }
                 return;
+            case CMD_PHONE_ALARM:
+                // Acknowledgements and watch-side interactions do not mutate stored watch alarms.
+                LOG.debug("Got phone alarm response");
+                return;
             case CMD_REMINDERS_CREATE:
                 if (pendingReminderAcks > 0) {
                     pendingReminderAcks--;
@@ -206,6 +215,39 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
 
     public void requestReminders() {
         getSupport().sendCommand("request reminders", COMMAND_TYPE, CMD_REMINDERS_GET);
+    }
+
+    public boolean onPhoneAlarm(final NotificationSpec notification) {
+        if (notification.getType() != NotificationType.GENERIC_ALARM_CLOCK) {
+            return false;
+        }
+        final PhoneAlarm alarm = PhoneAlarm.newBuilder()
+                .setId(notification.getId())
+                .setAlertTime((int) (notification.getWhen() / 1000L))
+                .setLabel(notification.getTitle() == null ? "" : notification.getTitle())
+                .build();
+        phoneAlarms.put(notification.getId(), alarm);
+        sendPhoneAlarm(PhoneAlarm.OpCode.ALERT, alarm);
+        return true;
+    }
+
+    public boolean onDeletePhoneAlarm(final int id) {
+        final PhoneAlarm alarm = phoneAlarms.remove(id);
+        if (alarm == null) {
+            return false;
+        }
+        sendPhoneAlarm(PhoneAlarm.OpCode.DISMISS, alarm);
+        return true;
+    }
+
+    private void sendPhoneAlarm(final PhoneAlarm.OpCode operation, final PhoneAlarm alarm) {
+        LOG.info("Forwarding phone alarm {}, id={}", operation, alarm.getId());
+        getSupport().sendCommand("phone alarm " + operation, XiaomiProto.Command.newBuilder()
+                .setType(COMMAND_TYPE)
+                .setSubtype(CMD_PHONE_ALARM)
+                .setSchedule(Schedule.newBuilder().setPhoneAlarmOperation(PhoneAlarm.Operation.newBuilder()
+                        .setOpCode(operation).setPhoneAlarm(alarm)))
+                .build());
     }
 
     public void handleReminders(final Reminders reminders) {

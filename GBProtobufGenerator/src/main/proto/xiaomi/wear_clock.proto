@@ -36,8 +36,26 @@ message Schedule {
   // 17, 17
   optional ReminderInfo editReminder = 15;
 
+  // 17, 16 phone alarm ringing / dismissed / snoozed
+  optional PhoneAlarm.Operation phoneAlarmOperation = 16;
+
   // 17, 18
   optional ReminderDelete deleteReminder = 17;
+}
+
+message PhoneAlarm {
+  enum OpCode {
+    ALERT = 0;
+    DISMISS = 1;
+    SNOOZE = 2;
+  }
+  message Operation {
+    required OpCode opCode = 1;
+    required PhoneAlarm phoneAlarm = 2;
+  }
+  required uint32 id = 1;
+  optional uint32 alertTime = 2;
+  optional string label = 3;
 }
 
 message Alarms {

@@ -63,6 +63,7 @@ public class AlarmClockReceiver extends BroadcastReceiver {
     public static final String ALARM_DONE_ACTION = "com.android.deskclock.ALARM_DONE";
     public static final String GOOGLE_CLOCK_ALARM_DONE_ACTION = "com.google.android.deskclock.action.ALARM_DONE";
     private int lastId;
+    private String lastPackageName;
 
 
     @Override
@@ -84,6 +85,14 @@ public class AlarmClockReceiver extends BroadcastReceiver {
             return;
         }
 
+        // Always end an alarm that was forwarded, even if its app was muted while ringing.
+        if (ALARM_DONE_ACTION.equals(action) || GOOGLE_CLOCK_ALARM_DONE_ACTION.equals(action)) {
+            if (packageName.equals(lastPackageName)) {
+                dismissLastAlarm();
+            }
+            return;
+        }
+
         final NotificationAppRepository repository = NotificationAppRepository.INSTANCE;
         if (!NotificationAppRules.INSTANCE.shouldSend(repository.get(packageName), repository.getDefaultAction())) {
             LOG.info("Ignoring alarm action, application is not allowed to send notifications");
@@ -91,40 +100,38 @@ public class AlarmClockReceiver extends BroadcastReceiver {
         }
 
         if (ALARM_ALERT_ACTION.equals(action) || GOOGLE_CLOCK_ALARM_ALERT_ACTION.equals(action)) {
-            sendAlarm(context, true, packageName);
-        } else if (ALARM_DONE_ACTION.equals(action) || GOOGLE_CLOCK_ALARM_DONE_ACTION.equals(action)) {
-            sendAlarm(context, false, packageName);
+            sendAlarm(context, packageName);
         }
     }
 
-    private synchronized void sendAlarm(Context context, boolean on, String packageName) {
+    private synchronized void sendAlarm(Context context, String packageName) {
         dismissLastAlarm();
-        if (on) {
-            NotificationSpec notificationSpec = new NotificationSpec();
-            //TODO: can we attach a dismiss action to the notification and not use the notification ID explicitly?
-            lastId = notificationSpec.getId();
-            notificationSpec.setType(NotificationType.GENERIC_ALARM_CLOCK);
-            notificationSpec.setSourceAppId(packageName);
-            final String appLabel = NotificationUtils.getApplicationLabel(context, packageName);
-            notificationSpec.setSourceName(appLabel != null ? appLabel : "Alarm Clock");
-            notificationSpec.setTitle(context.getString(R.string.menuitem_alarm));
-            notificationSpec.setBody(DateFormat.getTimeFormat(context).format(new Date()));
-            notificationSpec.setAttachedActions(new ArrayList<>());
+        NotificationSpec notificationSpec = new NotificationSpec();
+        //TODO: can we attach a dismiss action to the notification and not use the notification ID explicitly?
+        lastId = notificationSpec.getId();
+        lastPackageName = packageName;
+        notificationSpec.setType(NotificationType.GENERIC_ALARM_CLOCK);
+        notificationSpec.setSourceAppId(packageName);
+        final String appLabel = NotificationUtils.getApplicationLabel(context, packageName);
+        notificationSpec.setSourceName(appLabel != null ? appLabel : "Alarm Clock");
+        notificationSpec.setTitle(context.getString(R.string.menuitem_alarm));
+        notificationSpec.setBody(DateFormat.getTimeFormat(context).format(new Date()));
+        notificationSpec.setAttachedActions(new ArrayList<>());
 
-            // DISMISS ALL action
-            NotificationSpec.Action dismissAllAction = new NotificationSpec.Action();
-            dismissAllAction.setTitle(context.getString(R.string.notifications_dismiss_all));
-            dismissAllAction.setType(NotificationSpec.Action.TYPE_SYNTHETIC_DISMISS_ALL);
-            notificationSpec.getAttachedActions().add(dismissAllAction);
+        // DISMISS ALL action
+        NotificationSpec.Action dismissAllAction = new NotificationSpec.Action();
+        dismissAllAction.setTitle(context.getString(R.string.notifications_dismiss_all));
+        dismissAllAction.setType(NotificationSpec.Action.TYPE_SYNTHETIC_DISMISS_ALL);
+        notificationSpec.getAttachedActions().add(dismissAllAction);
 
-            GBApplication.deviceService().onNotification(notificationSpec);
-        }
+        GBApplication.deviceService().onNotification(notificationSpec);
     }
 
     private void dismissLastAlarm() {
         if (lastId != 0) {
             GBApplication.deviceService().onDeleteNotification(lastId);
             lastId = 0;
+            lastPackageName = null;
         }
     }
 }

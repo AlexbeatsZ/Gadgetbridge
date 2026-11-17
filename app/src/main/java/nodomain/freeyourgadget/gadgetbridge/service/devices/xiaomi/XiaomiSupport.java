@@ -323,12 +323,16 @@ public class XiaomiSupport extends AbstractBluetoothDeviceSupport {
 
     @Override
     public void onNotification(final NotificationSpec notificationSpec) {
-        notificationService.onNotification(notificationSpec);
+        if (!scheduleService.onPhoneAlarm(notificationSpec)) {
+            notificationService.onNotification(notificationSpec);
+        }
     }
 
     @Override
     public void onDeleteNotification(final int id) {
-        notificationService.onDeleteNotification(id);
+        if (!scheduleService.onDeletePhoneAlarm(id)) {
+            notificationService.onDeleteNotification(id);
+        }
     }
 
     @Override

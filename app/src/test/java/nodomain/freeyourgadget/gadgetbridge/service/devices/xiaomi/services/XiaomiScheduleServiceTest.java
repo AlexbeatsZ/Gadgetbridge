@@ -18,6 +18,9 @@ import nodomain.freeyourgadget.gadgetbridge.database.DBHelper;
 import nodomain.freeyourgadget.gadgetbridge.entities.Alarm;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.DeviceType;
+import nodomain.freeyourgadget.gadgetbridge.model.NotificationSpec;
+import nodomain.freeyourgadget.gadgetbridge.model.NotificationType;
+import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.PhoneAlarm;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AlarmDetails;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AlarmInfo;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Alarms;
@@ -144,6 +147,48 @@ public class XiaomiScheduleServiceTest extends TestBase {
         service.handleCommand(XiaomiProto.Command.newBuilder().setType(17).setSubtype(0).setStatus(1).build());
         service.onSetAlarms(new ArrayList<>());
         verify(support).sendCommand("get alarms", 17, 0);
+    }
+
+    @Test
+    public void phoneRingingAndDismissUseNativePhoneAlarmProtocol() {
+        final NotificationSpec alarm = new NotificationSpec(42, 1794900000000L);
+        alarm.setType(NotificationType.GENERIC_ALARM_CLOCK);
+        alarm.setTitle("Phone alarm");
+        assertTrue(service.onPhoneAlarm(alarm));
+        assertTrue(service.onDeletePhoneAlarm(42));
+        final List<XiaomiProto.Command> commands = sentCommands();
+        assertEquals(2, commands.size());
+        for (final XiaomiProto.Command command : commands) {
+            assertEquals(17, command.getType());
+            assertEquals(16, command.getSubtype());
+            assertEquals(42, command.getSchedule().getPhoneAlarmOperation().getPhoneAlarm().getId());
+        }
+        final PhoneAlarm.Operation alert = commands.get(0).getSchedule().getPhoneAlarmOperation();
+        assertEquals(PhoneAlarm.OpCode.ALERT, alert.getOpCode());
+        assertEquals(1794900000, alert.getPhoneAlarm().getAlertTime());
+        assertEquals("Phone alarm", alert.getPhoneAlarm().getLabel());
+        assertEquals(PhoneAlarm.OpCode.DISMISS, commands.get(1).getSchedule().getPhoneAlarmOperation().getOpCode());
+        assertFalse(service.onDeletePhoneAlarm(42));
+    }
+
+    @Test
+    public void ordinaryNotificationsStayOnNotificationService() {
+        final NotificationSpec notification = new NotificationSpec();
+        notification.setType(NotificationType.GENERIC_SMS);
+        assertFalse(service.onPhoneAlarm(notification));
+        assertFalse(service.onDeletePhoneAlarm(notification.getId()));
+        verify(support, never()).sendCommand(anyString(), any(XiaomiProto.Command.class));
+    }
+
+    @Test
+    public void phoneAlarmStopStillWorksAfterWatchReinitializes() {
+        final NotificationSpec alarm = new NotificationSpec();
+        alarm.setType(NotificationType.GENERIC_ALARM_CLOCK);
+        assertTrue(service.onPhoneAlarm(alarm));
+        service.initialize();
+        assertTrue(service.onDeletePhoneAlarm(alarm.getId()));
+        assertEquals(PhoneAlarm.OpCode.DISMISS,
+                sentCommands().get(1).getSchedule().getPhoneAlarmOperation().getOpCode());
     }
 
     private XiaomiProto.Command listReply(final int repeatMode, final int repeatFlags) {
