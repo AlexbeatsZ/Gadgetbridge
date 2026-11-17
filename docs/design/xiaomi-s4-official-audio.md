@@ -106,6 +106,15 @@ SPP V2 的 L2 通道 3，opCode 2
 3. 实现 protobuf type 14/subtype 0 的停止收音、识别结果和回答卡片，并关联 session ID。
 4. 在现有绑定下验证收音停止和文字显示，再验证 HFP/SCO 的手表 TTS 播放。
 
+## 实机解码验证
+
+2026-11-17(手机时间)在 K70 + S4 上，经现有 Gadgetbridge 连接、不重新绑定，用 `XiaomiVoiceHandler` 实时解码真实语音通道数据。日志只记录每包解码帧数和电平，不保存 PCM。
+
+- 17 秒内 171 个 AUDIO_DATA 包,855 个 80 字节帧全部由 Concentus 解码成功(每帧 320 样本),0 失败。
+- 每包电平在 -77 到 -43 dBFS 之间随环境起伏，符合真实环境音。
+- 此前第二轮帧首字节不规则的现象属于正常的 Opus 帧内容变化，不影响按 80 字节切帧解码。
+- 本次及此前三轮唤醒都没有观察到 START、AUDIO_END、QUIT 或 protobuf type 14。连 Gadgetbridge 时手表直接推 AUDIO_DATA,处理器在无 START 时按会话 -1 解码。START 和停止收音何时出现仍待确认。
+
 ## 证据定位与复现入口
 
 以下行号对应本次 jadx 1.5.6 的输出，输出根目录为 `/tmp/.agents/s4-official-audio/decompiled/sources`。缓存清理后可从上述 APK 重新生成。
