@@ -27,6 +27,7 @@ import android.media.MediaSyncEvent;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
 import java.io.FileNotFoundException;
@@ -36,6 +37,8 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -58,6 +61,11 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     // read overloads call each other (read(byte[], int, int) calls the one with a read mode); only the
     // outermost call on a thread may consume band audio, or it is drained twice as fast
     private static final ThreadLocal<int[]> READ_DEPTH = ThreadLocal.withInitial(() -> new int[1]);
+    private static final ExecutorService CALLS = Executors.newSingleThreadExecutor(runnable -> {
+        final Thread thread = new Thread(runnable, "gb-voice-mic-call");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
@@ -142,7 +150,7 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
 
     private static final Map<Integer, String> VIEW_NAMES = Collections.synchronizedMap(new java.util.HashMap<>());
 
-    private static String viewName(final TextView view) {
+    private static String viewName(final View view) {
         final int id = view.getId();
         if (id == android.view.View.NO_ID) {
             return "";
@@ -160,15 +168,33 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     }
 
     /**
-     * The answer is shown in the assistant's floating panel (UI process); every text it sets there is reported,
-     * Gadgetbridge only uses it while it waits for an answer to a band session.
+     * Transcripts are TextViews, but tool results can be composed cards whose descendants have no resource IDs.
+     * Observe the response container after layout so both kinds of result include their complete visible content.
      */
     private static void hookAnswerText() {
+        XposedHelpers.findAndHookMethod(View.class, "onAttachedToWindow", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(final MethodHookParam param) {
+                final View view = (View) param.thisObject;
+                if (!AssistantResponseReader.isResponseContainer(viewName(view))) {
+                    return;
+                }
+                ResponseObserver observer = (ResponseObserver) XposedHelpers.getAdditionalInstanceField(view,
+                        "gb-response-observer");
+                if (observer == null) {
+                    observer = new ResponseObserver(view);
+                    XposedHelpers.setAdditionalInstanceField(view, "gb-response-observer", observer);
+                }
+                view.removeCallbacks(observer);
+                view.post(observer);
+            }
+        });
         XposedHelpers.findAndHookMethod(TextView.class, "setText", CharSequence.class, TextView.BufferType.class,
                 boolean.class, int.class, new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(final MethodHookParam param) {
                         final TextView view = (TextView) param.thisObject;
+                        final boolean observedResponse = markResponseChanged(view);
                         final String name = viewName(view);
                         if (!name.startsWith(VoiceMicContract.PANEL_VIEW_PREFIX)) {
                             return;
@@ -178,14 +204,96 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
                             return;
                         }
                         final Context appContext = view.getContext().getApplicationContext();
-                        if (VoiceMicContract.ANSWER_VIEW_ID.equals(name)) {
+                        if (VoiceMicContract.ANSWER_VIEW_ID.equals(name) && !observedResponse) {
+                            // Keep plain answers working in layouts that have no known response container.
                             call(appContext, VoiceMicContract.METHOD_ANSWER, text.toString().trim());
-                        } else {
+                        } else if (name.contains("query")) {
                             call(appContext, VoiceMicContract.METHOD_PANEL_TEXT,
                                     name + VoiceMicContract.SEPARATOR + text.toString().trim());
                         }
                     }
                 });
+        XposedHelpers.findAndHookMethod(View.class, "setContentDescription", CharSequence.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(final MethodHookParam param) {
+                        markResponseChanged((View) param.thisObject);
+                    }
+                });
+    }
+
+    private static boolean markResponseChanged(final View view) {
+        View current = view;
+        while (current != null) {
+            final ResponseObserver observer = (ResponseObserver) XposedHelpers.getAdditionalInstanceField(current,
+                    "gb-response-observer");
+            if (observer != null) {
+                observer.dirty = true;
+                return true;
+            }
+            current = current.getParent() instanceof View ? (View) current.getParent() : null;
+        }
+        return false;
+    }
+
+    private static final class ResponseObserver implements Runnable {
+        private final View view;
+        private String lastText = "";
+        private boolean dirty;
+
+        ResponseObserver(final View view) {
+            this.view = view;
+        }
+
+        @Override
+        public void run() {
+            if (!view.isAttachedToWindow()) {
+                return;
+            }
+            final Context context = view.getContext().getApplicationContext();
+            CALLS.execute(() -> {
+                long session = 0;
+                try {
+                    final Bundle state = context.getContentResolver().call(streamUri(),
+                            VoiceMicContract.METHOD_RESPONSE_SESSION, null, null);
+                    session = state != null ? state.getLong(VoiceMicContract.KEY_SESSION) : 0;
+                } catch (final Throwable t) {
+                    log("response session lookup failed: " + t);
+                }
+                final long responseSession = session;
+                view.post(() -> read(context, responseSession));
+            });
+        }
+
+        private void read(final Context context, final long session) {
+            if (!view.isAttachedToWindow()) {
+                return;
+            }
+            if (!view.isShown()) {
+                view.postDelayed(this, 500);
+                return;
+            }
+            try {
+                final String text = AssistantResponseReader.read(view);
+                final boolean changed = dirty || !text.equals(lastText);
+                lastText = text;
+                dirty = false;
+                if (session != 0 && changed) {
+                    CALLS.execute(() -> {
+                        try {
+                            final Bundle extras = new Bundle();
+                            extras.putLong(VoiceMicContract.KEY_SESSION, session);
+                            context.getContentResolver().call(streamUri(), VoiceMicContract.METHOD_RESPONSE, text, extras);
+                        } catch (final Throwable t) {
+                            log("response snapshot failed: " + t);
+                        }
+                    });
+                }
+            } catch (final Throwable t) {
+                log("response view could not be read: " + t);
+            }
+            view.postDelayed(this, 500);
+        }
     }
 
     private static boolean sessionActive() {
@@ -232,13 +340,13 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     }
 
     private static void call(final Context context, final String method, final String arg) {
-        new Thread(() -> {
+        CALLS.execute(() -> {
             try {
                 context.getContentResolver().call(streamUri(), method, arg, null);
             } catch (final Throwable t) {
                 log("call " + method + " failed: " + t);
             }
-        }, "gb-voice-mic-call").start();
+        });
     }
 
     private static void log(final String message) {

@@ -6738,4 +6738,5 @@
     <string name="weather_google_root_refresh">Sync Google Weather now</string>
     <string name="weather_google_root_success">Google Weather synced</string>
     <string name="weather_google_root_failure">Could not read Google Weather. Allow root access and open Google Weather to refresh its data.</string>
+    <string name="xiaomi_voice_assistant_no_visible_response">The phone assistant returned no displayable content. Check the result on your phone.</string>
 </resources>

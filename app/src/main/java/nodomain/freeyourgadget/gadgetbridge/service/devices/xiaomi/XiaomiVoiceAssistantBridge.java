@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
+import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Aivs;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstruction;
@@ -86,7 +87,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     private final XiaomiSupport support;
     private final VoiceMicHub hub = VoiceMicHub.getInstance();
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable finishTimeout = () -> finishDialog("timeout");
+    private final Runnable finishTimeout = this::onAnswerTimeout;
     private final Runnable finishAfterStop = this::awaitAnswer;
     private final Runnable sendAnswer = this::sendAnswer;
 
@@ -181,16 +182,34 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
 
     @Override
     public void onAssistantAnswer(final String text) {
+        final long responseSession = hub.getResponseSession();
         handler.post(() -> {
-            if (activeSession < 0) {
+            if (activeSession < 0 || responseSession == 0 || responseSession != hub.getResponseSession()) {
                 return;
             }
-            answer = text;
-            if (awaitingAnswer) {
-                handler.removeCallbacks(sendAnswer);
+            final String trimmed = text.trim();
+            if (trimmed.equals(answer)) {
+                return;
+            }
+            answer = trimmed.isEmpty() ? null : trimmed;
+            handler.removeCallbacks(sendAnswer);
+            if (awaitingAnswer && answer != null) {
                 handler.postDelayed(sendAnswer, ANSWER_SETTLE_MS);
             }
         });
+    }
+
+    private void onAnswerTimeout() {
+        if (activeSession < 0) {
+            return;
+        }
+        if (!awaitingAnswer) {
+            awaitAnswer();
+        }
+        if (answer == null) {
+            answer = support.getContext().getString(R.string.xiaomi_voice_assistant_no_visible_response);
+        }
+        sendAnswer();
     }
 
     @Override
@@ -213,7 +232,9 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         if (activeSession < 0 || answer == null) {
             return;
         }
-        final String text = answer.length() > MAX_ANSWER_CHARS ? answer.substring(0, MAX_ANSWER_CHARS) : answer;
+        final int end = answer.offsetByCodePoints(0,
+                Math.min(answer.codePointCount(0, answer.length()), MAX_ANSWER_CHARS));
+        final String text = answer.substring(0, end);
         LOG.info("Sending the assistant's answer to the band, {} chars", text.length());
         support.sendCommand("aivs answer", buildAnswerCommand(activeSession, text));
         support.sendCommand("aivs answer end", aivsCommand(AivsInstructionList.newBuilder()
@@ -235,6 +256,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         awaitingAnswer = false;
         answer = null;
         query = null;
+        hub.endResponseSession();
         hub.endSession();
     }
 
@@ -253,6 +275,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         handler.removeCallbacksAndMessages(null);
         activeSession = -1;
         awaitingAnswer = false;
+        hub.endResponseSession();
         hub.endSession();
         hub.setAnswerListener(null);
     }

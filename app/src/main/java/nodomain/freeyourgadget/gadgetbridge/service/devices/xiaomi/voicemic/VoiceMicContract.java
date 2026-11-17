@@ -33,6 +33,10 @@ public final class VoiceMicContract {
     public static final String KEY_ACTIVE = "active";
     /** {@code ContentResolver.call} method: the assistant shows an answer text, passed as arg. */
     public static final String METHOD_ANSWER = "answer";
+    /** A complete snapshot of the response, including cards, with its feedback session in extras. */
+    public static final String METHOD_RESPONSE = "response";
+    public static final String METHOD_RESPONSE_SESSION = "response_session";
+    public static final String KEY_SESSION = "session";
     /** View id (entry name) of the assistant's answer text in the Google app's floating panel. */
     public static final String ANSWER_VIEW_ID = "assistant_robin_text";
     /** Prefix of the floating panel's view ids whose texts are reported. */

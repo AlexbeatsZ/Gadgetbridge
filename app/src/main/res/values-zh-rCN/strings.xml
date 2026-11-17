@@ -6003,4 +6003,5 @@
     <string name="weather_google_root_failure">无法读取 Google 天气，请允许 Root 权限并打开 Google 天气刷新数据。</string>
     <string name="pref_xiaomi_voice_assistant_handoff_title">使用手机语音助手</string>
     <string name="pref_xiaomi_voice_assistant_handoff_summary">唤醒手表语音助手时改为启动手机的默认助手，并把手表收到的语音作为它的麦克风。需要在 LSPosed 中为 Google 应用启用手环模块</string>
+    <string name="xiaomi_voice_assistant_no_visible_response">手机助手未返回可显示的内容，请在手机上查看操作结果。</string>
 </resources>
