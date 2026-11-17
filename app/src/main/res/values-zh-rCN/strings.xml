@@ -836,7 +836,7 @@
     <string name="about_description_generic">用于替代供应商闭源穿戴设备 Android 应用程序的脱机、无版权、自由的方案。</string>
     <string name="about_activity_title_generic">关于 Gadgetbridge</string>
     <string name="about_title">关于</string>
-    <string name="pref_title_weather_summary">由 LineageOS 天气服务提供，其它 Android 版本需要使用类似 Breezy Weather 等应用。更多信息请查阅 Gadgetbridge 的网站。</string>
+    <string name="pref_title_weather_summary">天气来源及同步，可使用 Google 天气（Root）和兼容的天气提供程序。</string>
     <string name="menuitem_worldclock">世界时钟</string>
     <string name="permission_granting_mandatory">所有权限都是必须的，若未授予这些权限，可能会导致不稳定</string>
     <string name="error_background_service_reason">由于意外错误，启动后台服务失败。 - 点击此处查看更多详情。\n\n错误：</string>
@@ -5996,4 +5996,9 @@
     <string name="auto_export_upload_status_success">%s 发送成功</string>
     <string name="auto_export_upload_status_failed">%1$s 发送失败：%2$s</string>
     <string name="notif_export_upload_failed_title">数据库发送到服务器失败</string>
+    <string name="weather_google_root_title">使用 Google 天气（Root）</string>
+    <string name="weather_google_root_summary">每 30 分钟读取手机 Google 天气的当前位置实况和预报。需要 Root 权限。请打开 Google 天气刷新其数据。</string>
+    <string name="weather_google_root_refresh">立即同步 Google 天气</string>
+    <string name="weather_google_root_success">已同步 Google 天气</string>
+    <string name="weather_google_root_failure">无法读取 Google 天气，请允许 Root 权限并打开 Google 天气刷新数据。</string>
 </resources>

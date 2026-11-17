@@ -35,6 +35,7 @@ import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
 
 public final class XiaomiPreferences {
     public static final String PREF_ALARM_SLOTS = "alarm_slots";
+    public static final String FEAT_ALARM_SMART_WAKEUP = "feat_alarm_smart_wakeup";
     public static final String PREF_REMINDER_SLOTS = "reminder_slots";
     public static final String PREF_CANNED_MESSAGES_MIN = "canned_messages_min";
     public static final String PREF_CANNED_MESSAGES_MAX = "canned_messages_max";

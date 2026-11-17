@@ -417,7 +417,7 @@
     <string name="pref_message_privacy_mode_bodyonly">Hide only body</string>
     <string name="pref_title_weather">Weather</string>
     <string name="pref_title_weather_location">Weather location (for LineageOS weather provider)</string>
-    <string name="pref_title_weather_summary">Used for the LineageOS weather provider, other Android versions need to use an app like \"Breezy Weather\". Find more information on the Gadgetbridge website.</string>
+    <string name="pref_title_weather_summary">Weather sources and synchronization, including Google Weather (Root) and compatible weather providers.</string>
     <string name="pref_applications_settings">Applications list</string>
     <string name="pref_blacklist_calendars">Blacklist Calendars</string>
     <string name="pref_blacklist_calendars_summary">Blacklisted calendars will not be synced to the device</string>
@@ -6731,4 +6731,9 @@
     <string name="auto_export_upload_status_success">Succeeded at %s</string>
     <string name="auto_export_upload_status_failed">Failed at %1$s: %2$s</string>
     <string name="notif_export_upload_failed_title">Failed to send database to server</string>
+    <string name="weather_google_root_title">Use Google Weather (Root)</string>
+    <string name="weather_google_root_summary">Read current-location weather and forecasts from the installed Google Weather app every 30 minutes. Requires root access. Open Google Weather to refresh its data.</string>
+    <string name="weather_google_root_refresh">Sync Google Weather now</string>
+    <string name="weather_google_root_success">Google Weather synced</string>
+    <string name="weather_google_root_failure">Could not read Google Weather. Allow root access and open Google Weather to refresh its data.</string>
 </resources>

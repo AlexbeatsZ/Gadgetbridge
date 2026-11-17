@@ -261,7 +261,7 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
         final String location = StringUtils.ensureNotNull(weatherSpec.getLocation());
         return WeatherMetadata.newBuilder()
                 .setPublicationTimestamp(unixTimestampToISOWithColons(weatherSpec.getTimestamp()))
-                .setCityName("")
+                .setCityName(location)
                 .setLocationName(location)
                 .setLocationKey(getLocationKey(location)) // FIXME: placeholder because key is not present in spec
                 .setIsCurrentLocation(weatherSpec.getIsCurrentLocation() == 1)
@@ -423,6 +423,13 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
 
     public void onSendWeather() {
         final List<@NotNull WeatherSpec> weatherSpecList = Weather.getWeatherSpecs();
+        if (weatherSpecList.isEmpty()) {
+            return;
+        }
+        if (!locationsInitialized) {
+            getSupport().sendCommand("get weather locations", COMMAND_TYPE, CMD_GET_LOCATIONS);
+            return;
+        }
         if (supportsMultipleWeatherLocations()) {
             sendWeatherSpecList(weatherSpecList);
         } else {
@@ -521,12 +528,6 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
 
     private void onConditionRequestReceived(final XiaomiProto.Command command) {
 
-        if (!locationsInitialized) {
-            LOG.debug("Received request from device but multi location weather support still isn't initialized");
-            getSupport().sendCommand("get weather locations", COMMAND_TYPE, CMD_GET_LOCATIONS);
-            locationsInitialized = true; // remind only once
-        }
-
         if (command.hasStatus() && command.getStatus() != 0) {
             LOG.warn("Received request for conditions with unexpected status code {}", command.getStatus());
             return;
@@ -536,16 +537,19 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
             final String locationKey = command.getWeather().getLocation().getCode();
             final String locationName = command.getWeather().getLocation().getName();
 
-            if (!TextUtils.isEmpty(locationKey) && !TextUtils.isEmpty(locationName)) {
+            if (!TextUtils.isEmpty(locationKey) || !TextUtils.isEmpty(locationName)) {
                 LOG.debug("Received request for conditions (location key = {}, name = {})", locationKey, locationName);
 
                 final List<WeatherSpec> knownWeathers = Weather.getWeatherSpecs();
                 for (WeatherSpec spec : knownWeathers) {
-                    if (TextUtils.equals(spec.getLocation(), locationName)) {
+                    if (TextUtils.equals(getLocationKey(spec.getLocation()), locationKey) ||
+                            TextUtils.equals(spec.getLocation(), locationName)) {
                         sendWeatherSpec(spec);
                         return;
                     }
                 }
+                LOG.warn("No cached weather for requested location {}", locationKey);
+                return;
             } else {
                 LOG.debug("Received request for conditions at current location");
             }
@@ -558,7 +562,7 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
             return;
         }
 
-        sendWeatherSpec(Weather.getWeatherSpec());
+        sendWeatherSpec(spec);
     }
 
     private static String[] weatherLocationsToStringArray(final Collection<WeatherLocation> locations) {
@@ -599,17 +603,25 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
             return;
         }
 
-        getSupport().setFeatureSupported(XiaomiPreferences.FEAT_MULTIPLE_WEATHER_LOCATIONS, true);
-        locationsInitialized = true;
-
         if (!cmd.hasWeather() || !cmd.getWeather().hasLocations()) {
             LOG.warn("Received unexpected payload in response to configured weather locations request");
             LOG.debug("Unexpected weather locations command: {}", cmd);
+            return;
         }
+
+        final boolean initialLocations = !locationsInitialized;
+        getSupport().setFeatureSupported(XiaomiPreferences.FEAT_MULTIPLE_WEATHER_LOCATIONS, true);
+        locationsInitialized = true;
 
         final List<WeatherLocation> retrievedLocations = cmd.getWeather().getLocations().getLocationList();
 
         LOG.debug("Received {} weather locations: {}", retrievedLocations.size(), weatherLocationsToStringArray(retrievedLocations));
+
+        if (Weather.getWeatherSpecs().isEmpty()) {
+            cachedWeatherLocations.clear();
+            cachedWeatherLocations.addAll(retrievedLocations);
+            return;
+        }
 
         // remove any duplicate locations from device before caching locations
         {
@@ -675,6 +687,9 @@ public class XiaomiWeatherService extends AbstractXiaomiService {
         LOG.debug("Caching {} weather locations: {}", presentLocations.size(), weatherLocationsToStringArray(presentLocations));
         cachedWeatherLocations.clear();
         cachedWeatherLocations.addAll(presentLocations);
+        if (initialLocations) {
+            onSendWeather();
+        }
     }
 
     public static String unixTimestampToISOWithColons(int timestamp) {

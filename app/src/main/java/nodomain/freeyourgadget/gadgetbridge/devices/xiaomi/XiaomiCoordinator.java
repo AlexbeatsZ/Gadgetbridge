@@ -249,6 +249,11 @@ public abstract class XiaomiCoordinator extends AbstractBLEDeviceCoordinator {
 
     @Override
     public boolean supportsSmartWakeup(@NonNull final GBDevice device, int position) {
+        return supports(device, XiaomiPreferences.FEAT_ALARM_SMART_WAKEUP);
+    }
+
+    @Override
+    public boolean supportsAlarmTitle(@NonNull final GBDevice device) {
         return true;
     }
 

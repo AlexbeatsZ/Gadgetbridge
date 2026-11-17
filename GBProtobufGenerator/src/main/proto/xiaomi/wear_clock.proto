@@ -9,13 +9,15 @@ message Schedule {
   optional Alarms alarms = 1;
   // 17, 1
   optional AlarmDetails createAlarm = 2;
-  // 17, 3 -> returns 17, 5
+  // 17, 2 update | 17, 5 enable/disable
   optional AlarmInfo editAlarm = 3;
 
   optional uint32 ackId = 4; // id of created or edited alarm and reminder
 
   // 17, 4
   optional AlarmDelete deleteAlarm = 5;
+
+  optional uint32 clockError = 8;
 
   // 17, 8 get | 17, 9 set
   optional SleepMode sleepMode = 9;
@@ -40,8 +42,8 @@ message Schedule {
 
 message Alarms {
   optional uint32 maxAlarms = 2; // 10
-  optional uint32 unknown3 = 3; // 0
-  optional uint32 unknown4 = 4; // 1
+  optional bool supportsHoliday = 3;
+  optional bool supportsSmartWakeup = 4;
   repeated AlarmInfo alarm = 1;
 }
 
@@ -55,7 +57,9 @@ message AlarmDetails {
   optional uint32 repeatMode = 3; // 0 once, 1 daily, 5 weekly
   optional uint32 repeatFlags = 4; // only if weekly: 31 during week, 1 monday, 2 tuesday, 3 mon tue
   optional bool enabled = 5;
+  optional string label = 6;
   optional uint32 smart = 7; // 1 smart, 2 normal
+  optional uint64 nextRingTimestamp = 9; // computed by the watch, omitted when editing
 }
 
 message AlarmDelete {

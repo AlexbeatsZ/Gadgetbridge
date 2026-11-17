@@ -64,6 +64,7 @@ import java.util.TimeZone;
 
 import nodomain.freeyourgadget.gadgetbridge.BuildConfig;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
+import nodomain.freeyourgadget.gadgetbridge.model.weather.GoogleWeatherWorker;
 import nodomain.freeyourgadget.gadgetbridge.Logging;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.activities.automations.AutomationsSettingsActivity;
@@ -422,6 +423,22 @@ public class SettingsActivity extends AbstractSettingsActivityV2 implements Acti
                                 .setNegativeButton(android.R.string.cancel, null)
                                 .show();
                     }
+                    return true;
+                });
+            }
+
+            pref = findPreference("weather_google_root_enabled");
+            if (pref != null) {
+                pref.setOnPreferenceChangeListener((preference, newVal) -> {
+                    GoogleWeatherWorker.schedule(
+                            requireContext(), Boolean.TRUE.equals(newVal));
+                    return true;
+                });
+            }
+            pref = findPreference("weather_google_root_refresh");
+            if (pref != null) {
+                pref.setOnPreferenceClickListener(preference -> {
+                    GoogleWeatherWorker.refresh(requireContext());
                     return true;
                 });
             }

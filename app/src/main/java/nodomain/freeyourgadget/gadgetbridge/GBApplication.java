@@ -82,6 +82,7 @@ import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDeviceService;
 import nodomain.freeyourgadget.gadgetbridge.model.DeviceService;
 import nodomain.freeyourgadget.gadgetbridge.model.weather.Weather;
+import nodomain.freeyourgadget.gadgetbridge.model.weather.GoogleWeatherWorker;
 import nodomain.freeyourgadget.gadgetbridge.model.weather.WeatherCacheManager;
 import nodomain.freeyourgadget.gadgetbridge.prefs.GBPrefsMigrator;
 import nodomain.freeyourgadget.gadgetbridge.service.NotificationCollectorMonitorService;
@@ -306,6 +307,8 @@ public class GBApplication extends Application {
         // Let every external service schedule its own upkeep, such as renewing a token
         if (!GBEnvironment.env().isTest()) {
             ExternalServiceRegistry.scheduleBackgroundWork(context);
+            GoogleWeatherWorker.schedule(context,
+                    prefs.getBoolean("weather_google_root_enabled", false));
         }
     }
 

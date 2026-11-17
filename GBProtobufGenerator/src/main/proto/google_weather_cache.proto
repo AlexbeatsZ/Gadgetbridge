@@ -1,0 +1,89 @@
+syntax = "proto2";
+package google_weather_cache;
+option java_package = "nodomain.freeyourgadget.gadgetbridge.proto.googleweather";
+option java_outer_classname = "GoogleWeatherCache";
+
+// Read-only subset of Google Weather 1.1.20260716's EssentialsWeatherCache.
+// Field numbers and units were checked against its generated protobuf schemas.
+message Response {
+  optional Location location = 1;
+  optional Timestamp timestamp = 2;
+  optional Current current = 5;
+  optional Forecast hourly = 6;
+  optional Forecast daily = 7;
+}
+message Timestamp { optional int64 seconds = 1; }
+message Coordinates {
+  optional float latitude = 1;
+  optional float longitude = 2;
+}
+message Location {
+  optional Coordinates coordinates = 1;
+  optional string name = 2;
+  optional string timezone = 3;
+  optional string district = 4;
+  optional string city = 5;
+  optional int32 semanticType = 6;
+}
+message AddressRequest { optional Coordinates coordinates = 1; }
+message Address {
+  optional string district = 1;
+  optional string city = 2;
+}
+message Condition {
+  optional int32 code = 1;
+  optional string description = 4;
+}
+message Temperature {
+  optional float value = 1;
+  optional int32 unit = 2; // 1 Fahrenheit, 2 Celsius, 3 Kelvin
+}
+message Measurement {
+  optional float value = 1;
+  optional int32 unit = 2;
+}
+message Wind {
+  optional int32 direction = 1;
+  optional Measurement speed = 2; // 1 m/s, 2 km/h, 3 mph, 4 knots
+}
+message SolarEvents { repeated SolarEvent event = 1; }
+message SolarEvent {
+  optional Timestamp timestamp = 1;
+  optional int32 type = 3; // 1 sunrise, 2 sunset
+}
+message Precipitation { optional int32 probability = 1; }
+message Current {
+  optional Location location = 1;
+  optional Timestamp timestamp = 2;
+  optional Condition condition = 3;
+  optional Temperature temperature = 4;
+  optional Temperature feelsLike = 5;
+  optional Wind wind = 7;
+  optional Measurement uv = 8;
+  optional SolarEvents solar = 9;
+  optional Measurement pressure = 12; // 1 inHg, 2 hPa
+  optional Temperature dewPoint = 13;
+  optional int32 humidity = 14;
+  optional Precipitation precipitation = 16;
+}
+message Forecast { repeated ForecastEntry entry = 2; }
+message ForecastEntry {
+  optional Timestamp timestamp = 2;
+  optional Condition condition = 3;
+  optional HourlyTemperature hourlyTemperature = 4;
+  optional DailyTemperature dailyTemperature = 5;
+  optional Precipitation precipitation = 6;
+  optional Wind wind = 7;
+  optional Measurement uv = 8;
+  optional SolarEvents solar = 10;
+  optional int32 humidity = 11;
+}
+message HourlyTemperature {
+  optional Temperature temperature = 1;
+  optional Temperature feelsLike = 2;
+}
+message DailyTemperature { optional TemperatureRange range = 1; }
+message TemperatureRange {
+  optional Temperature high = 1;
+  optional Temperature low = 2;
+}

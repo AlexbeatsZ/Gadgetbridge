@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -638,7 +639,7 @@ public class DBHelper {
      */
     @NonNull
     public static List<Alarm> getAlarmsWithDefaults(@NonNull GBDevice gbDevice) {
-        List<Alarm> alarms = getAlarms(gbDevice);
+        List<Alarm> alarms = new ArrayList<>(getAlarms(gbDevice));
         fillMissingAlarms(gbDevice, alarms);
         return alarms;
     }

@@ -464,6 +464,19 @@
             android:summary="@string/pref_title_weather_summary"
             android:title="@string/pref_title_weather">
 
+            <SwitchPreferenceCompat
+                android:key="weather_google_root_enabled"
+                android:defaultValue="false"
+                android:title="@string/weather_google_root_title"
+                android:summary="@string/weather_google_root_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="weather_google_root_refresh"
+                android:dependency="weather_google_root_enabled"
+                android:title="@string/weather_google_root_refresh"
+                app:iconSpaceReserved="false" />
+
             <EditTextPreference
                 android:inputType="text"
                 android:key="weather_city"
