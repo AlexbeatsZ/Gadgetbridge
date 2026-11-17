@@ -1,9 +1,12 @@
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.robolectric.Shadows.shadowOf;
@@ -24,6 +27,7 @@ import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.DeviceType;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicContract;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicHub;
 import nodomain.freeyourgadget.gadgetbridge.test.TestBase;
 
@@ -52,20 +56,17 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
     @Test
     public void cardOnlyResultIsSentAfterAudioStops() {
         startAndStopListening();
-        final long session = hub.getResponseSession();
-        assertTrue(session > 0);
-        hub.onResponse(session, "闹钟已设置\n07:30\n明天");
+        hub.onAnswer("闹钟已设置\n07:30\n明天");
         advance(1500);
         assertEquals("闹钟已设置\n07:30\n明天", answerTexts().get(0));
-        assertEquals(0, hub.getResponseSession());
     }
 
     @Test
     public void streamingCardSendsLatestSnapshotOnce() {
         startAndStopListening();
-        hub.onResponse(hub.getResponseSession(), "闹钟");
+        hub.onAnswer("闹钟");
         advance(1000);
-        hub.onResponse(hub.getResponseSession(), "闹钟已设置\n08:00");
+        hub.onAnswer("闹钟已设置\n08:00");
         advance(1500);
         assertEquals(List.of("闹钟已设置\n08:00"), answerTexts());
     }
@@ -80,30 +81,17 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
     @Test
     public void clearedCardDoesNotSendItsStalePartialContent() {
         startAndStopListening();
-        hub.onResponse(hub.getResponseSession(), "闹钟");
+        hub.onAnswer("闹钟");
         advance(500);
-        hub.onResponse(hub.getResponseSession(), "");
+        hub.onAnswer("");
         advance(30000);
         assertEquals(List.of(getContext().getString(R.string.xiaomi_voice_assistant_no_visible_response)), answerTexts());
     }
 
     @Test
-    public void previousSessionCannotSupplyTheNextAnswer() {
-        startAndStopListening();
-        final long previousSession = hub.getResponseSession();
-        hub.onResponse(previousSession, "第一次回答");
-        advance(1500);
-        startAndStopListening();
-        hub.onResponse(previousSession, "过期的闹钟卡片");
-        hub.onResponse(hub.getResponseSession(), "当前闹钟卡片");
-        advance(1500);
-        assertEquals(List.of("第一次回答", "当前闹钟卡片"), answerTexts());
-    }
-
-    @Test
     public void resultShownBeforeRecordingStopsIsStillSent() {
         bridge.onVoiceStart(0);
-        hub.onResponse(hub.getResponseSession(), "07:30\n明天");
+        hub.onAnswer("07:30\n明天");
         advance(0);
         bridge.onAssistantStoppedListening();
         advance(3000);
@@ -113,10 +101,10 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
     @Test
     public void sameResultCanBeSentForConsecutiveRequests() {
         startAndStopListening();
-        hub.onResponse(hub.getResponseSession(), "07:30\n明天");
+        hub.onAnswer("07:30\n明天");
         advance(1500);
         startAndStopListening();
-        hub.onResponse(hub.getResponseSession(), "07:30\n明天");
+        hub.onAnswer("07:30\n明天");
         advance(1500);
         assertEquals(List.of("07:30\n明天", "07:30\n明天"), answerTexts());
     }
@@ -124,9 +112,55 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
     @Test
     public void longResponseDoesNotSplitSupplementaryCharacters() {
         startAndStopListening();
-        hub.onResponse(hub.getResponseSession(), "a".repeat(999) + "😀" + "more");
+        hub.onAnswer("a".repeat(999) + "😀" + "more");
         advance(1500);
         assertEquals("a".repeat(999) + "😀", answerTexts().get(0));
+    }
+
+    @Test
+    public void quitStopsWatchAudioAndAllowsAnotherRequestImmediately() {
+        bridge.onVoiceStart(0);
+        bridge.onVoiceEnd(0, true);
+        advance(0);
+        assertFalse(hub.isActive());
+        assertEquals(1, cancellationBroadcastCount());
+        verify(support, never()).sendCommand(anyString(), any());
+        bridge.onVoiceStart(0);
+        assertTrue(hub.isActive());
+    }
+
+    @Test
+    public void quitAfterAudioEndDiscardsPendingAnswer() {
+        startAndStopListening();
+        bridge.onVoiceEnd(0, false);
+        hub.onAnswer("闹钟已设置");
+        advance(0);
+        assertEquals(0, cancellationBroadcastCount());
+        // The decoder has already released the session after AUDIO_END.
+        bridge.onVoiceEnd(-1, true);
+        advance(30000);
+        assertEquals(1, cancellationBroadcastCount());
+        assertTrue(answerTexts().isEmpty());
+    }
+
+    @Test
+    public void normalAudioEndDoesNotCancelTheAnswer() {
+        bridge.onVoiceStart(0);
+        bridge.onVoiceEnd(0, false);
+        advance(0);
+        assertEquals(0, cancellationBroadcastCount());
+        assertTrue(hub.isActive());
+        bridge.onAssistantStoppedListening();
+        hub.onAnswer("正常回答");
+        advance(3000);
+        assertEquals(List.of("正常回答"), answerTexts());
+    }
+
+    private long cancellationBroadcastCount() {
+        return shadowOf((android.app.Application) getContext().getApplicationContext()).getBroadcastIntents().stream()
+                .filter(intent -> VoiceMicContract.ACTION_CANCEL.equals(intent.getAction())
+                        && VoiceMicContract.ASSISTANT_PACKAGE.equals(intent.getPackage()))
+                .count();
     }
 
     private void startAndStopListening() {

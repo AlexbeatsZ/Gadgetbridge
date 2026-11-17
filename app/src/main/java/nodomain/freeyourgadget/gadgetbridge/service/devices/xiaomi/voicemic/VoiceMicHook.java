@@ -16,16 +16,22 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic;
 
+import android.app.Activity;
 import android.app.AndroidAppHelper;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.os.Bundle;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaSyncEvent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -37,8 +43,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -61,11 +65,6 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     // read overloads call each other (read(byte[], int, int) calls the one with a read mode); only the
     // outermost call on a thread may consume band audio, or it is drained twice as fast
     private static final ThreadLocal<int[]> READ_DEPTH = ThreadLocal.withInitial(() -> new int[1]);
-    private static final ExecutorService CALLS = Executors.newSingleThreadExecutor(runnable -> {
-        final Thread thread = new Thread(runnable, "gb-voice-mic-call");
-        thread.setDaemon(true);
-        return thread;
-    });
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
@@ -113,7 +112,73 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
         hookRead("float[]", float[].class, int.class, int.class, int.class);
         hookRead("ByteBuffer", ByteBuffer.class, int.class);
         hookRead("ByteBuffer", ByteBuffer.class, int.class, int.class);
+        // Optional UI cancellation must not prevent microphone hooks from being installed.
+        try {
+            hookCancellation(lpparam.classLoader);
+        } catch (final Throwable t) {
+            log("assistant cancellation hook unavailable: " + t);
+        }
         log("hooks installed in " + lpparam.processName);
+    }
+
+    private static final String FLOATY_ACTIVITY = "com.google.android.apps.search.assistant.surfaces.voice.robin.ui.floaty.activity.FloatyActivity";
+    private static final String CANCELLATION_RECEIVER = "gb-cancellation-receiver";
+
+    private static void hookCancellation(final ClassLoader classLoader) {
+        final Class<?> panel = XposedHelpers.findClassIfExists(FLOATY_ACTIVITY, classLoader);
+        if (panel == null) {
+            return;
+        }
+        final XC_MethodHook opened = new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(final MethodHookParam param) {
+                final Activity activity = (Activity) param.thisObject;
+                unregisterCancellation(activity);
+                if (!param.hasThrowable() && sessionActive()) {
+                    registerCancellation(activity);
+                }
+            }
+        };
+        XposedHelpers.findAndHookMethod(panel, "onCreate", Bundle.class, opened);
+        // The same floaty activity can be reused on a second assistant invocation.
+        XposedHelpers.findAndHookMethod(panel, "onNewIntent", Intent.class, opened);
+        XposedHelpers.findAndHookMethod(panel, "onDestroy", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(final MethodHookParam param) {
+                unregisterCancellation((Activity) param.thisObject);
+            }
+        });
+    }
+
+    private static void registerCancellation(final Activity panel) {
+        final long openedAt = SystemClock.elapsedRealtime();
+        final BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(final Context context, final Intent intent) {
+                if (VoiceMicContract.ACTION_CANCEL.equals(intent.getAction())
+                        && intent.getLongExtra(VoiceMicContract.EXTRA_CANCEL_TIME, -1) >= openedAt
+                        && !panel.isFinishing() && !sessionActive()) {
+                    panel.finish();
+                    log("closed the assistant panel after watch cancellation");
+                }
+            }
+        };
+        final IntentFilter filter = new IntentFilter(VoiceMicContract.ACTION_CANCEL);
+        final String permission = BuildConfig.APPLICATION_ID + VoiceMicContract.CANCEL_PERMISSION_SUFFIX;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            panel.registerReceiver(receiver, filter, permission, null, Context.RECEIVER_EXPORTED);
+        } else {
+            panel.registerReceiver(receiver, filter, permission, null);
+        }
+        XposedHelpers.setAdditionalInstanceField(panel, CANCELLATION_RECEIVER, receiver);
+    }
+
+    private static void unregisterCancellation(final Activity panel) {
+        final BroadcastReceiver receiver = (BroadcastReceiver)
+                XposedHelpers.removeAdditionalInstanceField(panel, CANCELLATION_RECEIVER);
+        if (receiver != null) {
+            panel.unregisterReceiver(receiver);
+        }
     }
 
     private static void hookRead(final String kind, final Object... parameterTypes) {
@@ -250,25 +315,6 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
             if (!view.isAttachedToWindow()) {
                 return;
             }
-            final Context context = view.getContext().getApplicationContext();
-            CALLS.execute(() -> {
-                long session = 0;
-                try {
-                    final Bundle state = context.getContentResolver().call(streamUri(),
-                            VoiceMicContract.METHOD_RESPONSE_SESSION, null, null);
-                    session = state != null ? state.getLong(VoiceMicContract.KEY_SESSION) : 0;
-                } catch (final Throwable t) {
-                    log("response session lookup failed: " + t);
-                }
-                final long responseSession = session;
-                view.post(() -> read(context, responseSession));
-            });
-        }
-
-        private void read(final Context context, final long session) {
-            if (!view.isAttachedToWindow()) {
-                return;
-            }
             if (!view.isShown()) {
                 view.postDelayed(this, 500);
                 return;
@@ -278,16 +324,8 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
                 final boolean changed = dirty || !text.equals(lastText);
                 lastText = text;
                 dirty = false;
-                if (session != 0 && changed) {
-                    CALLS.execute(() -> {
-                        try {
-                            final Bundle extras = new Bundle();
-                            extras.putLong(VoiceMicContract.KEY_SESSION, session);
-                            context.getContentResolver().call(streamUri(), VoiceMicContract.METHOD_RESPONSE, text, extras);
-                        } catch (final Throwable t) {
-                            log("response snapshot failed: " + t);
-                        }
-                    });
+                if (changed) {
+                    call(view.getContext().getApplicationContext(), VoiceMicContract.METHOD_ANSWER, text);
                 }
             } catch (final Throwable t) {
                 log("response view could not be read: " + t);
@@ -340,13 +378,13 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     }
 
     private static void call(final Context context, final String method, final String arg) {
-        CALLS.execute(() -> {
+        new Thread(() -> {
             try {
                 context.getContentResolver().call(streamUri(), method, arg, null);
             } catch (final Throwable t) {
                 log("call " + method + " failed: " + t);
             }
-        });
+        }, "gb-voice-mic-call").start();
     }
 
     private static void log(final String message) {

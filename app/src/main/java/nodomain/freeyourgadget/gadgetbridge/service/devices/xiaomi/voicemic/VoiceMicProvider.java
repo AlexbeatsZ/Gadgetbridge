@@ -92,14 +92,6 @@ public class VoiceMicProvider extends ContentProvider {
             if (arg != null) {
                 VoiceMicHub.getInstance().onAnswer(arg);
             }
-        } else if (VoiceMicContract.METHOD_RESPONSE.equals(method)) {
-            if (arg != null && extras != null) {
-                VoiceMicHub.getInstance().onResponse(extras.getLong(VoiceMicContract.KEY_SESSION), arg);
-            }
-        } else if (VoiceMicContract.METHOD_RESPONSE_SESSION.equals(method)) {
-            final Bundle result = new Bundle();
-            result.putLong(VoiceMicContract.KEY_SESSION, VoiceMicHub.getInstance().getResponseSession());
-            return result;
         } else if (VoiceMicContract.METHOD_PANEL_TEXT.equals(method)) {
             final int sep = arg != null ? arg.indexOf(VoiceMicContract.SEPARATOR) : -1;
             if (sep > 0) {

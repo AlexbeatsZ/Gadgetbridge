@@ -44,6 +44,7 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsRecognizeResultItem
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsText;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiVoiceHandler;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicContract;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicHub;
 
 /**
@@ -92,7 +93,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     private final Runnable sendAnswer = this::sendAnswer;
 
     // session handed over and not finished yet
-    private int activeSession = -1;
+    private volatile int activeSession = -1;
     // the band shows a loading card and waits for the assistant's answer
     private boolean awaitingAnswer;
     @Nullable
@@ -142,8 +143,23 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
 
     @Override
     public void onVoiceEnd(final int sessionId, final boolean quit) {
-        // the assistant may still be reading what was buffered; it finishes the dialog when it stops
         LOG.debug("Band voice session {} {}", sessionId, quit ? "quit" : "ended");
+        // AUDIO_END is only the end of capture; QUIT explicitly abandons the dialog.
+        if (quit) {
+            final long cancelledAt = SystemClock.elapsedRealtime();
+            handler.post(() -> cancelDialog(sessionId, cancelledAt));
+        }
+    }
+
+    private void cancelDialog(final int sessionId, final long cancelledAt) {
+        if (activeSession < 0 || (sessionId >= 0 && sessionId != activeSession)) {
+            return;
+        }
+        LOG.info("Voice session {} cancelled on the band", activeSession);
+        clearDialog();
+        support.getContext().sendBroadcast(new Intent(VoiceMicContract.ACTION_CANCEL)
+                .setPackage(VoiceMicContract.ASSISTANT_PACKAGE)
+                .putExtra(VoiceMicContract.EXTRA_CANCEL_TIME, cancelledAt));
     }
 
     @Override
@@ -182,9 +198,8 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
 
     @Override
     public void onAssistantAnswer(final String text) {
-        final long responseSession = hub.getResponseSession();
         handler.post(() -> {
-            if (activeSession < 0 || responseSession == 0 || responseSession != hub.getResponseSession()) {
+            if (activeSession < 0) {
                 return;
             }
             final String trimmed = text.trim();
@@ -243,21 +258,24 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     }
 
     private void finishDialog(final String reason) {
-        handler.removeCallbacks(finishTimeout);
-        handler.removeCallbacks(finishAfterStop);
-        handler.removeCallbacks(sendAnswer);
         if (activeSession >= 0) {
             LOG.info("Finishing voice session {} on the band: {}", activeSession, reason);
             support.sendCommand("aivs finish", awaitingAnswer
                     ? buildDialogFinishCommand(activeSession)
                     : buildFinishCommand(activeSession));
         }
-        activeSession = -1;
+        clearDialog();
+    }
+
+    private void clearDialog() {
+        handler.removeCallbacks(finishTimeout);
+        handler.removeCallbacks(finishAfterStop);
+        handler.removeCallbacks(sendAnswer);
         awaitingAnswer = false;
         answer = null;
         query = null;
-        hub.endResponseSession();
         hub.endSession();
+        activeSession = -1;
     }
 
     private static void launchAssistant(final Context context) {
@@ -275,7 +293,6 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         handler.removeCallbacksAndMessages(null);
         activeSession = -1;
         awaitingAnswer = false;
-        hub.endResponseSession();
         hub.endSession();
         hub.setAnswerListener(null);
     }

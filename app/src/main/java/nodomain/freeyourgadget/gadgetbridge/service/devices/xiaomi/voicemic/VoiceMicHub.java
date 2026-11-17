@@ -61,8 +61,6 @@ public final class VoiceMicHub {
 
     private final ByteArrayOutputStream sessionAudio = new ByteArrayOutputStream();
     private boolean active;
-    private long responseSession;
-    private boolean responseActive;
     @Nullable
     private Writer writer;
     @Nullable
@@ -78,8 +76,6 @@ public final class VoiceMicHub {
         endSession();
         this.listener = listener;
         active = true;
-        responseSession++;
-        responseActive = true;
         LOG.info("Voice mic session started");
     }
 
@@ -133,21 +129,6 @@ public final class VoiceMicHub {
         if (answerListener != null) {
             answerListener.onAssistantAnswer(text);
         }
-    }
-
-    /** Feedback remains active after the audio pipe closes, until the band's dialog finishes. */
-    public synchronized long getResponseSession() {
-        return responseActive ? responseSession : 0;
-    }
-
-    public synchronized void onResponse(final long session, final String text) {
-        if (session != 0 && session == getResponseSession()) {
-            onAnswer(text);
-        }
-    }
-
-    public synchronized void endResponseSession() {
-        responseActive = false;
     }
 
     public synchronized void onPanelText(final String viewId, final String text) {

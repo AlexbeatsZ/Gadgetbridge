@@ -7,6 +7,11 @@
         Comment in for testing Pebble Emulator
         <uses-permission android:name="android.permission.INTERNET" />
     -->
+    <!-- Only this signed app may ask the hook inside Google to cancel its band-owned session. -->
+    <permission android:name="${applicationId}.permission.CANCEL_PHONE_ASSISTANT"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="${applicationId}.permission.CANCEL_PHONE_ASSISTANT" />
+
     <!-- Used for Bluetooth access -->
     <!--
         Request legacy Bluetooth permissions on older devices.
