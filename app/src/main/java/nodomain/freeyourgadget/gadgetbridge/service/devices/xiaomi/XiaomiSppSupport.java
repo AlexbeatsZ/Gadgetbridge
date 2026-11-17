@@ -41,9 +41,12 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.service.btbr.AbstractBTBRDeviceSupport;
 import nodomain.freeyourgadget.gadgetbridge.service.btbr.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiChannelHandler.Channel;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiVoiceHandler;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 
 public class XiaomiSppSupport extends XiaomiConnectionSupport {
+    private final XiaomiVoiceHandler mVoiceHandler = new XiaomiVoiceHandler();
+    private final XiaomiVoiceAssistantBridge mVoiceAssistantBridge;
     private static final Logger LOG = LoggerFactory.getLogger(XiaomiSppSupport.class);
 
     AbstractBTBRDeviceSupport commsSupport = new AbstractBTBRDeviceSupport(LOG, 1024) {
@@ -108,6 +111,9 @@ public class XiaomiSppSupport extends XiaomiConnectionSupport {
         mChannelHandlers.put(Channel.Version, this::handleVersionPacket);
         mChannelHandlers.put(Channel.ProtobufCommand, this.mXiaomiSupport::handleCommandBytes);
         mChannelHandlers.put(Channel.Activity, this.mXiaomiSupport.getHealthService().getActivityFetcher()::addChunk);
+        mVoiceAssistantBridge = new XiaomiVoiceAssistantBridge(xiaomiSupport);
+        mVoiceHandler.setListener(mVoiceAssistantBridge);
+        mChannelHandlers.put(Channel.Voice, mVoiceHandler);
     }
 
     @Override
@@ -125,6 +131,8 @@ public class XiaomiSppSupport extends XiaomiConnectionSupport {
         commsSupport.dispose();
         mVersionResponseTimeoutHandler.removeCallbacksAndMessages(null);
         mProtocol.dispose();
+        mVoiceHandler.reset();
+        mVoiceAssistantBridge.dispose();
     }
 
     protected XiaomiAuthService getAuthService() {

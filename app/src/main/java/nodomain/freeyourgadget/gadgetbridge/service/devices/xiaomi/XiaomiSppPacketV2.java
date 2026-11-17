@@ -283,6 +283,7 @@ public abstract class XiaomiSppPacketV2 {
         private static final int CHANNEL_UNKNOWN = -1;
         private static final int CHANNEL_PROTOBUF = 1; // encrypted after authentication
         private static final int CHANNEL_DATA = 2; // not encrypted
+        private static final int CHANNEL_VOICE = 3; // voice assistant audio, streamed while the assistant listens
         private static final int CHANNEL_ACTIVITY = 5; // encrypted
 
         public static final int OPCODE_UNKNOWN = -1;
@@ -353,6 +354,8 @@ public abstract class XiaomiSppPacketV2 {
                     return Channel.Activity;
                 case CHANNEL_DATA:
                     return Channel.Data;
+                case CHANNEL_VOICE:
+                    return Channel.Voice;
                 default:
                     LOG.warn("getChannelFromRaw(): unknown raw channel {}", rawChannel);
                     return Channel.Unknown;

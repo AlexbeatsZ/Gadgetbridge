@@ -24,6 +24,7 @@ public interface XiaomiChannelHandler {
         Activity,
         Data,
         Authentication,
+        Voice,
     };
 
     void handle(final byte[] payload);

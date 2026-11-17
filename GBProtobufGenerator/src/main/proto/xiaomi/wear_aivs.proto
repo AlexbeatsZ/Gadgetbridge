@@ -1,0 +1,37 @@
+syntax = "proto2";
+package xiaomi;
+option java_package = "nodomain.freeyourgadget.gadgetbridge.proto.xiaomi";
+option java_multiple_files = true;
+
+// Voice assistant (command type 14), subset of the official layout. Field numbers follow the Mi Fitness protocol
+// as published in AstroBox-NG-Module-Pb (wear_aivs.proto); see docs/design/xiaomi-s4-official-audio.md.
+message Aivs {
+  optional AivsInstructionList instructionList = 1; // subtype 0, phone -> band
+  optional AivsStatus aivsStatus = 5; // subtype 5, band -> phone
+}
+
+message AivsInstructionList {
+  repeated AivsInstruction instruction = 1;
+}
+
+message AivsInstruction {
+  // 3 STOP_CAPTURE, 4 DIALOG_FINISH, 256 TEMPLATE_TOAST, 264 SPEECHSYNTHESIZER_SPEAK
+  optional uint32 resultType = 1;
+  optional AivsText templateToast = 3;
+  optional AivsText speak = 11;
+  // session ID from the START command on the voice channel
+  optional uint32 sessionId = 13;
+}
+
+message AivsText {
+  optional string text = 1;
+}
+
+message AivsStatus {
+  optional uint32 voiceStatus = 1; // 0 idle, 1 wake up, 2 recording, 3 standby
+  optional uint32 ttsStatus = 2;
+  optional uint32 mediaPlayStatus = 3;
+  optional uint32 imageStatus = 4;
+  optional uint32 operatingStatus = 5;
+  optional uint32 deviceStatus = 6;
+}
