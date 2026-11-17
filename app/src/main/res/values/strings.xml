@@ -4593,6 +4593,8 @@
     <string name="intent_api_allow_watch_app_messages_summary">Allow other apps to send messages to apps installed on the watch via Intent API</string>
     <string name="pref_xiaomi_voice_assistant_handoff_title">Use the phone\'s voice assistant</string>
     <string name="pref_xiaomi_voice_assistant_handoff_summary">When the watch\'s voice assistant is woken, start the phone\'s default assistant and give it the watch\'s voice as its microphone. Needs Gadgetbridge enabled as LSPosed module for the Google app</string>
+    <string name="pref_xiaomi_voice_assistant_playback_title">Play assistant replies on the watch</string>
+    <string name="pref_xiaomi_voice_assistant_playback_summary">After the watch stops listening, play spoken replies from Gemini on the watch</string>
     <string name="intent_api_allow_debug_commands_title">Allow Debug Commands</string>
     <string name="intent_api_allow_debug_commands_summary">Allow triggering debug menu commands via Intent API</string>
     <string name="intent_api_allow_global_settings_summary">Allow 3rd party apps to set global Gadgetbridge settings through intents. Please restart Gadgetbridge in order to take effect.</string>

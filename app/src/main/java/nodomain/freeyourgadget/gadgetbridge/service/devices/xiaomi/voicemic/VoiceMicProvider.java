@@ -97,6 +97,26 @@ public class VoiceMicProvider extends ContentProvider {
             if (sep > 0) {
                 VoiceMicHub.getInstance().onPanelText(arg.substring(0, sep), arg.substring(sep + 1));
             }
+        } else if (VoiceMicContract.METHOD_PLAYBACK_STARTED.equals(method)
+                || VoiceMicContract.METHOD_PLAYBACK_STOPPED.equals(method)) {
+            if (arg != null) {
+                VoiceMicHub.getInstance().onPlaybackChanged(arg, VoiceMicContract.METHOD_PLAYBACK_STARTED.equals(method));
+            }
+        } else if (VoiceMicContract.METHOD_PANEL_ATTACH.equals(method)) {
+            final Bundle result = new Bundle();
+            result.putLong(VoiceMicContract.KEY_PANEL_TOKEN, AssistantPanelSession.getInstance().attach());
+            return result;
+        } else if (VoiceMicContract.METHOD_PANEL_DETACH.equals(method)
+                || VoiceMicContract.METHOD_PANEL_CANCELLED.equals(method)) {
+            final long token = extras == null ? 0 : extras.getLong(VoiceMicContract.KEY_PANEL_TOKEN);
+            if (VoiceMicContract.METHOD_PANEL_DETACH.equals(method)) {
+                AssistantPanelSession.getInstance().detach(token);
+            } else {
+                final Bundle result = new Bundle();
+                result.putBoolean(VoiceMicContract.KEY_PANEL_CANCELLED,
+                        AssistantPanelSession.getInstance().isCancelled(token));
+                return result;
+            }
         } else if (VoiceMicContract.METHOD_IS_ACTIVE.equals(method)) {
             final Bundle result = new Bundle();
             result.putBoolean(VoiceMicContract.KEY_ACTIVE, VoiceMicHub.getInstance().isActive());

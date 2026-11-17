@@ -5,18 +5,27 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.robolectric.Shadows.shadowOf;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.content.Context;
+import android.media.AudioManager;
 import android.os.Looper;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.robolectric.annotation.Config;
 
 import java.time.Duration;
 import java.util.List;
@@ -27,6 +36,7 @@ import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.DeviceType;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.AssistantPanelSession;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicContract;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicHub;
 import nodomain.freeyourgadget.gadgetbridge.test.TestBase;
@@ -41,7 +51,8 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
         final GBDevice device = new GBDevice("C4:57:81:00:00:02", "Xiaomi Watch S4 0002",
                 null, null, DeviceType.XIAOMI_WATCH_S4);
         GBApplication.getDeviceSpecificSharedPrefs(device.getAddress()).edit()
-                .putBoolean(XiaomiVoiceAssistantBridge.PREF_VOICE_ASSISTANT_HANDOFF, true).commit();
+                .putBoolean(XiaomiVoiceAssistantBridge.PREF_VOICE_ASSISTANT_HANDOFF, true)
+                .remove(XiaomiVoiceAssistantBridge.PREF_VOICE_ASSISTANT_PLAYBACK).commit();
         support = mock(XiaomiSupport.class);
         when(support.getDevice()).thenReturn(device);
         when(support.getContext()).thenReturn(getContext());
@@ -154,6 +165,105 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
         hub.onAnswer("正常回答");
         advance(3000);
         assertEquals(List.of("正常回答"), answerTexts());
+    }
+
+    @Test
+    @Config(sdk = 35)
+    public void scoOpensOnlyAfterCaptureAndClosesAfterSpeech() {
+        final ReplyHeadset headset = new ReplyHeadset();
+        bridge.onVoiceStart(0);
+        advance(3000);
+        verify(headset.adapter, never()).getProfileProxy(any(), any(), eq(BluetoothProfile.HEADSET));
+        bridge.onAssistantStoppedListening();
+        advance(1500);
+        assertFalse(hub.isActive());
+        verify(headset.adapter, never()).getProfileProxy(any(), any(), eq(BluetoothProfile.HEADSET));
+        advance(450);
+        headset.deliverProxy();
+        verify(headset.proxy).startVoiceRecognition(headset.device);
+
+        hub.onPlaybackChanged("reply", true);
+        advance(12000);
+        verify(headset.proxy, never()).stopVoiceRecognition(headset.device);
+        hub.onPlaybackChanged("reply", false);
+        advance(800);
+        verify(headset.proxy).stopVoiceRecognition(headset.device);
+        verify(headset.adapter).closeProfileProxy(BluetoothProfile.HEADSET, headset.proxy);
+    }
+
+    @Test
+    @Config(sdk = 35)
+    public void cancellationDiscardsAHeadsetProxyThatArrivesLate() {
+        final ReplyHeadset headset = new ReplyHeadset();
+        startAndStopListening();
+        advance(450);
+        bridge.onVoiceEnd(0, true);
+        advance(0);
+        headset.deliverProxy();
+        verify(headset.proxy, never()).startVoiceRecognition(headset.device);
+        verify(headset.adapter).closeProfileProxy(BluetoothProfile.HEADSET, headset.proxy);
+    }
+
+    @Test
+    public void quitAfterAnswerStillClosesTheOpenPhonePanel() {
+        final AssistantPanelSession panel = AssistantPanelSession.getInstance();
+        bridge.onVoiceStart(0);
+        final long token = panel.attach();
+        bridge.onAssistantStoppedListening();
+        hub.onAnswer("回答");
+        advance(3000);
+        assertEquals(List.of("回答"), answerTexts());
+        advance(30000);
+        bridge.onVoiceEnd(0, true);
+        advance(0);
+        assertEquals(1, cancellationBroadcastCount());
+        assertTrue(panel.isCancelled(token));
+    }
+
+    @Test
+    public void quitWhilePhoneIsStartingCanBeReadWhenThePanelOpens() {
+        final AssistantPanelSession panel = AssistantPanelSession.getInstance();
+        bridge.onVoiceStart(0);
+        bridge.onVoiceEnd(0, true);
+        advance(2000);
+        final long token = panel.attach();
+        assertTrue(panel.isCancelled(token));
+        panel.detach(token);
+        assertEquals(0, panel.attach());
+
+        bridge.onVoiceStart(0);
+        assertFalse(panel.isCancelled(token));
+        final long nextToken = panel.attach();
+        assertTrue(nextToken != token && nextToken != 0);
+    }
+
+    private final class ReplyHeadset {
+        final Context context = mock(Context.class);
+        final BluetoothAdapter adapter = mock(BluetoothAdapter.class);
+        final BluetoothDevice device = mock(BluetoothDevice.class);
+        final BluetoothHeadset proxy = mock(BluetoothHeadset.class);
+
+        ReplyHeadset() {
+            final BluetoothManager manager = mock(BluetoothManager.class);
+            final AudioManager audio = mock(AudioManager.class);
+            when(support.getContext()).thenReturn(context);
+            when(context.getSystemService(BluetoothManager.class)).thenReturn(manager);
+            when(context.getSystemService(AudioManager.class)).thenReturn(audio);
+            when(manager.getAdapter()).thenReturn(adapter);
+            when(adapter.getRemoteDevice(support.getDevice().getAddress())).thenReturn(device);
+            when(adapter.getProfileProxy(eq(context), any(), eq(BluetoothProfile.HEADSET))).thenReturn(true);
+            when(proxy.getConnectionState(device)).thenReturn(BluetoothProfile.STATE_CONNECTED);
+            when(proxy.startVoiceRecognition(device)).thenReturn(true);
+            GBApplication.getDeviceSpecificSharedPrefs(support.getDevice().getAddress()).edit()
+                    .putBoolean(XiaomiVoiceAssistantBridge.PREF_VOICE_ASSISTANT_PLAYBACK, true).apply();
+        }
+
+        void deliverProxy() {
+            final ArgumentCaptor<BluetoothProfile.ServiceListener> listener =
+                    ArgumentCaptor.forClass(BluetoothProfile.ServiceListener.class);
+            verify(adapter).getProfileProxy(eq(context), listener.capture(), eq(BluetoothProfile.HEADSET));
+            listener.getValue().onServiceConnected(BluetoothProfile.HEADSET, proxy);
+        }
     }
 
     private long cancellationBroadcastCount() {

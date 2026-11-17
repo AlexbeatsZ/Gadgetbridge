@@ -25,13 +25,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaSyncEvent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -42,7 +43,10 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -118,7 +122,63 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
         } catch (final Throwable t) {
             log("assistant cancellation hook unavailable: " + t);
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                hookAssistantPlayback();
+            } catch (final Throwable t) {
+                log("assistant playback hook unavailable: " + t);
+            }
+        }
         log("hooks installed in " + lpparam.processName);
+    }
+
+    private static final String PLAYBACK_TRACK = "gb-playback-track";
+    // Keep starts and stops in order without touching the microphone IPC or blocking audio threads.
+    private static final Executor PLAYBACK_EVENTS = Executors.newSingleThreadExecutor();
+
+    private static void hookAssistantPlayback() {
+        XposedHelpers.findAndHookMethod(AudioTrack.class, "play", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(final MethodHookParam param) {
+                if (param.hasThrowable()) {
+                    return;
+                }
+                final AudioTrack track = (AudioTrack) param.thisObject;
+                final AudioAttributes attrs = track.getAudioAttributes();
+                if (attrs.getUsage() == AudioAttributes.USAGE_ASSISTANT
+                        && attrs.getContentType() == AudioAttributes.CONTENT_TYPE_SPEECH
+                        && XposedHelpers.getAdditionalInstanceField(track, PLAYBACK_TRACK) == null) {
+                    final String id = UUID.randomUUID().toString();
+                    XposedHelpers.setAdditionalInstanceField(track, PLAYBACK_TRACK, id);
+                    reportPlayback(VoiceMicContract.METHOD_PLAYBACK_STARTED, id);
+                }
+            }
+        });
+        final XC_MethodHook end = new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(final MethodHookParam param) {
+                final String id = (String) XposedHelpers.removeAdditionalInstanceField(param.thisObject, PLAYBACK_TRACK);
+                if (id != null) {
+                    reportPlayback(VoiceMicContract.METHOD_PLAYBACK_STOPPED, id);
+                }
+            }
+        };
+        XposedHelpers.findAndHookMethod(AudioTrack.class, "stop", end);
+        XposedHelpers.findAndHookMethod(AudioTrack.class, "pause", end);
+        XposedHelpers.findAndHookMethod(AudioTrack.class, "release", end);
+    }
+
+    private static void reportPlayback(final String method, final String id) {
+        final Context context = AndroidAppHelper.currentApplication();
+        if (context != null) {
+            PLAYBACK_EVENTS.execute(() -> {
+                try {
+                    context.getContentResolver().call(streamUri(), method, id, null);
+                } catch (final RuntimeException e) {
+                    log("assistant playback event failed: " + e);
+                }
+            });
+        }
     }
 
     private static final String FLOATY_ACTIVITY = "com.google.android.apps.search.assistant.surfaces.voice.robin.ui.floaty.activity.FloatyActivity";
@@ -134,8 +194,12 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
             protected void afterHookedMethod(final MethodHookParam param) {
                 final Activity activity = (Activity) param.thisObject;
                 unregisterCancellation(activity);
-                if (!param.hasThrowable() && sessionActive()) {
-                    registerCancellation(activity);
+                if (!param.hasThrowable()) {
+                    final Bundle claim = callPanel(activity, VoiceMicContract.METHOD_PANEL_ATTACH, 0);
+                    final long token = claim != null ? claim.getLong(VoiceMicContract.KEY_PANEL_TOKEN) : 0;
+                    if (token != 0) {
+                        registerCancellation(activity, token);
+                    }
                 }
             }
         };
@@ -150,16 +214,13 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
         });
     }
 
-    private static void registerCancellation(final Activity panel) {
-        final long openedAt = SystemClock.elapsedRealtime();
+    private static void registerCancellation(final Activity panel, final long token) {
         final BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(final Context context, final Intent intent) {
                 if (VoiceMicContract.ACTION_CANCEL.equals(intent.getAction())
-                        && intent.getLongExtra(VoiceMicContract.EXTRA_CANCEL_TIME, -1) >= openedAt
-                        && !panel.isFinishing() && !sessionActive()) {
-                    panel.finish();
-                    log("closed the assistant panel after watch cancellation");
+                        && intent.getLongExtra(VoiceMicContract.KEY_PANEL_TOKEN, 0) == token) {
+                    closeCancelledPanel(panel, token);
                 }
             }
         };
@@ -171,6 +232,17 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
             panel.registerReceiver(receiver, filter, permission, null);
         }
         XposedHelpers.setAdditionalInstanceField(panel, CANCELLATION_RECEIVER, receiver);
+        XposedHelpers.setAdditionalInstanceField(panel, VoiceMicContract.KEY_PANEL_TOKEN, token);
+        // Also handles QUIT before the activity was created or before registration completed.
+        closeCancelledPanel(panel, token);
+    }
+
+    private static void closeCancelledPanel(final Activity panel, final long token) {
+        final Bundle state = callPanel(panel, VoiceMicContract.METHOD_PANEL_CANCELLED, token);
+        if (!panel.isFinishing() && state != null && state.getBoolean(VoiceMicContract.KEY_PANEL_CANCELLED)) {
+            panel.finish();
+            log("closed the assistant panel after watch cancellation");
+        }
     }
 
     private static void unregisterCancellation(final Activity panel) {
@@ -178,6 +250,21 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
                 XposedHelpers.removeAdditionalInstanceField(panel, CANCELLATION_RECEIVER);
         if (receiver != null) {
             panel.unregisterReceiver(receiver);
+            final Long token = (Long) XposedHelpers.removeAdditionalInstanceField(panel, VoiceMicContract.KEY_PANEL_TOKEN);
+            if (token != null) {
+                callPanel(panel, VoiceMicContract.METHOD_PANEL_DETACH, token);
+            }
+        }
+    }
+
+    private static Bundle callPanel(final Context context, final String method, final long token) {
+        final Bundle args = new Bundle();
+        args.putLong(VoiceMicContract.KEY_PANEL_TOKEN, token);
+        try {
+            return context.getContentResolver().call(streamUri(), method, null, args);
+        } catch (final RuntimeException e) {
+            log("assistant panel call failed: " + e);
+            return null;
         }
     }
 

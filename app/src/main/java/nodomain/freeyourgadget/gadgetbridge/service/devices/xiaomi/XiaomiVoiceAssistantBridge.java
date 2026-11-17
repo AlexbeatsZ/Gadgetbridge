@@ -19,9 +19,9 @@ package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
 
@@ -34,6 +34,7 @@ import java.util.Set;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
+import nodomain.freeyourgadget.gadgetbridge.model.DeviceType;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Aivs;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstruction;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstructionList;
@@ -44,6 +45,7 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsRecognizeResultItem
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsText;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiVoiceHandler;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.AssistantPanelSession;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicContract;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicHub;
 
@@ -63,6 +65,8 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     private static final Logger LOG = LoggerFactory.getLogger(XiaomiVoiceAssistantBridge.class);
 
     public static final String PREF_VOICE_ASSISTANT_HANDOFF = "xiaomi_voice_assistant_handoff";
+
+    public static final String PREF_VOICE_ASSISTANT_PLAYBACK = "xiaomi_voice_assistant_playback";
 
     public static final int COMMAND_TYPE_AIVS = 14;
     public static final int CMD_AIVS_INSTRUCTIONS = 0;
@@ -87,13 +91,16 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
 
     private final XiaomiSupport support;
     private final VoiceMicHub hub = VoiceMicHub.getInstance();
+    private final AssistantPanelSession panelSession = AssistantPanelSession.getInstance();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable finishTimeout = this::onAnswerTimeout;
-    private final Runnable finishAfterStop = this::awaitAnswer;
+    private final Runnable finishAfterStop = () -> awaitAnswer(true);
+    private final XiaomiAssistantPlayback playback = new XiaomiAssistantPlayback();
     private final Runnable sendAnswer = this::sendAnswer;
 
     // session handed over and not finished yet
     private volatile int activeSession = -1;
+    private volatile long panelToken;
     // the band shows a loading card and waits for the assistant's answer
     private boolean awaitingAnswer;
     @Nullable
@@ -125,6 +132,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
             LOG.debug("Voice session {} while session {} is handed over", sessionId, activeSession);
             return;
         }
+        playback.stop();
         activeSession = Math.max(sessionId, 0);
         awaitingAnswer = false;
         answer = null;
@@ -133,7 +141,11 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         hub.startSession(this);
         handler.removeCallbacks(finishTimeout);
         handler.postDelayed(finishTimeout, MAX_DIALOG_MS);
-        launchAssistant(support.getContext());
+        final long launchedPanel = panelSession.begin();
+        panelToken = launchedPanel;
+        if (!launchAssistant(support.getContext())) {
+            panelSession.detach(launchedPanel);
+        }
     }
 
     @Override
@@ -146,20 +158,27 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         LOG.debug("Band voice session {} {}", sessionId, quit ? "quit" : "ended");
         // AUDIO_END is only the end of capture; QUIT explicitly abandons the dialog.
         if (quit) {
-            final long cancelledAt = SystemClock.elapsedRealtime();
-            handler.post(() -> cancelDialog(sessionId, cancelledAt));
+            final long cancelledPanel = panelToken;
+            handler.post(() -> cancelDialog(sessionId, cancelledPanel));
         }
     }
 
-    private void cancelDialog(final int sessionId, final long cancelledAt) {
-        if (activeSession < 0 || (sessionId >= 0 && sessionId != activeSession)) {
+    private void cancelDialog(final int sessionId, final long cancelledPanel) {
+        if (cancelledPanel != panelToken || (activeSession >= 0 && sessionId >= 0 && sessionId != activeSession)) {
             return;
         }
-        LOG.info("Voice session {} cancelled on the band", activeSession);
+        final boolean closePanel = panelSession.cancel(cancelledPanel);
+        final boolean stoppedPlayback = playback.stop();
+        if (activeSession < 0 && !closePanel && !stoppedPlayback) {
+            return;
+        }
+        LOG.info("Voice session cancelled on the band");
         clearDialog();
-        support.getContext().sendBroadcast(new Intent(VoiceMicContract.ACTION_CANCEL)
-                .setPackage(VoiceMicContract.ASSISTANT_PACKAGE)
-                .putExtra(VoiceMicContract.EXTRA_CANCEL_TIME, cancelledAt));
+        if (closePanel) {
+            support.getContext().sendBroadcast(new Intent(VoiceMicContract.ACTION_CANCEL)
+                    .setPackage(VoiceMicContract.ASSISTANT_PACKAGE)
+                    .putExtra(VoiceMicContract.KEY_PANEL_TOKEN, cancelledPanel));
+        }
     }
 
     @Override
@@ -176,8 +195,8 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     }
 
     /** The assistant stopped listening: stop the band's capture and show a loading card until the answer comes. */
-    private void awaitAnswer() {
-        if (activeSession < 0) {
+    private void awaitAnswer(final boolean recordingStopped) {
+        if (activeSession < 0 || awaitingAnswer) {
             return;
         }
         hub.endSession();
@@ -187,6 +206,13 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         support.sendCommand("aivs recognized", buildRecognizeResultCommand(activeSession, query != null ? query : "Gemini", true));
         support.sendCommand("aivs stop capture", buildStopCaptureCommand(activeSession, null));
         support.sendCommand("aivs loading", buildLoadingCardCommand(activeSession, ANSWER_TIMEOUT_S));
+        final GBDevice device = support.getDevice();
+        if (recordingStopped && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && device != null && device.getType() == DeviceType.XIAOMI_WATCH_S4
+                && GBApplication.getDeviceSpecificSharedPrefs(device.getAddress())
+                .getBoolean(PREF_VOICE_ASSISTANT_PLAYBACK, false)) {
+            playback.arm(support.getContext(), device.getAddress());
+        }
         if (answer != null) {
             // already shown while the recording was still open
             handler.removeCallbacks(sendAnswer);
@@ -219,7 +245,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
             return;
         }
         if (!awaitingAnswer) {
-            awaitAnswer();
+            awaitAnswer(false);
         }
         if (answer == null) {
             answer = support.getContext().getString(R.string.xiaomi_voice_assistant_no_visible_response);
@@ -278,18 +304,22 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         activeSession = -1;
     }
 
-    private static void launchAssistant(final Context context) {
+    private static boolean launchAssistant(final Context context) {
         // what Android starts for a headset's voice button; resolves to the default assistant
         final Intent intent = new Intent(Intent.ACTION_VOICE_COMMAND).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             context.startActivity(intent);
             LOG.info("Started the phone assistant");
+            return true;
         } catch (final ActivityNotFoundException | SecurityException e) {
             LOG.error("Could not start the phone assistant", e);
+            return false;
         }
     }
 
     public void dispose() {
+        panelSession.detach(panelToken);
+        playback.stop();
         handler.removeCallbacksAndMessages(null);
         activeSession = -1;
         awaitingAnswer = false;

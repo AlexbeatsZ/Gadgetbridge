@@ -41,9 +41,16 @@ public final class VoiceMicContract {
     public static final String METHOD_PANEL_TEXT = "panel_text";
     public static final char SEPARATOR = '\u0001';
 
+    public static final String METHOD_PLAYBACK_STARTED = "playback_started";
+    public static final String METHOD_PLAYBACK_STOPPED = "playback_stopped";
+
     public static final String ACTION_CANCEL = "nodomain.freeyourgadget.gadgetbridge.voicemic.CANCEL";
     public static final String CANCEL_PERMISSION_SUFFIX = ".permission.CANCEL_PHONE_ASSISTANT";
-    public static final String EXTRA_CANCEL_TIME = "cancel_elapsed_realtime";
+    public static final String METHOD_PANEL_ATTACH = "panel_attach";
+    public static final String METHOD_PANEL_DETACH = "panel_detach";
+    public static final String METHOD_PANEL_CANCELLED = "panel_cancelled";
+    public static final String KEY_PANEL_TOKEN = "panel_token";
+    public static final String KEY_PANEL_CANCELLED = "panel_cancelled";
 
     /** Stream format: 16 kHz, mono, signed 16 bit little endian, as decoded from the band. */
     public static final int SAMPLE_RATE = 16000;

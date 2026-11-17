@@ -59,6 +59,33 @@ public final class VoiceMicHub {
         void onAssistantPanelText(String viewId, String text);
     }
 
+    public interface PlaybackListener {
+        void onPlaybackChanged(String trackId, boolean playing);
+    }
+
+    @Nullable
+    private PlaybackListener playbackListener;
+
+    public synchronized void setPlaybackListener(final PlaybackListener listener) {
+        playbackListener = listener;
+    }
+
+    public synchronized void clearPlaybackListener(final PlaybackListener listener) {
+        if (playbackListener == listener) {
+            playbackListener = null;
+        }
+    }
+
+    public void onPlaybackChanged(final String trackId, final boolean playing) {
+        final PlaybackListener target;
+        synchronized (this) {
+            target = playbackListener;
+        }
+        if (target != null) {
+            target.onPlaybackChanged(trackId, playing);
+        }
+    }
+
     private final ByteArrayOutputStream sessionAudio = new ByteArrayOutputStream();
     private boolean active;
     @Nullable
