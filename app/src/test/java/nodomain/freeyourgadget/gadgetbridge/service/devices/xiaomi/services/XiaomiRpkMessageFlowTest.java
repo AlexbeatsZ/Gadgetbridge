@@ -78,16 +78,16 @@ public class XiaomiRpkMessageFlowTest {
         service.handleCommand(rpkList("org.example.other"));
         Assert.assertTrue(sentCommands().isEmpty());
 
-        // a later launch notification for it carries no message
+        // a later status request for it carries no message and is only answered with connected
         service.handleCommand(launched(APP_ID));
-        Assert.assertTrue(sentCommands().isEmpty());
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_SESSION_END, single(sentCommands()).getSubtype());
     }
 
     @Test
-    public void launchWithoutPendingMessageSendsNothing() {
+    public void launchWithoutPendingMessageOnlyReportsConnected() {
         service.handleCommand(rpkList(APP_ID));
         service.handleCommand(launched(APP_ID));
-        Assert.assertTrue(sentCommands().isEmpty());
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_SESSION_END, single(sentCommands()).getSubtype());
     }
 
     private List<XiaomiProto.Command> sentCommands() {

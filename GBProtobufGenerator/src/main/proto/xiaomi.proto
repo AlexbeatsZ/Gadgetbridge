@@ -6,6 +6,7 @@ option java_package = "nodomain.freeyourgadget.gadgetbridge.proto.xiaomi";
 option java_outer_classname = "XiaomiProto";
 
 import "xiaomi/wear_account.proto";
+import "xiaomi/wear_aivs.proto";
 import "xiaomi/wear_calendar.proto";
 import "xiaomi/wear_clock.proto";
 import "xiaomi/wear_common.proto";
@@ -29,6 +30,8 @@ message Command {
   // 8, 10 get
   optional Health health = 10;
   optional Calendar calendar = 14;
+  // command type 14
+  optional Aivs aivs = 16;
   optional Music music = 20;
   optional Notification notification = 9;
   optional Weather weather = 12;

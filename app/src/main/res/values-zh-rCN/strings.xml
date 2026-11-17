@@ -5996,4 +5996,6 @@
     <string name="auto_export_upload_status_success">%s 发送成功</string>
     <string name="auto_export_upload_status_failed">%1$s 发送失败：%2$s</string>
     <string name="notif_export_upload_failed_title">数据库发送到服务器失败</string>
+    <string name="pref_xiaomi_voice_assistant_handoff_title">使用手机语音助手</string>
+    <string name="pref_xiaomi_voice_assistant_handoff_summary">唤醒手表语音助手时改为启动手机的默认助手，并把手表当作蓝牙耳机收音和播报</string>
 </resources>

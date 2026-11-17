@@ -666,6 +666,10 @@ public abstract class XiaomiCoordinator extends AbstractBLEDeviceCoordinator {
             deviceSpecificSettings.addRootScreen(R.xml.devicesettings_device_actions);
         }
         deviceSpecificSettings.addRootScreen(R.xml.devicesettings_phone_silent_mode);
+        if (getConnectionType().equals(ConnectionType.BT_CLASSIC)) {
+            // the voice channel is only implemented for SPP V2
+            deviceSpecificSettings.addRootScreen(R.xml.devicesettings_xiaomi_voice_assistant_handoff);
+        }
 
         //
         // Developer
