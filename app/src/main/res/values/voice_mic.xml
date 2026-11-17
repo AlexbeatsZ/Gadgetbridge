@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_mic_xposed_description">Feeds the Xiaomi watch\'s voice assistant audio to the phone assistant as its microphone. Scope: Google app.</string>
+    <string-array name="voice_mic_xposed_scope" translatable="false">
+        <item>com.google.android.googlequicksearchbox</item>
+    </string-array>
+</resources>

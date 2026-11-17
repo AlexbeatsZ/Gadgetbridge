@@ -16,29 +16,19 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi;
 
-import android.annotation.SuppressLint;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHeadset;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
 import android.content.ActivityNotFoundException;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
-import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Aivs;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstruction;
@@ -46,22 +36,18 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstructionList;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsText;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiVoiceHandler;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic.VoiceMicHub;
 
 /**
- * Hands the band's voice assistant over to the phone's default assistant and keeps both in step.
+ * Hands the band's voice assistant over to the phone's default assistant.
  * <p>
- * When the band starts streaming voice, its own assistant stops capturing (its screen stays, showing that it is
- * listening) and the phone's voice command activity is started, the same one Android starts for a headset's voice
- * button. The assistant opens the band's headset (HFP) audio itself, listens through the band's microphone and
- * answers through its speaker. Opening that link here first makes the assistant's own request close it again,
- * leaving it on the phone microphone, so it is left to the assistant.
- * <ul>
- * <li>When the assistant closes the headset audio, the band's dialog is finished.</li>
- * <li>When the dialog is left on the band, headset voice recognition is stopped, which ends the assistant's
- * listening.</li>
- * </ul>
+ * The band cannot be used as a Bluetooth headset microphone (its HFP uplink is silent outside real calls, see
+ * docs/design/xiaomi-s4-official-audio.md). Instead the band keeps streaming its own voice channel, which is
+ * decoded here and fed to the assistant through {@link VoiceMicHub}; Gadgetbridge's Xposed hook in the Google app
+ * replaces what the assistant's recording reads with that audio. The band's assistant screen stays open while the
+ * phone assistant listens and is finished once the assistant stops recording.
  */
-public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
+public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, VoiceMicHub.Listener {
     private static final Logger LOG = LoggerFactory.getLogger(XiaomiVoiceAssistantBridge.class);
 
     public static final String PREF_VOICE_ASSISTANT_HANDOFF = "xiaomi_voice_assistant_handoff";
@@ -72,25 +58,19 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
     public static final int RESULT_DIALOG_FINISH = 4;
     public static final int RESULT_TEMPLATE_TOAST = 256;
 
-    // the band may restart a session right away while its assistant winds down
-    private static final long HANDOFF_DEBOUNCE_MS = 5000;
-    // finish the band's dialog if the assistant never opens the headset audio
-    private static final long NO_HEADSET_FINISH_MS = 30000;
-    // and in any case after this long
-    private static final long MAX_DIALOG_MS = 120000;
+    // the assistant may stop a probe recording and open the real one right after
+    private static final long STOPPED_GRACE_MS = 1500;
+    // finish the band's dialog in any case after this long
+    private static final long MAX_DIALOG_MS = 60000;
 
     private final XiaomiSupport support;
+    private final VoiceMicHub hub = VoiceMicHub.getInstance();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable finishTimeout = () -> finishDialog("timeout");
+    private final Runnable finishAfterStop = () -> finishDialog("assistant stopped listening");
 
-    private long lastHandoff = -HANDOFF_DEBOUNCE_MS;
     // session handed over and not finished yet
     private int activeSession = -1;
-    private boolean headsetAudioOpen;
-    @Nullable
-    private BroadcastReceiver audioStateReceiver;
-    @Nullable
-    private BluetoothHeadset headset;
 
     public XiaomiVoiceAssistantBridge(final XiaomiSupport support) {
         this.support = support;
@@ -107,137 +87,52 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
         if (!isEnabled()) {
             return;
         }
-        final long now = SystemClock.elapsedRealtime();
-        if (now - lastHandoff < HANDOFF_DEBOUNCE_MS) {
-            LOG.debug("Voice session {} within debounce, not handing off again", sessionId);
+        if (activeSession >= 0) {
+            // the band restarted its session while the assistant still listens; keep feeding
+            LOG.debug("Voice session {} while session {} is handed over", sessionId, activeSession);
             return;
         }
-        lastHandoff = now;
         activeSession = Math.max(sessionId, 0);
-        headsetAudioOpen = false;
         LOG.info("Handing voice session {} over to the phone assistant", sessionId);
-        // frees the band's microphone for the headset link; without a result the band says it did not catch that
-        support.sendCommand("aivs stop capture", buildStopCaptureCommand(activeSession,
-                support.getContext().getString(R.string.xiaomi_voice_phone_assistant_listening)));
-        registerAudioStateReceiver();
-        requestHeadsetProxy();
+        hub.startSession(this);
         handler.removeCallbacks(finishTimeout);
-        handler.postDelayed(finishTimeout, NO_HEADSET_FINISH_MS);
+        handler.postDelayed(finishTimeout, MAX_DIALOG_MS);
         launchAssistant(support.getContext());
     }
 
     @Override
     public void onVoicePcm(final int sessionId, final short[] pcm, final int samples) {
-        // the phone assistant listens through the headset link instead
+        hub.onPcm(pcm, samples);
     }
 
     @Override
     public void onVoiceEnd(final int sessionId, final boolean quit) {
-        if (!quit || activeSession < 0) {
-            return;
-        }
-        LOG.info("Voice session {} left on the band, stopping the phone assistant", sessionId);
-        activeSession = -1;
-        stopHeadsetVoiceRecognition();
-        cleanup();
+        // the assistant may still be reading what was buffered; it finishes the dialog when it stops
+        LOG.debug("Band voice session {} {}", sessionId, quit ? "quit" : "ended");
     }
 
-    private void registerAudioStateReceiver() {
-        if (audioStateReceiver != null) {
-            return;
-        }
-        audioStateReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(final Context context, final Intent intent) {
-                final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if (isBand(device)) {
-                    onHeadsetAudioState(intent.getIntExtra(BluetoothHeadset.EXTRA_STATE, -1));
-                }
-            }
-        };
-        ContextCompat.registerReceiver(support.getContext(), audioStateReceiver,
-                new IntentFilter(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED), ContextCompat.RECEIVER_EXPORTED);
+    @Override
+    public void onAssistantStartedListening() {
+        handler.post(() -> handler.removeCallbacks(finishAfterStop));
     }
 
-    private boolean isBand(@Nullable final BluetoothDevice device) {
-        final GBDevice gbDevice = support.getDevice();
-        return device != null && gbDevice != null && gbDevice.getAddress().equalsIgnoreCase(device.getAddress());
-    }
-
-    private void onHeadsetAudioState(final int state) {
-        LOG.debug("Band headset audio state {} during voice session {}", state, activeSession);
-        if (state == BluetoothHeadset.STATE_AUDIO_CONNECTED) {
-            headsetAudioOpen = true;
-            handler.removeCallbacks(finishTimeout);
-            handler.postDelayed(finishTimeout, MAX_DIALOG_MS);
-        } else if (state == BluetoothHeadset.STATE_AUDIO_DISCONNECTED && headsetAudioOpen) {
-            // the assistant is done with the band's microphone and speaker
-            headsetAudioOpen = false;
-            finishDialog("assistant closed the headset audio");
-        }
+    @Override
+    public void onAssistantStoppedListening() {
+        handler.post(() -> {
+            handler.removeCallbacks(finishAfterStop);
+            handler.postDelayed(finishAfterStop, STOPPED_GRACE_MS);
+        });
     }
 
     private void finishDialog(final String reason) {
+        handler.removeCallbacks(finishTimeout);
+        handler.removeCallbacks(finishAfterStop);
         if (activeSession >= 0) {
             LOG.info("Finishing voice session {} on the band: {}", activeSession, reason);
-            support.sendCommand("aivs dialog finish", buildDialogFinishCommand(activeSession));
+            support.sendCommand("aivs finish", buildFinishCommand(activeSession));
         }
         activeSession = -1;
-        cleanup();
-    }
-
-    private void requestHeadsetProxy() {
-        if (headset != null) {
-            return;
-        }
-        final BluetoothAdapter adapter = getAdapter();
-        if (adapter == null) {
-            return;
-        }
-        adapter.getProfileProxy(support.getContext(), new BluetoothProfile.ServiceListener() {
-            @Override
-            public void onServiceConnected(final int profile, final BluetoothProfile proxy) {
-                headset = (BluetoothHeadset) proxy;
-            }
-
-            @Override
-            public void onServiceDisconnected(final int profile) {
-                headset = null;
-            }
-        }, BluetoothProfile.HEADSET);
-    }
-
-    @SuppressLint("MissingPermission") // BLUETOOTH_CONNECT is required to connect to the band at all
-    private void stopHeadsetVoiceRecognition() {
-        final BluetoothAdapter adapter = getAdapter();
-        final GBDevice gbDevice = support.getDevice();
-        if (headset == null || adapter == null || gbDevice == null) {
-            return;
-        }
-        try {
-            final boolean stopped = headset.stopVoiceRecognition(adapter.getRemoteDevice(gbDevice.getAddress()));
-            LOG.info("Stopping headset voice recognition on the band: {}", stopped);
-        } catch (final SecurityException e) {
-            LOG.error("No permission to stop headset voice recognition", e);
-        }
-    }
-
-    @Nullable
-    private BluetoothAdapter getAdapter() {
-        final BluetoothManager manager = (BluetoothManager) support.getContext().getSystemService(Context.BLUETOOTH_SERVICE);
-        return manager != null ? manager.getAdapter() : null;
-    }
-
-    private void cleanup() {
-        handler.removeCallbacks(finishTimeout);
-        if (audioStateReceiver != null) {
-            try {
-                support.getContext().unregisterReceiver(audioStateReceiver);
-            } catch (final IllegalArgumentException ignored) {
-                // already gone
-            }
-            audioStateReceiver = null;
-        }
+        hub.endSession();
     }
 
     private static void launchAssistant(final Context context) {
@@ -252,15 +147,9 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
     }
 
     public void dispose() {
+        handler.removeCallbacksAndMessages(null);
         activeSession = -1;
-        cleanup();
-        if (headset != null) {
-            final BluetoothAdapter adapter = getAdapter();
-            if (adapter != null) {
-                adapter.closeProfileProxy(BluetoothProfile.HEADSET, headset);
-            }
-            headset = null;
-        }
+        hub.endSession();
     }
 
     private static AivsInstruction.Builder instruction(final int resultType, final int session) {
@@ -279,6 +168,13 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
 
     static XiaomiProto.Command buildDialogFinishCommand(final int sessionId) {
         return aivsCommand(AivsInstructionList.newBuilder()
+                .addInstruction(instruction(RESULT_DIALOG_FINISH, Math.max(sessionId, 0))));
+    }
+
+    /** Stops the band's capture and finishes its dialog, as the official app does at the end of a dialog. */
+    static XiaomiProto.Command buildFinishCommand(final int sessionId) {
+        return aivsCommand(AivsInstructionList.newBuilder()
+                .addInstruction(instruction(RESULT_STOP_CAPTURE, Math.max(sessionId, 0)))
                 .addInstruction(instruction(RESULT_DIALOG_FINISH, Math.max(sessionId, 0))));
     }
 
