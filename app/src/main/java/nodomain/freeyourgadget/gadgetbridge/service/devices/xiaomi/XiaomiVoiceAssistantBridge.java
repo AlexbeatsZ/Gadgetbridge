@@ -28,6 +28,9 @@ import androidx.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Aivs;
@@ -35,6 +38,8 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstruction;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstructionList;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsLlmLoadingCard;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsLlmToastStream;
+import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsRecognizeResult;
+import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsRecognizeResultItems;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsText;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiVoiceHandler;
@@ -59,6 +64,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
 
     public static final int COMMAND_TYPE_AIVS = 14;
     public static final int CMD_AIVS_INSTRUCTIONS = 0;
+    public static final int RESULT_RECOGNIZE_RESULT = 2;
     public static final int RESULT_STOP_CAPTURE = 3;
     public static final int RESULT_DIALOG_FINISH = 4;
     public static final int RESULT_TEMPLATE_TOAST = 256;
@@ -90,6 +96,11 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     private boolean awaitingAnswer;
     @Nullable
     private String answer;
+    // what was said, as transcribed in the assistant's panel
+    @Nullable
+    private String query;
+    // panel texts seen outside a session, such as the input hint, are not transcripts
+    private final Set<String> idleTexts = new HashSet<>();
 
     public XiaomiVoiceAssistantBridge(final XiaomiSupport support) {
         this.support = support;
@@ -115,6 +126,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         activeSession = Math.max(sessionId, 0);
         awaitingAnswer = false;
         answer = null;
+        query = null;
         LOG.info("Handing voice session {} over to the phone assistant", sessionId);
         hub.startSession(this);
         handler.removeCallbacks(finishTimeout);
@@ -154,6 +166,8 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         hub.endSession();
         awaitingAnswer = true;
         LOG.info("Voice session {}: assistant stopped listening, waiting for its answer", activeSession);
+        // the band only shows results after a final recognition result; without one it asks to say it again
+        support.sendCommand("aivs recognized", buildRecognizeResultCommand(activeSession, query != null ? query : "Gemini", true));
         support.sendCommand("aivs stop capture", buildStopCaptureCommand(activeSession, null));
         support.sendCommand("aivs loading", buildLoadingCardCommand(activeSession, ANSWER_TIMEOUT_S));
         if (answer != null) {
@@ -176,6 +190,22 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
                 handler.removeCallbacks(sendAnswer);
                 handler.postDelayed(sendAnswer, ANSWER_SETTLE_MS);
             }
+        });
+    }
+
+    @Override
+    public void onAssistantPanelText(final String viewId, final String text) {
+        handler.post(() -> {
+            LOG.debug("Assistant panel text {}: {}", viewId, text);
+            if (activeSession < 0) {
+                idleTexts.add(text);
+                return;
+            }
+            if (awaitingAnswer || !viewId.contains("query") || idleTexts.contains(text) || text.equals(query)) {
+                return;
+            }
+            query = text;
+            support.sendCommand("aivs recognizing", buildRecognizeResultCommand(activeSession, text, false));
         });
     }
 
@@ -204,6 +234,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         activeSession = -1;
         awaitingAnswer = false;
         answer = null;
+        query = null;
         hub.endSession();
     }
 
@@ -250,6 +281,15 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         return aivsCommand(AivsInstructionList.newBuilder()
                 .addInstruction(instruction(RESULT_STOP_CAPTURE, Math.max(sessionId, 0)))
                 .addInstruction(instruction(RESULT_DIALOG_FINISH, Math.max(sessionId, 0))));
+    }
+
+    static XiaomiProto.Command buildRecognizeResultCommand(final int sessionId, final String text, final boolean isFinal) {
+        return aivsCommand(AivsInstructionList.newBuilder()
+                .addInstruction(instruction(RESULT_RECOGNIZE_RESULT, Math.max(sessionId, 0))
+                        .setRecognizeResult(AivsRecognizeResult.newBuilder()
+                                .setIsFinal(isFinal)
+                                .setResults(AivsRecognizeResultItems.newBuilder()
+                                        .addItem(AivsText.newBuilder().setText(text))))));
     }
 
     static XiaomiProto.Command buildLoadingCardCommand(final int sessionId, final int timeoutSeconds) {

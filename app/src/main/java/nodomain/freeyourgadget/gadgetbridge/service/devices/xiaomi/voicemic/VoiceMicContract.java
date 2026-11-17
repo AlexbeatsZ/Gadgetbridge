@@ -35,6 +35,11 @@ public final class VoiceMicContract {
     public static final String METHOD_ANSWER = "answer";
     /** View id (entry name) of the assistant's answer text in the Google app's floating panel. */
     public static final String ANSWER_VIEW_ID = "assistant_robin_text";
+    /** Prefix of the floating panel's view ids whose texts are reported. */
+    public static final String PANEL_VIEW_PREFIX = "assistant_robin";
+    /** {@code ContentResolver.call} method: another panel text changed; arg is view id, then {@link #SEPARATOR}, then text. */
+    public static final String METHOD_PANEL_TEXT = "panel_text";
+    public static final char SEPARATOR = '\u0001';
 
     /** Stream format: 16 kHz, mono, signed 16 bit little endian, as decoded from the band. */
     public static final int SAMPLE_RATE = 16000;

@@ -54,6 +54,9 @@ public final class VoiceMicHub {
     public interface AnswerListener {
         /** The assistant shows (or updates while streaming) an answer text. */
         void onAssistantAnswer(String text);
+
+        /** Another text in the assistant's panel changed, e.g. the transcript of what was said. */
+        void onAssistantPanelText(String viewId, String text);
     }
 
     private final ByteArrayOutputStream sessionAudio = new ByteArrayOutputStream();
@@ -125,6 +128,12 @@ public final class VoiceMicHub {
     public synchronized void onAnswer(final String text) {
         if (answerListener != null) {
             answerListener.onAssistantAnswer(text);
+        }
+    }
+
+    public synchronized void onPanelText(final String viewId, final String text) {
+        if (answerListener != null) {
+            answerListener.onAssistantPanelText(viewId, text);
         }
     }
 

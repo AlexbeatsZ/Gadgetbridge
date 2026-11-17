@@ -140,7 +140,24 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
                 + VoiceMicContract.PATH_STREAM);
     }
 
-    private static int answerViewId;
+    private static final Map<Integer, String> VIEW_NAMES = Collections.synchronizedMap(new java.util.HashMap<>());
+
+    private static String viewName(final TextView view) {
+        final int id = view.getId();
+        if (id == android.view.View.NO_ID) {
+            return "";
+        }
+        String name = VIEW_NAMES.get(id);
+        if (name == null) {
+            try {
+                name = view.getResources().getResourceEntryName(id);
+            } catch (final Exception e) {
+                name = "";
+            }
+            VIEW_NAMES.put(id, name);
+        }
+        return name;
+    }
 
     /**
      * The answer is shown in the assistant's floating panel (UI process); every text it sets there is reported,
@@ -152,20 +169,20 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
                     @Override
                     protected void afterHookedMethod(final MethodHookParam param) {
                         final TextView view = (TextView) param.thisObject;
-                        if (answerViewId == 0) {
-                            answerViewId = view.getResources().getIdentifier(VoiceMicContract.ANSWER_VIEW_ID, "id",
-                                    VoiceMicContract.ASSISTANT_PACKAGE);
-                            if (answerViewId == 0) {
-                                answerViewId = -1;
-                            }
-                        }
-                        if (answerViewId <= 0 || view.getId() != answerViewId) {
+                        final String name = viewName(view);
+                        if (!name.startsWith(VoiceMicContract.PANEL_VIEW_PREFIX)) {
                             return;
                         }
                         final CharSequence text = (CharSequence) param.args[0];
-                        if (text != null && text.toString().trim().length() > 0) {
-                            call(view.getContext().getApplicationContext(), VoiceMicContract.METHOD_ANSWER,
-                                    text.toString().trim());
+                        if (text == null || text.toString().trim().length() == 0) {
+                            return;
+                        }
+                        final Context appContext = view.getContext().getApplicationContext();
+                        if (VoiceMicContract.ANSWER_VIEW_ID.equals(name)) {
+                            call(appContext, VoiceMicContract.METHOD_ANSWER, text.toString().trim());
+                        } else {
+                            call(appContext, VoiceMicContract.METHOD_PANEL_TEXT,
+                                    name + VoiceMicContract.SEPARATOR + text.toString().trim());
                         }
                     }
                 });
