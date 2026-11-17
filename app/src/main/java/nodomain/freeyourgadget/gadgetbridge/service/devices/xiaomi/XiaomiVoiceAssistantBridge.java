@@ -38,10 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
+import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Aivs;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstruction;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsInstructionList;
+import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.AivsText;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiVoiceHandler;
 
@@ -68,6 +70,7 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
     public static final int CMD_AIVS_INSTRUCTIONS = 0;
     public static final int RESULT_STOP_CAPTURE = 3;
     public static final int RESULT_DIALOG_FINISH = 4;
+    public static final int RESULT_TEMPLATE_TOAST = 256;
 
     // the band may restart a session right away while its assistant winds down
     private static final long HANDOFF_DEBOUNCE_MS = 5000;
@@ -113,8 +116,9 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
         activeSession = Math.max(sessionId, 0);
         headsetAudioOpen = false;
         LOG.info("Handing voice session {} over to the phone assistant", sessionId);
-        // frees the band's microphone for the headset link
-        support.sendCommand("aivs stop capture", buildStopCaptureCommand(activeSession));
+        // frees the band's microphone for the headset link; without a result the band says it did not catch that
+        support.sendCommand("aivs stop capture", buildStopCaptureCommand(activeSession,
+                support.getContext().getString(R.string.xiaomi_voice_phone_assistant_listening)));
         registerAudioStateReceiver();
         requestHeadsetProxy();
         handler.removeCallbacks(finishTimeout);
@@ -263,9 +267,14 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener {
         return AivsInstruction.newBuilder().setResultType(resultType).setSessionId(session);
     }
 
-    static XiaomiProto.Command buildStopCaptureCommand(final int sessionId) {
-        return aivsCommand(AivsInstructionList.newBuilder()
-                .addInstruction(instruction(RESULT_STOP_CAPTURE, Math.max(sessionId, 0))));
+    static XiaomiProto.Command buildStopCaptureCommand(final int sessionId, @Nullable final String toast) {
+        final AivsInstructionList.Builder list = AivsInstructionList.newBuilder()
+                .addInstruction(instruction(RESULT_STOP_CAPTURE, Math.max(sessionId, 0)));
+        if (toast != null) {
+            list.addInstruction(instruction(RESULT_TEMPLATE_TOAST, Math.max(sessionId, 0))
+                    .setTemplateToast(AivsText.newBuilder().setText(toast)));
+        }
+        return aivsCommand(list);
     }
 
     static XiaomiProto.Command buildDialogFinishCommand(final int sessionId) {
