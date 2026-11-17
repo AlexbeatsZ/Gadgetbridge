@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services;
 
+import android.content.Intent;
+
 import com.google.protobuf.ByteString;
 
 import org.slf4j.Logger;
@@ -33,9 +35,11 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 
+import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventAppInfo;
 import nodomain.freeyourgadget.gadgetbridge.devices.xiaomi.XiaomiFWHelper;
+import nodomain.freeyourgadget.gadgetbridge.externalevents.IntentApiReceiver;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDeviceApp;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Rpk;
@@ -60,9 +64,15 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     public static final int CMD_RPK_INSTALL = 1;
     public static final int CMD_RPK_INSTALLED = 2;
     public static final int CMD_RPK_LAUNCH = 4;
+    // The band asks whether the phone side of an app is running, e.g. when the app opens its interconnect
     public static final int CMD_RPK_LAUNCHED = 6;
+    // Phone app status for the band; Gadgetbridge always reports connected (status 1)
     public static final int CMD_RPK_SESSION_END = 7;
     public static final int CMD_RPK_MESSAGE = 8;
+    // Message from an app on the band to the phone (interconnect send)
+    public static final int CMD_RPK_WEAR_MESSAGE = 9;
+
+    public static final String ACTION_WATCH_APP_MESSAGE_RECEIVED = "nodomain.freeyourgadget.gadgetbridge.WATCH_APP_MESSAGE_RECEIVED";
 
     // Messages waiting for CMD_RPK_LAUNCHED, by rpk id, oldest first
     private final Map<String, Queue<byte[]>> pendingMessages = new HashMap<>();
@@ -85,6 +95,9 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
         switch (cmd.getSubtype()) {
             case CMD_RPK_LAUNCHED:
                 onWearAppLaunched(cmd.getRpk().getRpkDel());
+                return;
+            case CMD_RPK_WEAR_MESSAGE:
+                onWearAppMessage(cmd.getRpk().getRpkMessage());
                 return;
             case CMD_RPK_LIST:
                 handleRpkList(cmd.getRpk().getRpkList());
@@ -154,15 +167,36 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
 
     private void onWearAppLaunched(final RpkInfoList app) {
         final Queue<byte[]> payloads = pendingMessages.remove(app.getId());
+        final RpkInfoList ref = rpkRef(app.getId(), app.getSha());
         if (payloads == null) {
-            LOG.debug("Wear app {} launched, no pending message", app.getId());
+            // Without this answer the app's interconnect stays "not connected" (code 1006)
+            LOG.debug("Wear app {} asked for its phone side, reporting connected", app.getId());
+            getSupport().sendCommand("wear app connected " + app.getId(), buildSessionEndCommand(ref));
             return;
         }
-        final RpkInfoList ref = rpkRef(app.getId(), app.getSha());
         for (final byte[] payload : payloads) {
             getSupport().sendCommand("wear app message " + app.getId(), buildMessageCommand(ref, payload));
         }
         getSupport().sendCommand("wear app session end " + app.getId(), buildSessionEndCommand(ref));
+    }
+
+    private void onWearAppMessage(final RpkMessage message) {
+        final String appId = message.getApp().getId();
+        final String payload = message.getPayload().toStringUtf8();
+        LOG.info("Message from wear app {}: {} bytes", appId, message.getPayload().size());
+        LOG.debug("Wear app {} message: {}", appId, payload);
+
+        final GBDevice device = getSupport().getDevice();
+        if (device == null || !GBApplication.getDeviceSpecificSharedPrefs(device.getAddress())
+                .getBoolean(IntentApiReceiver.THIRD_PARTY_APPS_WATCH_APP_MESSAGES, false)) {
+            LOG.debug("Not broadcasting wear app message, third party watch app messages are disabled");
+            return;
+        }
+        final Intent intent = new Intent(ACTION_WATCH_APP_MESSAGE_RECEIVED)
+                .putExtra("device", device.getAddress())
+                .putExtra("appId", appId)
+                .putExtra("payload", payload);
+        getSupport().getContext().sendBroadcast(intent);
     }
 
     @Override

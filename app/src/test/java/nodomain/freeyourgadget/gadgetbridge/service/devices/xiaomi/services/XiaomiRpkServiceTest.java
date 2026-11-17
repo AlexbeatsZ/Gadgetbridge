@@ -71,16 +71,44 @@ public class XiaomiRpkServiceTest {
         service.sendWearAppMessage(APP_ID, bytes("first"));
         service.sendWearAppMessage(APP_ID, bytes("second"));
         service.handleCommand(XiaomiProto.Command.parseFrom(GB.hexStringToByteArray(CAPTURED_LAUNCHED)));
-        // a launch answered after the queue was sent has nothing left to send
+        // a later status request has no message left to send and is only answered with connected
         service.handleCommand(XiaomiProto.Command.parseFrom(GB.hexStringToByteArray(CAPTURED_LAUNCHED)));
 
         final List<XiaomiProto.Command> afterLaunches = sentCommands(support).stream()
                 .filter(cmd -> cmd.getSubtype() != XiaomiRpkService.CMD_RPK_LAUNCH)
                 .collect(Collectors.toList());
-        Assert.assertEquals(3, afterLaunches.size());
+        Assert.assertEquals(4, afterLaunches.size());
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_SESSION_END, afterLaunches.get(3).getSubtype());
         Assert.assertEquals("first", afterLaunches.get(0).getRpk().getRpkMessage().getPayload().toStringUtf8());
         Assert.assertEquals("second", afterLaunches.get(1).getRpk().getRpkMessage().getPayload().toStringUtf8());
         Assert.assertEquals(XiaomiRpkService.CMD_RPK_SESSION_END, afterLaunches.get(2).getSubtype());
+    }
+
+    @Test
+    public void statusRequestFromWearAppIsAnsweredConnected() throws Exception {
+        final XiaomiSupport support = mockSupport();
+        final XiaomiRpkService service = serviceWithInstalledApp(support);
+
+        service.handleCommand(XiaomiProto.Command.parseFrom(GB.hexStringToByteArray(CAPTURED_LAUNCHED)));
+
+        final List<XiaomiProto.Command> sent = sentCommands(support);
+        Assert.assertEquals(1, sent.size());
+        assertBytes(CAPTURED_SESSION_END, sent.get(0));
+    }
+
+    @Test
+    public void wearAppMessageIsAccepted() {
+        final XiaomiSupport support = mockSupport();
+        final XiaomiRpkService service = serviceWithInstalledApp(support);
+
+        service.handleCommand(XiaomiProto.Command.newBuilder()
+                .setType(XiaomiRpkService.COMMAND_TYPE)
+                .setSubtype(XiaomiRpkService.CMD_RPK_WEAR_MESSAGE)
+                .setRpk(Rpk.newBuilder().setRpkMessage(nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.RpkMessage.newBuilder()
+                        .setApp(app).setPayload(ByteString.copyFrom(bytes("{\"hello\":\"s4\"}")))))
+                .build());
+
+        Mockito.verify(support, Mockito.never()).sendCommand(Mockito.anyString(), Mockito.any(XiaomiProto.Command.class));
     }
 
     @Test
