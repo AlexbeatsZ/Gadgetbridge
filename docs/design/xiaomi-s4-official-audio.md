@@ -115,6 +115,14 @@ SPP V2 的 L2 通道 3，opCode 2
 - 此前第二轮帧首字节不规则的现象属于正常的 Opus 帧内容变化，不影响按 80 字节切帧解码。
 - 本次及此前三轮唤醒都没有观察到 START、AUDIO_END、QUIT 或 protobuf type 14。连 Gadgetbridge 时手表直接推 AUDIO_DATA,处理器在无 START 时按会话 -1 解码。START 和停止收音何时出现仍待确认。
 
+## 手表 HFP 麦克风(交给手机助手的限制)
+
+2026-11-17 在 K70 + S4 上用临时诊断(Gadgetbridge 直接用 AudioRecord 指定 `TYPE_BLUETOOTH_SCO` 录 5 秒，只记电平)确认:
+
+- HFP 语音识别模式(`startVoiceRecognition`):SCO 以 mSBC 16 kHz 接通，录音路由到手表(设备类型 7),但上行全部为数字零(-120 dBFS),课堂环境下也没有底噪。Gemini 经 `ACTION_VOICE_COMMAND` 接管手表耳机时同样听不到。
+- 虚拟通话模式(`MODE_IN_COMMUNICATION` + `setCommunicationDevice`,系统走 `startScoUsingVirtualVoiceCall`):手表每次都主动断开 SCO(`audio disconnected by remote`),系统反复重连仍被拒绝。
+- 结论:S4 只在真实电话中把麦克风接入 HFP。手机默认助手无法通过蓝牙耳机经手表收音;`xiaomi_voice_assistant_handoff` 能唤起助手，但助手实际收不到手表声音，应保持默认关闭。手表麦克风只能经 SPP 通道 3 的 Opus 音频获得。
+
 ## 证据定位与复现入口
 
 以下行号对应本次 jadx 1.5.6 的输出，输出根目录为 `/tmp/.agents/s4-official-audio/decompiled/sources`。缓存清理后可从上述 APK 重新生成。
