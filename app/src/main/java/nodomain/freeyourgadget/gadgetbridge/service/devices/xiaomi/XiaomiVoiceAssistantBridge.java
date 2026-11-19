@@ -16,14 +16,20 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi;
 
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothProfile;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +94,12 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     private static final long ANSWER_SETTLE_MS = 1500;
     // the official app cuts texts for the band at this length
     private static final int MAX_ANSWER_CHARS = 1000;
+    // BluetoothHeadset.ACTION_ACTIVE_DEVICE_CHANGED, a system API; sent to apps holding BLUETOOTH_CONNECT
+    private static final String ACTION_HEADSET_ACTIVE_DEVICE_CHANGED =
+            "android.bluetooth.headset.profile.action.ACTIVE_DEVICE_CHANGED";
+    // let Android finish its own active device choice after a headset change
+    private static final long HEADSET_SETTLE_MS = 2000;
+    private static final long ATTACH_CHECK_MS = 10000;
 
     private final XiaomiSupport support;
     private final VoiceMicHub hub = VoiceMicHub.getInstance();
@@ -97,6 +109,11 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     private final Runnable finishAfterStop = () -> awaitAnswer(true);
     private final XiaomiAssistantPlayback playback = new XiaomiAssistantPlayback();
     private final Runnable sendAnswer = this::sendAnswer;
+    private final Runnable headsetSettled = this::activateAfterChange;
+    @Nullable
+    private BroadcastReceiver headsetReceiver;
+    @Nullable
+    private Context receiverContext;
 
     // session handed over and not finished yet
     private volatile int activeSession = -1;
@@ -143,8 +160,67 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         handler.postDelayed(finishTimeout, MAX_DIALOG_MS);
         final long launchedPanel = panelSession.begin();
         panelToken = launchedPanel;
-        if (!launchAssistant(support.getContext())) {
-            panelSession.detach(launchedPanel);
+        final Context context = support.getContext();
+        final GBDevice device = support.getDevice();
+        final Runnable launch = () -> {
+            if (panelToken != launchedPanel || activeSession < 0) {
+                // cancelled on the band meanwhile
+                return;
+            }
+            if (!launchAssistant(context)) {
+                panelSession.detach(launchedPanel);
+            }
+        };
+        if (device == null) {
+            launch.run();
+            return;
+        }
+        // the assistant refuses the headset voice command unless the watch is the active call device
+        XiaomiHeadsetActivator.ensureActive(context, device.getAddress(), "voice start", launch);
+    }
+
+    /** Registers for headset changes, so that the watch is made the active call device again after reconnecting. */
+    public void attach(final Context context) {
+        if (headsetReceiver != null || context == null) {
+            return;
+        }
+        final IntentFilter filter = new IntentFilter(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
+        filter.addAction(ACTION_HEADSET_ACTIVE_DEVICE_CHANGED);
+        headsetReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(final Context c, final Intent intent) {
+                onHeadsetChanged(c, intent);
+            }
+        };
+        receiverContext = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        // only the Bluetooth stack sends these protected broadcasts
+        ContextCompat.registerReceiver(receiverContext, headsetReceiver, filter, ContextCompat.RECEIVER_EXPORTED);
+        // the watch may already be connected as an inactive headset, e.g. when Gadgetbridge restarted
+        handler.postDelayed(headsetSettled, ATTACH_CHECK_MS);
+    }
+
+    private void onHeadsetChanged(final Context context, final Intent intent) {
+        final GBDevice device = support.getDevice();
+        if (device == null || !isEnabled()) {
+            return;
+        }
+        final BluetoothDevice changed = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+        final boolean ourConnection = BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(intent.getAction())
+                && changed != null && device.getAddress().equalsIgnoreCase(changed.getAddress())
+                && intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1) == BluetoothProfile.STATE_CONNECTED;
+        // e.g. other earphones disconnected; Android does not fall back to a watch either
+        final boolean noneActive = ACTION_HEADSET_ACTIVE_DEVICE_CHANGED.equals(intent.getAction()) && changed == null;
+        if (!ourConnection && !noneActive) {
+            return;
+        }
+        handler.removeCallbacks(headsetSettled);
+        handler.postDelayed(headsetSettled, HEADSET_SETTLE_MS);
+    }
+
+    private void activateAfterChange() {
+        final GBDevice device = support.getDevice();
+        if (device != null && receiverContext != null && isEnabled()) {
+            XiaomiHeadsetActivator.ensureActive(receiverContext, device.getAddress(), "headset change", null);
         }
     }
 
@@ -318,6 +394,14 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     }
 
     public void dispose() {
+        if (headsetReceiver != null && receiverContext != null) {
+            try {
+                receiverContext.unregisterReceiver(headsetReceiver);
+            } catch (final IllegalArgumentException e) {
+                LOG.warn("Headset receiver was not registered", e);
+            }
+        }
+        headsetReceiver = null;
         panelSession.detach(panelToken);
         playback.stop();
         handler.removeCallbacksAndMessages(null);

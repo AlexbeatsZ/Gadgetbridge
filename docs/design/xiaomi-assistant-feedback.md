@@ -20,10 +20,19 @@
 - 卡片快照复用原有 `METHOD_ANSWER`、`VoiceMicHub.onAnswer` 和 Bridge 的回答等待流程。仅在内容变化或卡片重新绑定时上报。
 - Google 进程的音频注入、录音启停、HFP 抢占保护与回调线程方式，以及 Bridge 的唤醒与收音均与 `ecdbbdbda2` 保持一致。
 - 2026.11.10 曾将音频和卡片 IPC 共用串行队列，并增加反馈会话序号。这些超出回答显示范围的改动已撤回，最终版本保持原有音频与 IPC 实现。
-- 唤醒故障的完整旧版对照也失败：S4 的 HFP 已连接但系统活动通话设备为空，Google VOICE_COMMAND 因没有蓝牙音频设备直接拒绝。临时将已连接 S4 恢复为活动通话设备后，用户确认自动唤醒恢复，日志确认原版拒绝 SCO 保护与 PCM 注入同时正常。活动设备为何变空尚未确定，不将其归因于卡片代码或用户临时启用的 GlassMic。
+- 唤醒故障的完整旧版对照也失败：S4 的 HFP 已连接但系统活动通话设备为空，Google VOICE_COMMAND 因没有蓝牙音频设备直接拒绝。临时将已连接 S4 恢复为活动通话设备后，用户确认自动唤醒恢复，日志确认原版拒绝 SCO 保护与 PCM 注入同时正常。活动设备变空的原因见下节「活动通话设备」，与卡片代码和用户临时启用的 GlassMic 无关。
 - GlassMic 不再是依赖；它在成功对照中停用。系统活动通话设备与实际开启 SCO 录音是不同状态，不能通过移除原版 startVoiceRecognition 拦截解决唤醒。
 - 没有可读内容时，等待 30 秒后显示“手机助手未返回可显示的内容，请在手机上查看操作结果。”再结束对话。
 - Google 进程需要在 APK 更新后重新启动，才能加载更新后的 LSPosed hook。
+
+## 活动通话设备
+
+- 根因：AOSP `ActiveDeviceManager` 在 HFP 连接时跳过 WEARABLE_WRIST_WATCH 类设备，不把手表设为活动设备。S4 的设备类为 `0x280704`（腕表）。走出范围、蓝牙重启、开关通话权限或手机重启都会让 HFP 重连，之后 S4 一直是 Connected 但 Active=null，Google `ACTION_VOICE_COMMAND` 报没有蓝牙耳机并拒绝。2026-11-19 复现时，Telecom 日志显示 17:34 两次断开重连，`activeBluetoothDevice` 均为 null。
+- 检测无需特权：只有活动 HFP 设备会进入音频策略的 `TYPE_BLUETOOTH_SCO` 输出。`XiaomiHeadsetActivator.state()` 读 `AudioManager.getDevices(OUTPUTS)`，区分本表活动、其它耳机活动和无活动设备三种状态。
+- 恢复需要特权：`BluetoothAdapter.setActiveDevice(device, ACTIVE_DEVICE_PHONE_CALL)` 是系统 API。通过 `su` 用本 APK 作为 CLASSPATH 运行 `app_process`，入口为 `BluetoothActiveDeviceTool`。app_process 中没有 ActivityThread，Android 13+ 须先 `Looper.prepareMainLooper()` 并反射调用 `BluetoothFrameworkInitializer.setBluetoothServiceManager`，否则 `getDefaultAdapter()` 返回 null 或在 Handler 构造时抛 NPE。release 构建的 proguard 规则保留该入口。
+- 触发时机（仅在「使用手机语音助手」开启时）：本表 HFP 变为已连接、系统广播活动设备变为空（各延迟 2 秒，等待系统自身的选择）、连接后 10 秒补查一次（应对 GB 重启时 HFP 早已连上），以及每次手表 START 拉起助手之前。已经活动时只读一次音频设备列表，不调用 root。
+- 不抢占：其它耳机为活动通话设备时不改动；音频模式不是 MODE_NORMAL（通话中）时不改动，避免用户在通话中把声音切回手机后被拉回手表。没有 root 时只记日志，助手仍照常拉起。
+- 2026.11.15 实测：GB 重启 10 秒后检测到 Active=null，0.8 秒内恢复，HeadsetService 与音频策略均出现 S4。用 root 清空活动设备后 2 秒内自动恢复。用户长按 S4 后 Gemini 唤起并回答。
 
 ## 取消会话
 

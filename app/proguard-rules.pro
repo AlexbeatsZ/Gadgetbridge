@@ -98,3 +98,8 @@
 # jsoup 1.22.1 introduces support for re2j, but falls back to java Regex if not available
 # Since we only use jsoup to clean the html, we do not need the extra dependency
 -dontwarn com.google.re2j.Pattern
+
+# Run as root through app_process by XiaomiHeadsetActivator
+-keep class nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.BluetoothActiveDeviceTool {
+    public static void main(java.lang.String[]);
+}

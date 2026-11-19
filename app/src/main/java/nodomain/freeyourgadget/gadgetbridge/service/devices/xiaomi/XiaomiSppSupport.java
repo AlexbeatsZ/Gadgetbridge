@@ -119,6 +119,7 @@ public class XiaomiSppSupport extends XiaomiConnectionSupport {
     @Override
     public void setContext(GBDevice device, BluetoothAdapter adapter, Context context) {
         this.commsSupport.setContext(device, adapter, context);
+        mVoiceAssistantBridge.attach(context);
     }
 
     @Override
