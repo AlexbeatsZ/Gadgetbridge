@@ -18,6 +18,8 @@ package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.voicemic;
 
 import android.app.Activity;
 import android.app.AndroidAppHelper;
+import android.app.Application;
+import android.app.Instrumentation;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.os.Bundle;
@@ -32,6 +34,9 @@ import android.media.AudioTrack;
 import android.media.MediaSyncEvent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.View;
@@ -124,6 +129,7 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
+                hookSpeechHold();
                 hookAssistantPlayback();
             } catch (final Throwable t) {
                 log("assistant playback hook unavailable: " + t);
@@ -136,17 +142,98 @@ public class VoiceMicHook implements IXposedHookLoadPackage {
     // Keep starts and stops in order without touching the microphone IPC or blocking audio threads.
     private static final Executor PLAYBACK_EVENTS = Executors.newSingleThreadExecutor();
 
+    // Speech hold for band requests, see VoiceMicContract.ACTION_PLAYBACK_HOLD. Without a hold broadcast, which
+    // Gadgetbridge only sends for band requests, holdUntil stays 0 and play() is not delayed at all.
+    private static final Object HOLD_LOCK = new Object();
+    private static final long MAX_HOLD_PER_TRACK_MS = 4000;
+    private static long holdUntil;
+    private static final String HOLD_REPORTED = "gb-hold-reported";
+
+    private static void hookSpeechHold() {
+        XposedHelpers.findAndHookMethod(Instrumentation.class, "callApplicationOnCreate", Application.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(final MethodHookParam param) {
+                        registerHoldReceiver((Application) param.args[0]);
+                    }
+                });
+    }
+
+    private static void registerHoldReceiver(final Context context) {
+        // its own thread: the thread that calls play() may be the one held
+        final HandlerThread thread = new HandlerThread("gb-speech-hold");
+        thread.start();
+        final BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(final Context c, final Intent intent) {
+                final long holdMs = intent.getLongExtra(VoiceMicContract.KEY_HOLD_MS, 0);
+                synchronized (HOLD_LOCK) {
+                    holdUntil = holdMs > 0 ? SystemClock.elapsedRealtime() + holdMs : 0;
+                    HOLD_LOCK.notifyAll();
+                }
+            }
+        };
+        final IntentFilter filter = new IntentFilter(VoiceMicContract.ACTION_PLAYBACK_HOLD);
+        final String permission = BuildConfig.APPLICATION_ID + VoiceMicContract.CANCEL_PERMISSION_SUFFIX;
+        final Handler handler = new Handler(thread.getLooper());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, permission, handler, Context.RECEIVER_EXPORTED);
+        } else {
+            context.registerReceiver(receiver, filter, permission, handler);
+        }
+    }
+
+    private static boolean isAssistantSpeech(final AudioTrack track) {
+        final AudioAttributes attrs = track.getAudioAttributes();
+        return attrs.getUsage() == AudioAttributes.USAGE_ASSISTANT
+                && attrs.getContentType() == AudioAttributes.CONTENT_TYPE_SPEECH;
+    }
+
+    /** Waits while a band request opens the watch's audio route, at most {@link #MAX_HOLD_PER_TRACK_MS}. */
+    private static void awaitSpeechHold(final AudioTrack track) {
+        final long start = SystemClock.elapsedRealtime();
+        synchronized (HOLD_LOCK) {
+            if (holdUntil <= start) {
+                return;
+            }
+        }
+        if (XposedHelpers.getAdditionalInstanceField(track, HOLD_REPORTED) == null) {
+            XposedHelpers.setAdditionalInstanceField(track, HOLD_REPORTED, Boolean.TRUE);
+            // tells Gadgetbridge listening is over, so it opens the route right away
+            reportPlayback(VoiceMicContract.METHOD_SPEECH_HELD, null);
+        }
+        final long deadline = start + MAX_HOLD_PER_TRACK_MS;
+        try {
+            synchronized (HOLD_LOCK) {
+                long now = start;
+                while (holdUntil > now && now < deadline) {
+                    HOLD_LOCK.wait(Math.min(holdUntil, deadline) - now);
+                    now = SystemClock.elapsedRealtime();
+                }
+            }
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        log("held assistant speech for " + (SystemClock.elapsedRealtime() - start) + " ms");
+    }
+
     private static void hookAssistantPlayback() {
         XposedHelpers.findAndHookMethod(AudioTrack.class, "play", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(final MethodHookParam param) {
+                final AudioTrack track = (AudioTrack) param.thisObject;
+                if (XposedHelpers.getAdditionalInstanceField(track, PLAYBACK_TRACK) == null && isAssistantSpeech(track)) {
+                    awaitSpeechHold(track);
+                }
+            }
+
             @Override
             protected void afterHookedMethod(final MethodHookParam param) {
                 if (param.hasThrowable()) {
                     return;
                 }
                 final AudioTrack track = (AudioTrack) param.thisObject;
-                final AudioAttributes attrs = track.getAudioAttributes();
-                if (attrs.getUsage() == AudioAttributes.USAGE_ASSISTANT
-                        && attrs.getContentType() == AudioAttributes.CONTENT_TYPE_SPEECH
+                if (isAssistantSpeech(track)
                         && XposedHelpers.getAdditionalInstanceField(track, PLAYBACK_TRACK) == null) {
                     final String id = UUID.randomUUID().toString();
                     XposedHelpers.setAdditionalInstanceField(track, PLAYBACK_TRACK, id);

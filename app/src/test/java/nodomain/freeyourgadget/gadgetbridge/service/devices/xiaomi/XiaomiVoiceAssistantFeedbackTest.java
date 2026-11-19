@@ -193,6 +193,61 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
 
     @Test
     @Config(sdk = 35)
+    public void heldSpeechOpensTheRouteWithoutTheListeningGrace() {
+        final ReplyHeadset headset = new ReplyHeadset();
+        bridge.onVoiceStart(0);
+        bridge.onAssistantStoppedListening();
+        hub.onSpeechHeld();
+        advance(0);
+        assertFalse(hub.isActive());
+        advance(450);
+        headset.deliverProxy();
+        verify(headset.proxy).startVoiceRecognition(headset.device);
+    }
+
+    @Test
+    @Config(sdk = 35)
+    public void watchRequestHoldsSpeechUntilScoIsConnected() {
+        final ReplyHeadset headset = new ReplyHeadset();
+        when(headset.proxy.isAudioConnected(headset.device)).thenReturn(true);
+        bridge.onVoiceStart(0);
+        assertEquals(List.of(XiaomiAssistantPlayback.HOLD_WINDOW_MS), holdBroadcasts(headset.context));
+        hub.onSpeechHeld();
+        advance(450);
+        headset.deliverProxy();
+        assertEquals(List.of(XiaomiAssistantPlayback.HOLD_WINDOW_MS), holdBroadcasts(headset.context));
+        advance(200);
+        assertEquals(List.of(XiaomiAssistantPlayback.HOLD_WINDOW_MS, 0L), holdBroadcasts(headset.context));
+    }
+
+    @Test
+    public void phoneSpeechIsNotHeldWithoutWatchPlayback() {
+        bridge.onVoiceStart(0);
+        hub.onSpeechHeld();
+        advance(3000);
+        final long holds = shadowOf((android.app.Application) getContext().getApplicationContext()).getBroadcastIntents()
+                .stream().filter(intent -> VoiceMicContract.ACTION_PLAYBACK_HOLD.equals(intent.getAction())).count();
+        assertEquals(0, holds);
+    }
+
+    @Test
+    @Config(sdk = 35)
+    public void speechThatStartedBeforeTheRouteKeepsItOpen() {
+        final ReplyHeadset headset = new ReplyHeadset();
+        bridge.onVoiceStart(0);
+        // speaking ends listening right away and the route is armed while the track already plays
+        hub.onPlaybackChanged("early", true);
+        advance(450);
+        headset.deliverProxy();
+        advance(12000);
+        verify(headset.proxy, never()).stopVoiceRecognition(headset.device);
+        hub.onPlaybackChanged("early", false);
+        advance(800);
+        verify(headset.proxy).stopVoiceRecognition(headset.device);
+    }
+
+    @Test
+    @Config(sdk = 35)
     public void cancellationDiscardsAHeadsetProxyThatArrivesLate() {
         final ReplyHeadset headset = new ReplyHeadset();
         startAndStopListening();
@@ -264,6 +319,15 @@ public class XiaomiVoiceAssistantFeedbackTest extends TestBase {
             verify(adapter).getProfileProxy(eq(context), listener.capture(), eq(BluetoothProfile.HEADSET));
             listener.getValue().onServiceConnected(BluetoothProfile.HEADSET, proxy);
         }
+    }
+
+    private static List<Long> holdBroadcasts(final Context context) {
+        final ArgumentCaptor<android.content.Intent> intents = ArgumentCaptor.forClass(android.content.Intent.class);
+        verify(context, org.mockito.Mockito.atLeast(0)).sendBroadcast(intents.capture(), anyString());
+        return intents.getAllValues().stream()
+                .filter(intent -> VoiceMicContract.ACTION_PLAYBACK_HOLD.equals(intent.getAction()))
+                .map(intent -> intent.getLongExtra(VoiceMicContract.KEY_HOLD_MS, -1))
+                .collect(Collectors.toList());
     }
 
     private long cancellationBroadcastCount() {

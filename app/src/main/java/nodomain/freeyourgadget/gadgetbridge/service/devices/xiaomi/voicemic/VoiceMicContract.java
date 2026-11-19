@@ -43,8 +43,17 @@ public final class VoiceMicContract {
 
     public static final String METHOD_PLAYBACK_STARTED = "playback_started";
     public static final String METHOD_PLAYBACK_STOPPED = "playback_stopped";
+    /** {@code ContentResolver.call} method: the assistant's speech is held for the band, so it is done listening. */
+    public static final String METHOD_SPEECH_HELD = "speech_held";
 
     public static final String ACTION_CANCEL = "nodomain.freeyourgadget.gadgetbridge.voicemic.CANCEL";
+    /**
+     * Broadcast to the assistant's processes, protected like {@link #ACTION_CANCEL}: hold the assistant's speech
+     * for {@link #KEY_HOLD_MS} while the band's audio route is being opened, or release it with 0. Only sent for
+     * band requests, so the assistant used on the phone itself is never held.
+     */
+    public static final String ACTION_PLAYBACK_HOLD = "nodomain.freeyourgadget.gadgetbridge.voicemic.PLAYBACK_HOLD";
+    public static final String KEY_HOLD_MS = "hold_ms";
     public static final String CANCEL_PERMISSION_SUFFIX = ".permission.CANCEL_PHONE_ASSISTANT";
     public static final String METHOD_PANEL_ATTACH = "panel_attach";
     public static final String METHOD_PANEL_DETACH = "panel_detach";

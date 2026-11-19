@@ -102,6 +102,9 @@ public class VoiceMicProvider extends ContentProvider {
             if (arg != null) {
                 VoiceMicHub.getInstance().onPlaybackChanged(arg, VoiceMicContract.METHOD_PLAYBACK_STARTED.equals(method));
             }
+        } else if (VoiceMicContract.METHOD_SPEECH_HELD.equals(method)) {
+            LOG.info("Assistant speech held for the band");
+            VoiceMicHub.getInstance().onSpeechHeld();
         } else if (VoiceMicContract.METHOD_PANEL_ATTACH.equals(method)) {
             final Bundle result = new Bundle();
             result.putLong(VoiceMicContract.KEY_PANEL_TOKEN, AssistantPanelSession.getInstance().attach());

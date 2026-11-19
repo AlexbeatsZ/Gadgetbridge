@@ -48,6 +48,9 @@
 - 录音停止并通过原有 1.5 秒去抖后，发送 STOP_CAPTURE。再等 450ms，通过 HFP 的 `startVoiceRecognition` 建立 S4 SCO。沿用原版的手表收音期间 SCO 保护。保持 Android 音频模式，已有通话或 SCO 时跳过。
 - K70 的 Android 音频策略在 SCO 接通后把 Google 助手语音 AudioTrack 路由到 S4。直接播放 Gemini 原声。Google 钩子通过受调用方校验的旧 provider 报告 `USAGE_ASSISTANT` / `CONTENT_TYPE_SPEECH` 音轨启停；这些事件使用独立队列。
 - 语音播放结束后预留 800ms 等待下一条音轨。没有语音的等待限于 10 秒，整段最多 90 秒。取消、下一次手表唤醒或设备断开时关闭本次打开的 SCO。文字及卡片发送仍独立完成。通道短暂开放期间，系统也可能把其它声音路由到手表。
+- 暂缓起播（2026.11.16）：只有手表发起且开启播报的会话，GB 才在 START 时向 Google 包发 `ACTION_PLAYBACK_HOLD`（60 秒窗口，与取消广播同一 signature 权限）。Hook 在每个 Google 进程的 `Instrumentation.callApplicationOnCreate` 后注册接收器，接收器跑在独立 HandlerThread 上，避免与被暂缓的线程互锁。`AudioTrack.play()` 前，助手语音音轨在暂缓期内等待放行，每条音轨最多 4 秒。HEADSET `ACTION_AUDIO_STATE_CHANGED` 报告 S4 音频已连接后再等 200ms，GB 发 0 放行；`stop()`、取消、未建路由或超时也会放行。手机上直接使用 Gemini 时没有暂缓广播，`play()` 不等待，也没有额外 IPC。
+- 提前建路由：Gemini 播报在 `:search` 进程，收音在 `:interactor` 进程。2026-11-19 18:49 实测，录音停止后约 50ms 就开始播报，而 GB 要先等 1.5 秒去抖、再等 450ms 才请求 SCO，约 0.9 秒后才接通，因此前 2.8 秒走手机外放。现在 Hook 开始暂缓时调用 `METHOD_SPEECH_HELD`，Hub 收到任一语音音轨开始也通知 Bridge，Bridge 随即跳过去抖进入停止收音与建路由。Hub 记录正在播放的音轨，播报路由晚于音轨开始时补发开始事件。补发要在挂上 10 秒无语音定时器之后进行，否则长回答会在 10 秒时被切断（单元测试覆盖）。
+- 2026.11.16 实测：用户确认手表发起的回答从第一个字起就在手表播放，手机上直接使用 Gemini 也正常。用户这几轮的 Gemini 都在收音结束 3–4 秒后才开口，那时 SCO 已接通，所以没有触发暂缓。另用 root 手动发暂缓并在手机上提问，`:search` 等待 4002ms 后放行，并通知了 GB。
 - K70 + S4 真机在 2026.11.14/code270 验证用户问时间后，Google 原声音轨实际路由到 S4，用户确认从手表听到回答，音轨停止后 SCO 自动关闭。长回答、通话期间与其他手机 ROM 未实测。
 
 ## 卡片与 Markdown 实机对照

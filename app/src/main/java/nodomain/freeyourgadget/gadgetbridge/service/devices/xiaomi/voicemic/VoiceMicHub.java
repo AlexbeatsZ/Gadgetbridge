@@ -26,6 +26,10 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -57,6 +61,10 @@ public final class VoiceMicHub {
 
         /** Another text in the assistant's panel changed, e.g. the transcript of what was said. */
         void onAssistantPanelText(String viewId, String text);
+
+        /** The assistant started speaking, so it is done listening. */
+        default void onAssistantSpeaking() {
+        }
     }
 
     public interface PlaybackListener {
@@ -66,8 +74,18 @@ public final class VoiceMicHub {
     @Nullable
     private PlaybackListener playbackListener;
 
-    public synchronized void setPlaybackListener(final PlaybackListener listener) {
-        playbackListener = listener;
+    // speech tracks currently playing, so that a route armed after the answer started still sees them
+    private final Set<String> playingTracks = new HashSet<>();
+
+    public void setPlaybackListener(final PlaybackListener listener) {
+        final List<String> playing;
+        synchronized (this) {
+            playbackListener = listener;
+            playing = new ArrayList<>(playingTracks);
+        }
+        for (final String trackId : playing) {
+            listener.onPlaybackChanged(trackId, true);
+        }
     }
 
     public synchronized void clearPlaybackListener(final PlaybackListener listener) {
@@ -76,10 +94,30 @@ public final class VoiceMicHub {
         }
     }
 
+    public void onSpeechHeld() {
+        final AnswerListener answers;
+        synchronized (this) {
+            answers = answerListener;
+        }
+        if (answers != null) {
+            answers.onAssistantSpeaking();
+        }
+    }
+
     public void onPlaybackChanged(final String trackId, final boolean playing) {
         final PlaybackListener target;
+        final AnswerListener answers;
         synchronized (this) {
+            if (playing) {
+                playingTracks.add(trackId);
+            } else {
+                playingTracks.remove(trackId);
+            }
             target = playbackListener;
+            answers = answerListener;
+        }
+        if (playing && answers != null) {
+            answers.onAssistantSpeaking();
         }
         if (target != null) {
             target.onPlaybackChanged(trackId, playing);
@@ -103,6 +141,8 @@ public final class VoiceMicHub {
         endSession();
         this.listener = listener;
         active = true;
+        // a stop event lost with an earlier answer must not keep a later route open
+        playingTracks.clear();
         LOG.info("Voice mic session started");
     }
 

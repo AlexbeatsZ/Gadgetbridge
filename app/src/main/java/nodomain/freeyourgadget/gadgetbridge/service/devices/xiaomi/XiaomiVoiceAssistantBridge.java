@@ -133,6 +133,14 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         hub.setAnswerListener(this);
     }
 
+    private boolean playbackEnabled() {
+        final GBDevice device = support.getDevice();
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && device != null && device.getType() == DeviceType.XIAOMI_WATCH_S4
+                && GBApplication.getDeviceSpecificSharedPrefs(device.getAddress())
+                .getBoolean(PREF_VOICE_ASSISTANT_PLAYBACK, false);
+    }
+
     private boolean isEnabled() {
         final GBDevice device = support.getDevice();
         return device != null && GBApplication.getDeviceSpecificSharedPrefs(device.getAddress())
@@ -150,6 +158,10 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
             return;
         }
         playback.stop();
+        if (playbackEnabled()) {
+            // the answer should start on the watch, not on the phone speaker while the watch's route opens
+            playback.hold(support.getContext());
+        }
         activeSession = Math.max(sessionId, 0);
         awaitingAnswer = false;
         answer = null;
@@ -258,6 +270,17 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
     }
 
     @Override
+    public void onAssistantSpeaking() {
+        handler.post(() -> {
+            if (activeSession >= 0 && !awaitingAnswer) {
+                // speaking means listening is over; no need to wait for a probe recording to reopen
+                handler.removeCallbacks(finishAfterStop);
+                awaitAnswer(true);
+            }
+        });
+    }
+
+    @Override
     public void onAssistantStartedListening() {
         handler.post(() -> handler.removeCallbacks(finishAfterStop));
     }
@@ -283,11 +306,10 @@ public class XiaomiVoiceAssistantBridge implements XiaomiVoiceHandler.Listener, 
         support.sendCommand("aivs stop capture", buildStopCaptureCommand(activeSession, null));
         support.sendCommand("aivs loading", buildLoadingCardCommand(activeSession, ANSWER_TIMEOUT_S));
         final GBDevice device = support.getDevice();
-        if (recordingStopped && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                && device != null && device.getType() == DeviceType.XIAOMI_WATCH_S4
-                && GBApplication.getDeviceSpecificSharedPrefs(device.getAddress())
-                .getBoolean(PREF_VOICE_ASSISTANT_PLAYBACK, false)) {
+        if (recordingStopped && device != null && playbackEnabled()) {
             playback.arm(support.getContext(), device.getAddress());
+        } else {
+            playback.release();
         }
         if (answer != null) {
             // already shown while the recording was still open
