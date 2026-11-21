@@ -5,7 +5,8 @@
 ## 复旦大学联名卡
 
 - 通过无线 ADB 查看 K70 的 NFC 页面。卡名为「复旦大学联名卡」，卡种标为「上海公共交通 · 交通联合」。当前移植客户端的页面没有显示移卡入口。
-- [复旦大学的联名卡公告](https://news.fudan.edu.cn/2026/0527/c5a149385/page.htm)将 NFC 机型范围指向上海公共交通卡公司的[支持名单](https://spa-prod-1255822635.cos.ap-shanghai.myqcloud.com/wind/nfc-device-sptcc.html)。已核对名单版本 `v20261015.0.1`，列有 Redmi K70 和 Apple Watch，未列出 Xiaomi Watch S4 或小米手表。该名单不能确认联名卡能发到 S4。
+- [复旦大学联名卡使用指南](https://ecampus.fudan.edu.cn/fddxshggjtlmksyzn/list.htm)将 NFC 机型范围指向上海公共交通卡公司的[支持名单](https://spa-prod-1255822635.cos.ap-shanghai.myqcloud.com/wind/nfc-device-sptcc.html)。已核对名单版本 `v20261015.0.1`，列有 Redmi K70 和 Apple Watch，未列出 Xiaomi Watch S4 或小米手表。复旦指南说明了同品牌手机间的云端迁移，未列出 K70 到 S4 的路径。
+- 复旦联名卡由「上海交通卡 App」开通，并通过复旦统一身份认证绑定校园功能。复旦指南说明解绑后校内消费和认证失效，公交功能仍保留。核实目标设备资格之前，应保留原卡的校园绑定。
 - [小米 S4 产品规格](https://www.mi.com/prod/xiaomi-watchS4/specs)单独确认 S4 支持 NFC。通用 NFC 或公交卡支持不能判断某张联名卡在目标表上的移入资格。
 
 ## 小米运动健康的官方流程
