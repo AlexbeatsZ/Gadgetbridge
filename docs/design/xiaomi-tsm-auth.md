@@ -4,7 +4,9 @@
 
 本路线回答「K70 复旦大学联名交通卡能否经正式 TSM 流程迁入 S4」。研究代码只在 `tools/research/xiaomi-tsm-auth`，与路线 B 射频代理分开。没有改生产 `app/`、安装/发布 Gadgetbridge APK，也没有调用订单、冻结、迁出、写卡或激活接口。
 
-2026-11-21 至 11-22 America/Los_Angeles 的结果：请求签名和两套网络封装已定位并用合成数据验证；K70 系统 ServiceToken Binder 实测拒绝 GB 应用权限；独立官方二维码认证初始化成功，但本轮等待窗口没有收到完成授权的响应。**尚未完成认证，尚未查询源卡/目标产品资格，不能回答该联名卡可以或不可以迁入。**
+2026-11-22 America/Los_Angeles 的新结果：用户扫码确认后，独立官方QR/STS认证成功；使用GB自身包名和实际版本，K70源卡记录、TRANSFER_OUT资格、S4的TRANSFER_IN资格与同产品目录均得到HTTP200/业务200。源卡产品SPTC_MOT、K70的SE、批准账号匹配，卡号尾8213。**本阶段只读服务资格通过；真实迁移尚未执行，复旦校园身份能否随迁移保留仍未验证，不能报告公交卡功能完成。** 此前系统Binder拒绝与未扫码超时是历史证据，不再是本路线当前阻塞。
+
+最新证据：`docs/evidence/xiaomi-tsm-eligibility-2026-11-22.json`。最终五个请求的UTC时间11:50:19–20，对应客户端11-22 03:50:19–20 America/Los_Angeles、K70 11-22 19:50:19–20 Asia/Shanghai。历史证据仍保留。
 
 证据：`docs/evidence/xiaomi-tsm-auth-2026-11-22.json`。手机日志使用 Asia/Shanghai，Binder 实测为 11-22 15:46:45–46；对应客户端 11-21 23:46:45–46。
 
@@ -65,7 +67,7 @@
 
 公开小米 OAuth 需要注册应用与获准回调。公共账号 OAuth token 或其 MAC key 是否获准访问 TSM，仍需发行方/TSM 明确授权和实际成功响应，不能用普通 scope 推定。
 
-### 官方二维码路径：本轮做到哪里
+### 官方二维码路径：此前未确认阶段
 
 `XMPassport.getQRLoginUrl` → `GET /longPolling/loginUrl?sid=tsm-auth` → 用户扫码并确认 → `loginByLongPolling(lp)` → `processLoginContent` → `parseLoginResult` → STS。
 
@@ -77,7 +79,9 @@
 
 独立 `passport.py` 生成官方 challenge QR，没有启动小米运动健康，没有读现有浏览器 Cookie，没有输入/记录密码或复制其他 App Token。二维码临时文件在会话结束时删除。已展示的二维码失效，不要继续扫描。
 
-批准后预计的官方 STS 流程（静态已定位，**尚未实测成功**）：从获准响应/Extension-Pragma 取得 `ssecurity/nonce/location`；`clientSign=Base64(SHA1("nonce="+nonce+"&"+ssecurity))`；访问可信 STS location，附 `_userIdNeedEncrypt=true`；从同域响应取 `tsm-auth_serviceToken` 或 `serviceToken`，可选 `_ph/_slh`。研究模块只允许列明的 HTTPS 账号/TSM 主机，未知跳转或附加风险验证会停下，不绕过。Token、security、Cookie 只保留在进程内存。
+批准后的官方 STS 流程（2026-11-22已实测成功）：从获准响应/Extension-Pragma取得`ssecurity/nonce/location`；`clientSign=Base64(SHA1("nonce="+nonce+"&"+ssecurity))`；访问可信STS location，附`_userIdNeedEncrypt=true`；从同域响应取`tsm-auth_serviceToken`或`serviceToken`，可选`_ph/_slh`。本轮实际账号主机分配为`c3.account.xiaomi.com/c3.lp.account.xiaomi.com`，补入精确允许主机后生成二维码。QR长轮询HTTP200/code0，STS到tsmapi.pay.xiaomi.com也HTTP200，签发新会话。没有复制已装App凭证或借用其包名/UID。未知跳转或额外风险验证停下，不绕过；凭证只留进程内存，会话已关闭。
+
+本轮第一次批准后，脱敏器遗漏了数字`errCode`，故虽然两次只读响应HTTP200且可解密，业务值没有被保留；没有推断为失败。修正后明确展示新码，由用户再次批准，并用同一内存会话完成后续查询。证据记录第二个会话的17次只读TSM请求，包含参数排查及最终五项；第一个会话另有2次ACL只读请求，无写操作。新CLI支持保持会话期间更新解析器，批准后立即删除二维码并清除不再使用的账号SSO Cookie。
 
 ## 设备证明和 SE 会话的边界
 
@@ -87,14 +91,35 @@
 
 ## 只读查询设计及通过判据
 
-模块仅允许以下两个精确路径，其他路径（包括 `se/createSession`）拒绝；订单/authentication_code/transferOutToken/tsmSessionId 参数拒绝。当前只实现其可测试的编解码与路径检查，尚未接入获准会话执行查询。
+模块仅允许以下四个精确路径，其他路径（包括`se/createSession`）拒绝；订单/authentication_code/transferOutToken/tsmSessionId参数拒绝。已经接入获准的内存会话，查询结果只输出字段结构、业务码、有限资格值及匹配布尔值。
 
 1. `POST /api/login/acl/checkServiceAvailable`：按官方 `ServiceAvailableInfo`，`cardName` 为真实发行方产品名，`cardActionType=TRANSFER_OUT`（目标为TRANSFER_IN），`deviceModel/miuiRomType/miuiSystemVersion/os=ANDROID`，加 SecureRequest 通用元数据/CPLC。不能把 enum 内部数字4/5替代实际 `.toString()` 发出的字符串。
 2. `POST /api/login/spcard/v2/queryShiftInCardProducts`：目标 S4 的 CPLC、产品类型 `type`、实际deviceModel、客户端版本、supportCardTransfer，可选cardName/location。返回产品列表只是一层资格，不能自动证明已有源卡及校园身份都可迁移。
+3. `POST /api/login/spcard/v2/queryCardProduct`：`TSMAuthManager.queryCardProduct`的产品元数据接口；返回S4支持的SPTC_MOT产品，不创建发行订单。
+4. `POST /api/login/spcard/queryIssuedCardList`：官方`hsv extends SecureRequest`只读已发行列表；本轮只在源K70查询，比较账号/CPLC/产品，卡号只保留尾4位。
 
-通过 A 的判据：获准的独立账号/TSM会话 → HTTP 与业务认证成功 → 源卡/具体联名产品的迁出许可 → 同产品/S4 迁入许可，分别保存脱敏字段与明确业务错误码，并排除任何订单和SE写入。当前认证未完成，以上判据均没有被假定通过。
+### 2026-11-22实际只读结果
 
-下一步最小实验：在用户能即时确认的窗口重新生成官方二维码，保留长轮询至批准响应，记录 STS HTTP/业务结果。如果正式认证仍拒绝，记录其具体包名/应用授权或设备挑战；再选择注册 GB 自有 OAuth/TSM 接入身份，不能借用官方应用身份。如果会话签发成功，才补齐源/目标元数据并在内存内调用上述只读 allowlist。
+| 检查 | 实际参数与脱敏结果 | 判定 |
+| --- | --- | --- |
+| 源卡已发行记录 | K70/vermeer，SPTC_MOT；HTTP200/errCode200；1条；账号、CPLC、产品匹配均true；faceNo尾8213 | 通过账号/源SE/产品归属核验 |
+| 源端迁出服务 | vermeer、TRANSFER_OUT、实际源CPLC；HTTP200/errCode200、success | 产品/SE的迁出服务资格通过 |
+| 目标迁入服务 | o62、3.201.79、TRANSFER_IN、实际目标CPLC；HTTP200/errCode200、success | 产品/SE的迁入服务资格通过 |
+| 目标产品目录 | o62、SPTC_MOT；HTTP200/errCode200；1项上海公共交通卡·交通联合版，发行方上海公共交通卡股份有限公司 | 同产品在目标目录存在 |
+| 云端待迁入卡 | 同一账号、o62、SPTC_MOT；HTTP200/errCode200；data=[] | 查询成功，当前无该过滤条件下的云端待迁入卡；不能判为目标不支持 |
+
+官方`CommonResponseInfo.isSuccess()`和`BaseAuthClient.handleResult()`均以errCode==200为成功，不是errCode==0。ACL的成功data可以是null，不能据此判失败。`TSMSDKService.getCloudTransitCardList`调用`queryShiftInCardProducts`来构造CLOUD_TRANSIT条目，故空数组不能替代目标产品支持判据。
+
+两个具体排查点：
+
+- `DeviceInfoImpl.init/getDeviceModel`使用官方产品的alias。匿名官方目录`/app/v1/product/get_config_info_by_category`（SDK明确loginPolicy=3的分支）实得HTTP200/code0，S4为model=mijia.watch.o62、alias=o62、pd_id19969。只保留这些公共元数据，未保存目录中的其他蓝牙配置。最初以硬件型号M2425W1/完整产品名查询ACL返回219；核实alias后同样CPLC的ACL成功。这不是更换设备身份。
+- 仅照抄`queryCloudTransitCard`方法体的显式参数会漏掉`AuthRequestBuilder.newBuilder`的通用ROM/Android/appPackageName/app版本/产品字段。本轮缺字段时HTTP200/203无效参数；补齐真实字段后200/data=[]。没有逐个字段消融，不能把203唯一归因于某一个字段。Cloud封装最后把tsmclientVersion覆盖成调用App版本272，ACL/已发行/产品请求保留实际安装TSMClient4230；没有冒充Mi Fitness361000。
+
+只读阶段通过判据已满足：独立获准会话、真实HTTP及业务成功、匹配源卡记录、源迁出/目标迁入服务资格、目标同产品存在。**完整迁移判据仍未满足**：目前没有移出订单/目标个性化/激活结果，返回的通用SPTC_MOT元数据也没有对复旦校园身份保持作出承诺。
+
+复旦官方指南描述同品牌手机迁出云端再迁入，并不单独承诺K70到S4的校园绑定保留；当前发行方支持设备页列出小米手机，未显式列出S4。缺少S4条目不是硬件不支持的证明。下一步在不改卡的前提下继续核对联名身份与同品牌手机→手表业务规则；真实订单/SE写入仍被本阶段明确禁止。不得为得到云端卡而先迁出。
+
+可复现工具：`device_plan.py`读取实际版本/选定源CPLC与产品名、官方公开alias，加上受控SPP元数据生成0600临时请求计划；`passport.py --interactive`的stdin只传计划路径，Token不落盘。计划内完整CPLC属于SE标识而不是卡密钥，本轮仅临时私有文件使用，结束删除；仓库证据仅记录其长度和相等比较。没有更改账号可见性、原卡、余额、校园绑定、NFC路由或手表配对。
 
 ## 可复现命令与来源
 

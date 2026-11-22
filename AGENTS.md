@@ -18,7 +18,8 @@
 
 ## Active Work
 
-- 公交卡两条独立路线仍未完成；用户本阶段禁止修改生产app或发布APK。A：独立模块`tools/research/xiaomi-tsm-auth`已核对login模式AES/签名，11项测试与AccountSDK Java参考向量通过；K70实际GB UID绑定系统Token服务成功，但tsm-auth返回ERROR_APP_PERMISSION_FORBIDDEN/3，无授权Intent。官方独立QR初始化HTTP200/code0，等待窗口未得到批准响应，未完成认证、未查卡资格。B：`tools/research/xiaomi-nfc-host`已实读驱动/CE动作表和IPC；原始处理器对测试AID真实回调event0x15/status3/handleFFFF，注册失败，eSE flags前后8101。本地配置/注销/ISO-DEP技术槽是空函数，不得把返回1当成功。下一步核对NCI连接回调/Host路由与安全恢复ABI，不能清掉唯一eSE监听项或抢读NFC fd。先读两条独立设计文档，不能因快应用接口缺失推断硬件不支持。
+- 公交卡两条路线仍未完成；禁止修改生产app或发布APK。A新进展2026-11-22：用户扫码批准官方tsm-auth QR，STS成功签发独立会话；源K70/vermeer/SPTC_MOT的已发行记录与批准账号、源CPLC匹配（尾8213），TRANSFER_OUT成功；S4官方alias=o62，实际目标CPLC的TRANSFER_IN和同产品目录成功；最终五项HTTP200/errCode200，云端列表为空。只读服务资格通过，真实迁移与复旦校园身份保留未验证，禁止为造云端卡而先迁出。新CLI保持会话、device_plan补齐真实元数据、四个精确只读路径；凭证仅内存，QR/完整CPLC临时计划已删除。见xiaomi-tsm-auth设计和xiaomi-tsm-eligibility-2026-11-22.json。此前系统Binder应用拒绝已由合法独立QR路径取得进展，不再当作认证未完成。
+- B：`tools/research/xiaomi-nfc-host`已实读驱动/CE动作表和IPC；原始处理器对测试AID真实回调event0x15/status3/handleFFFF，注册失败，eSE flags前后8101。本地配置/注销/ISO-DEP技术槽是空函数，不得把返回1当成功。下一步核对NCI连接回调/Host路由与安全恢复ABI，不能清掉唯一eSE监听项或抢读NFC fd。此次A扫码阶段无新RF实验，无需用户贴卡；不能因快应用接口缺失推断硬件不支持。
 - 2026-11-22研究结束：零导入stock CE拒绝探针已卸载；原9表盘和原活动「昼与夜」回读一致，唯一测试表盘/RPK移除；手机so/DEX与ROG临时编译目录清理。GB始终原PID10882，本阶段无崩溃/重配对。较早研究曾因JNI List/Collection签名错误崩溃，已恢复；新的生命周期工具使用Collection.toArray并检查JNI异常。长按/Gemini/真实闹钟等未重新物理验收。
 - 2026.11.16/code272：手表发起的会话中，Gemini 语音会暂缓到 S4 的 SCO 接通再播；手机上直接用 Gemini 不受影响。用户已验收。实际会话中“开口即建路由”尚未在实机触发，只有单元测试覆盖。
 

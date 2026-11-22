@@ -2,11 +2,13 @@
 import base64
 import json
 import unittest
+from io import BytesIO
 from urllib.parse import parse_qs
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from tsm_protocol import LoginSession, decrypt, encrypt, encrypt_params, response_shape, signature
 from passport import AuthError, Passport, PollTimeout, checked_url
+from read_only import ACL, PRODUCTS, ISSUED, NoRedirects, public_result, query, validate
 
 # Synthetic key and strings only. Independently checked against the inspected
 # AccountSDK Java SecureRequest/Coder and javax.crypto implementation.
@@ -75,6 +77,8 @@ class AuthorizationTests(unittest.TestCase):
         for url in ('http://account.xiaomi.com/', 'https://account.xiaomi.com.attacker.example/',
                     'https://user:password@account.xiaomi.com/', 'https://account.xiaomi.com:8443/'):
             with self.assertRaises(AuthError): checked_url(url)
+        self.assertEqual(checked_url('https://c3.lp.account.xiaomi.com/lp/s'),
+                         'https://c3.lp.account.xiaomi.com/lp/s')
 
     def test_transport_timeout_does_not_infer_authorization(self):
         rows = []
@@ -90,6 +94,65 @@ class AuthorizationTests(unittest.TestCase):
              patch.object(client, 'exchange_sts') as sts:
             with self.assertRaises(AuthError): client.await_approval('https://ak.lp.account.xiaomi.com/', seconds=1)
             sts.assert_not_called()
+
+
+class ReadOnlyTransportTests(unittest.TestCase):
+    def test_never_accepts_writes_or_borrowed_app_identity(self):
+        params = {'cardName': 'TEST_CARD', 'deviceModel': 'test', 'cplc': 'synthetic',
+                  'cardActionType': 'TRANSFER_OUT'}
+        self.assertEqual(validate({'path': ACL, 'params': params})[0], ACL)
+        for changed in ({'cardActionType': 'ISSUE'}, {'orderId': 'test'},
+                        {'token': 'secret'}, {'appPackageName': 'com.mi.health'}):
+            with self.assertRaises(ValueError):
+                validate({'path': ACL, 'params': dict(params, **changed)})
+        with self.assertRaises(ValueError):
+            validate({'path': PRODUCTS, 'params': {'deviceModel': 'test'}})
+
+    def test_status_keeps_eligibility_but_redacts_arbitrary_values(self):
+        result = public_result({'code': 0, 'errCode': 200, 'errDesc': 'success',
+                                'success': True, 'cardNumber': 'secret',
+                                'data': [{'cardName': 'TEST_CARD', 'token': 'secret',
+                                          'canTransferIn': False}]})
+        self.assertEqual(result, {'code': 0, 'errCode': 200, 'errDesc': 'success', 'success': True,
+                                 'data': [{'cardName': 'TEST_CARD', 'canTransferIn': False}]})
+        self.assertNotIn('secret', json.dumps(result))
+
+    def test_sensitive_post_is_never_redirected(self):
+        self.assertIsNone(NoRedirects().redirect_request(None, None, 302, '', {},
+                                                       'https://other.example/'))
+
+    def test_real_response_schema_survives_encryption_and_redaction(self):
+        session = LoginSession('synthetic-user', 'synthetic-token', SECURITY)
+        response = BytesIO(encrypt(json.dumps({'errCode': 200, 'errDesc': 'success', 'data': None}),
+                                   SECURITY).encode())
+        response.status = 200
+        opener = Mock()
+        opener.open.return_value = response
+        with patch('read_only.urllib.request.build_opener', return_value=opener):
+            row = query(session, {'path': ACL, 'params': {'cardName': 'TEST_CARD',
+                'deviceModel': 'test', 'cplc': 'synthetic-private-id', 'cardActionType': 'TRANSFER_OUT'}})
+        self.assertEqual(row['http_status'], 200)
+        self.assertEqual(row['response_encoding'], 'session_aes_json')
+        self.assertEqual(row['response_status_and_eligibility']['errCode'], 200)
+        self.assertEqual(row['response_shape']['data'], 'null')
+        self.assertNotIn('synthetic-token', json.dumps(row))
+        self.assertNotIn('synthetic-private-id', json.dumps(row))
+
+    def test_issued_card_identity_comparison_never_exports_full_values(self):
+        session = LoginSession('synthetic-user', 'synthetic-token', SECURITY)
+        payload = {'errCode': 200, 'data': [{'cardName': 'TEST_CARD', 'cplc': 'private-se',
+                    'userId': 'synthetic-user', 'faceNo': '123456789012', 'orderId': 'private-order'}]}
+        response = BytesIO(encrypt(json.dumps(payload), SECURITY).encode())
+        response.status = 200
+        opener = Mock()
+        opener.open.return_value = response
+        with patch('read_only.urllib.request.build_opener', return_value=opener):
+            row = query(session, {'path': ISSUED, 'params': {'cardName': 'TEST_CARD',
+                'deviceModel': 'test', 'cplc': 'private-se', 'type': '1'}})
+        self.assertEqual(row['issued_card_checks'], [{'matches_requested_product': True,
+            'matches_requested_cplc': True, 'matches_approved_account': True, 'face_number_last4': '9012'}])
+        for secret in ('private-se', 'synthetic-user', '123456789012', 'private-order'):
+            self.assertNotIn(secret, json.dumps(row))
 
 
 if __name__ == '__main__':

@@ -14,6 +14,8 @@ ORIGIN = 'https://tsmapi.pay.xiaomi.com'
 READ_ONLY_PATHS = frozenset({
     '/api/login/acl/checkServiceAvailable',
     '/api/login/spcard/v2/queryShiftInCardProducts',
+    '/api/login/spcard/v2/queryCardProduct',
+    '/api/login/spcard/queryIssuedCardList',
 })
 IV = b'0102030405060708'
 

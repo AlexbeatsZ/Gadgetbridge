@@ -5,13 +5,15 @@
 No password, existing passToken, account database, existing browser cookies or
 system whitelist is read. The official account service issues a fresh session after
 the user scans and approves its QR challenge. Challenges/tokens are never
-printed. No card endpoint is called by this CLI.
+printed. Optional interactive queries are limited to verified read-only routes.
 """
 import argparse
 import http.cookiejar
 import json
 import os
 from pathlib import Path
+import re
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -21,7 +23,8 @@ from tsm_protocol import LoginSession, signature
 
 ACCOUNT = 'https://account.xiaomi.com'
 ALLOWED_HOSTS = frozenset({'account.xiaomi.com', 'ak.account.xiaomi.com',
-                           'ak.lp.account.xiaomi.com', 'tsmapi.pay.xiaomi.com'})
+                           'ak.lp.account.xiaomi.com', 'c3.account.xiaomi.com',
+                           'c3.lp.account.xiaomi.com', 'tsmapi.pay.xiaomi.com'})
 
 
 class AuthError(Exception):
@@ -83,7 +86,8 @@ class Passport:
         row = {'step': label, 'http_status': status,
                'origin': urllib.parse.urlsplit(url).hostname,
                'request_query_keys': sorted(urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)),
-               'cookie_names': sorted({c.name for c in self.cookies})}
+               'cookie_names': sorted({c.name for c in self.cookies
+                                       if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_-]*', c.name)})}
         self.evidence.append(row)
         return body, headers, row
 
@@ -103,6 +107,8 @@ class Passport:
         data, _ = self.json_get('qr_bootstrap', ACCOUNT + '/longPolling/loginUrl?sid=tsm-auth')
         if data.get('code') != 0:
             raise AuthError('QR authorization bootstrap refused')
+        # Official display instructions contain no challenge or credentials.
+        self.evidence[-1]['qr_tips'] = data.get('qrTips') if isinstance(data.get('qrTips'), str) else None
         login = checked_url(data['loginUrl'])
         poll = checked_url(data['lp'])
         return login, poll, min(int(data.get('timeout', 180)), 300)
@@ -168,6 +174,8 @@ def main():
     parser.add_argument('--evidence', required=True, type=Path)
     parser.add_argument('--qr-image', type=Path, help='temporary QR challenge image; removed on exit')
     parser.add_argument('--approve-window', type=int, default=180)
+    parser.add_argument('--interactive', action='store_true',
+                        help='keep approved session in memory for allowlisted read-only queries on stdin')
     args = parser.parse_args()
     evidence = {'credential_values_recorded': False, 'card_http_requests': 0, 'steps': []}
     passport = Passport(evidence['steps'])
@@ -189,7 +197,37 @@ def main():
                 qrcode.make(login).save(qr, format='PNG')
             print('QR_READY ' + str(args.qr_image), flush=True)
             session = passport.await_approval(poll, seconds=min(args.approve_window, lifetime))
+            args.qr_image.unlink(missing_ok=True)
+            # Only the TSM session is needed now. Discard fresh account SSO
+            # cookies too; never repurpose passToken for unrelated services.
+            passport.cookies.clear()
             evidence['result'] = 'TSM_SESSION_ISSUED_NO_CARD_QUERY'
+            evidence['session_issued'] = True
+            if args.interactive:
+                # No session serialization. A persistent process lets the user
+                # approve once, while verified device metadata is prepared.
+                print('AUTHORIZATION_READY_SESSION_IN_MEMORY', flush=True)
+                for line in sys.stdin:
+                    if line.strip() == 'close':
+                        break
+                    try:
+                        command = json.loads(line)
+                        # Research transport may be refined while the user
+                        # completes consent; retain the same memory session.
+                        import importlib
+                        import tsm_protocol
+                        import read_only
+                        importlib.reload(tsm_protocol)
+                        importlib.reload(read_only)
+                        from read_only import query
+                        row = query(session, command)
+                        evidence.setdefault('queries', []).append(row)
+                        evidence['card_http_requests'] += 1
+                        evidence['result'] = 'AUTHORIZED_READ_ONLY_RESEARCH'
+                        print(json.dumps({'query': row}, ensure_ascii=False), flush=True)
+                    except Exception as failure:
+                        # Never stringify exceptions that may include secrets.
+                        print(json.dumps({'query_error_type': type(failure).__name__}), flush=True)
             del session
     except AuthError as failure:
         evidence['result'] = str(failure)

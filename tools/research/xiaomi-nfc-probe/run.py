@@ -78,7 +78,15 @@ def main():
     parser.add_argument("--java-home", required=True, type=Path)
     parser.add_argument("--metadata", action="store_true", help="also read CPLC; report only chip type")
     parser.add_argument("--output", type=Path, help="sanitized JSON evidence path")
+    parser.add_argument("--private-device-metadata", type=Path,
+                        help="temporary private CPLC/model JSON for TSM queries; never credentials")
+    parser.add_argument("--verified-model", help="TSM alias verified in the official device catalog")
     args = parser.parse_args()
+    if args.private_device_metadata and (not args.metadata or not args.verified_model):
+        parser.error("--private-device-metadata requires --metadata and --verified-model")
+    if args.verified_model and not re.fullmatch(r'[a-zA-Z0-9_.-]{1,64}', args.verified_model):
+        parser.error("invalid verified model")
+    private_metadata = {}
     args.address = args.address.upper()
     if not re.fullmatch(r"(?:[0-9A-F]{2}:){5}[0-9A-F]{2}", args.address):
         parser.error("--address must be a Bluetooth MAC address")
@@ -152,6 +160,8 @@ def main():
                         result["cplc_tlv_present"] = body.startswith("9F7F2A")
                         if result["cplc_tlv_present"]:
                             result["fabricator_and_ic_type"] = body[6:14]
+                            if result['sw'] == '9000' and len(body) == 94:
+                                private_metadata['cplc'] = body[6:-4]
                     evidence["results"][mode] = result
                     print(mode, json.dumps(result), flush=True)
                     return result
@@ -166,20 +176,34 @@ def main():
             call("push", str(library), remote)
             copied = True
             call("shell", "run-as", package, "cp", remote, "code_cache/" + name)
-            probe("capability")
+            if not args.private_device_metadata:
+                probe("capability")
             try:
                 opened = probe("open")
                 if opened["status"] not in (1, 224):
                     raise RuntimeError("SE did not open; test APDU skipped")
-                selected = probe("select-test")
-                if selected != {"status": 224, "data": "6A82"}:
-                    raise RuntimeError("test AID response differs from recorded S4 result")
+                if not args.private_device_metadata:
+                    selected = probe("select-test")
+                    if selected != {"status": 224, "data": "6A82"}:
+                        raise RuntimeError("test AID response differs from recorded S4 result")
                 if args.metadata:
                     probe("cplc")
+                if args.private_device_metadata:
+                    private_metadata['deviceModel'] = args.verified_model
+                    evidence['model_source'] = 'explicit alias verified in the official device catalog'
             finally:
                 closed = probe("close")
                 if closed["status"] not in (1, 224):
                     raise RuntimeError("SE channel close was not confirmed")
+            if args.private_device_metadata:
+                if set(private_metadata) != {'cplc', 'deviceModel'}:
+                    raise RuntimeError('verified watch metadata missing')
+                private_metadata['firmwareVersion'] = evidence['watch_firmware']
+                args.private_device_metadata.parent.mkdir(parents=True, exist_ok=True)
+                fd = os.open(args.private_device_metadata, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, 'w') as stream:
+                    json.dump(private_metadata, stream)
+                print('PRIVATE_TSM_DEVICE_METADATA_READY', flush=True)
         finally:
             if copied:
                 call("shell", "run-as", package, "rm", "-f", "code_cache/" + name)
