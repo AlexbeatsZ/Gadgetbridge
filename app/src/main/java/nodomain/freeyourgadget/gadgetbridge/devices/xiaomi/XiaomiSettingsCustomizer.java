@@ -19,8 +19,10 @@ package nodomain.freeyourgadget.gadgetbridge.devices.xiaomi;
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsUtils.hidePrefIfNoneVisible;
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsUtils.populateOrHideListPreference;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Parcel;
 import android.widget.Toast;
@@ -29,6 +31,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +48,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst;
 import nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSpecificSettingsCustomizer;
 import nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSpecificSettingsHandler;
@@ -61,6 +66,8 @@ import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
 
 public class XiaomiSettingsCustomizer implements DeviceSpecificSettingsCustomizer {
     private static final Logger LOG = LoggerFactory.getLogger(XiaomiSettingsCustomizer.class);
+    private static final String MI_FITNESS_CN_PACKAGE = "com.mi.health";
+    private static final String MI_FITNESS_DOWNLOAD_URL = "https://hlth.io.mi.com/download?appId=mifitness";
 
     @Override
     public void onPreferenceChange(final Preference preference, final DeviceSpecificSettingsHandler handler) {
@@ -68,6 +75,14 @@ public class XiaomiSettingsCustomizer implements DeviceSpecificSettingsCustomize
 
     @Override
     public void customizeSettings(final DeviceSpecificSettingsHandler handler, final Prefs prefs, final String rootKey) {
+        final Preference transitCardMigration = handler.findPreference("xiaomi_transit_card_migration");
+        if (transitCardMigration != null) {
+            transitCardMigration.setOnPreferenceClickListener(preference -> {
+                showTransitCardMigration(handler.getContext());
+                return true;
+            });
+        }
+
         final Preference reprocessActivityPref = handler.findPreference("reprocess_activity_files");
         if (reprocessActivityPref != null) {
             reprocessActivityPref.setOnPreferenceClickListener(preference -> {
@@ -146,6 +161,28 @@ public class XiaomiSettingsCustomizer implements DeviceSpecificSettingsCustomize
         if (lowAlertPref != null) {
             lowAlertPref.setDependency(null);
         }
+    }
+
+    private static void showTransitCardMigration(final Context context) {
+        final Intent miFitness = context.getPackageManager().getLaunchIntentForPackage(MI_FITNESS_CN_PACKAGE);
+        final boolean isInstalled = miFitness != null;
+        final Intent destination = isInstalled ? miFitness
+                : new Intent(Intent.ACTION_VIEW, Uri.parse(MI_FITNESS_DOWNLOAD_URL));
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.pref_xiaomi_transit_card_migration_title)
+                .setMessage(R.string.pref_xiaomi_transit_card_migration_message)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(isInstalled ? R.string.xiaomi_transit_open_mi_fitness
+                        : R.string.xiaomi_transit_download_mi_fitness, (dialog, which) -> {
+                    try {
+                        context.startActivity(destination);
+                    } catch (final ActivityNotFoundException | SecurityException exception) {
+                        GB.toast(context, context.getString(R.string.xiaomi_transit_could_not_open),
+                                Toast.LENGTH_SHORT, GB.ERROR, exception);
+                    }
+                })
+                .show();
     }
 
     @Override

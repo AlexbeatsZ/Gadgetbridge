@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:icon="@drawable/ic_credit_card"
+        android:key="xiaomi_transit_card_migration"
+        android:persistent="false"
+        android:summary="@string/pref_xiaomi_transit_card_migration_summary"
+        android:title="@string/pref_xiaomi_transit_card_migration_title" />
+</androidx.preference.PreferenceScreen>

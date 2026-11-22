@@ -6741,4 +6741,10 @@
     <string name="weather_google_root_success">Google Weather synced</string>
     <string name="weather_google_root_failure">Could not read Google Weather. Allow root access and open Google Weather to refresh its data.</string>
     <string name="xiaomi_voice_assistant_no_visible_response">The phone assistant returned no displayable content. Check the result on your phone.</string>
+    <string name="pref_xiaomi_transit_card_migration_title">Transit card migration</string>
+    <string name="pref_xiaomi_transit_card_migration_summary">Check transfer eligibility in Mi Fitness for mainland China</string>
+    <string name="pref_xiaomi_transit_card_migration_message">In Mi Fitness for mainland China, select the paired watch and open its transit card page. If your card appears under cards available for transfer, follow the instructions in Mi Fitness. Keep the original card active until the issuer confirms the watch supports that card.</string>
+    <string name="xiaomi_transit_open_mi_fitness">Open Mi Fitness</string>
+    <string name="xiaomi_transit_download_mi_fitness">Download Mi Fitness</string>
+    <string name="xiaomi_transit_could_not_open">Could not open Mi Fitness or its download page.</string>
 </resources>
