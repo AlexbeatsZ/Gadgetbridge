@@ -3,7 +3,7 @@
 ## Goal
 
 - 在小米手表 S4 上使用手机默认助手，并将助手文字与功能卡片反馈到手表。
-- 让 K70 上的复旦大学联名交通卡通过 S4 使用：优先实现真正的原生迁移，再研究手机 SE 蓝牙代理。核心链路未验证前不发布 APK；不改真实卡、余额、校园绑定和配对。
+- 让 K70 上的复旦大学联名交通卡通过 S4 使用：优先实现真正的原生迁移，再研究手机 SE 蓝牙代理。核心链路未验证前不发布 APK；用户允许尝试真实迁出，但同时要求校园身份保留无法确定时不要迁移；保护余额、校园绑定和配对。
 
 ## Current State
 
@@ -18,6 +18,7 @@
 
 ## Active Work
 
+- A身份/迁移研究2026-11-22：新增`xiaomi-transit-migration`公共资产检查及离线状态机（不接真实后台）。上海交通卡公共配置明确复旦联名产品SPTC.MOT.SH.FDU/partner06000047；H5由faceNo规范化cardNo后查联名信息，不能等同于小米基础产品SPTC_MOT或证明校园唯一映射键。迁入使用目标CPLC/deviceId+cloud transferOrder，卡号/联名映射连续性仍未知；虽用户允许尝试迁出，因其“未知则不要迁移”条件仍未满足，本阶段未创建订单/SE会话/执行preTransferOut。后者会启动CHECK_SHIFT_OUT并可能执行APDU，绝非只读。已定位原响应缓存补报/3007续拉/未完成业务，28项离线测试通过；正式源SE写适配、发行方联名会话和真实恢复语义仍需验证。完整方案与最小实验见`docs/design/xiaomi-transit-migration.md`，新证据`xiaomi-campus-migration-2026-11-22.json`。B本轮无新增RF实验。
 - 公交卡两条路线仍未完成；禁止修改生产app或发布APK。A新进展2026-11-22：用户扫码批准官方tsm-auth QR，STS成功签发独立会话；源K70/vermeer/SPTC_MOT的已发行记录与批准账号、源CPLC匹配（尾8213），TRANSFER_OUT成功；S4官方alias=o62，实际目标CPLC的TRANSFER_IN和同产品目录成功；最终五项HTTP200/errCode200，云端列表为空。只读服务资格通过，真实迁移与复旦校园身份保留未验证，禁止为造云端卡而先迁出。新CLI保持会话、device_plan补齐真实元数据、四个精确只读路径；凭证仅内存，QR/完整CPLC临时计划已删除。见xiaomi-tsm-auth设计和xiaomi-tsm-eligibility-2026-11-22.json。此前系统Binder应用拒绝已由合法独立QR路径取得进展，不再当作认证未完成。
 - B：`tools/research/xiaomi-nfc-host`已实读驱动/CE动作表和IPC；原始处理器对测试AID真实回调event0x15/status3/handleFFFF，注册失败，eSE flags前后8101。本地配置/注销/ISO-DEP技术槽是空函数，不得把返回1当成功。下一步核对NCI连接回调/Host路由与安全恢复ABI，不能清掉唯一eSE监听项或抢读NFC fd。此次A扫码阶段无新RF实验，无需用户贴卡；不能因快应用接口缺失推断硬件不支持。
 - 2026-11-22研究结束：零导入stock CE拒绝探针已卸载；原9表盘和原活动「昼与夜」回读一致，唯一测试表盘/RPK移除；手机so/DEX与ROG临时编译目录清理。GB始终原PID10882，本阶段无崩溃/重配对。较早研究曾因JNI List/Collection签名错误崩溃，已恢复；新的生命周期工具使用Collection.toArray并检查JNI异常。长按/Gemini/真实闹钟等未重新物理验收。
@@ -50,6 +51,7 @@
 
 ## Docs Index
 
+- `docs/design/xiaomi-transit-migration.md`：A的校园联名身份、完整迁移/恢复主干、独立模块设计与未验证条件；模拟不等于实卡迁移。
 - `docs/design/xiaomi-s4-transit-card.md` 保留此前恢复、迁移链与wired SE证据。
 - `docs/design/xiaomi-tsm-auth.md`：路线A，账号/TSM认证、签名、Binder拒绝、官方QR和只读资格判据。
 - `docs/design/xiaomi-s4-nfc-host.md`：路线B，驱动/IPC/CE ABI、真实注册失败证据及后续Host扩展路径。
