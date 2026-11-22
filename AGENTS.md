@@ -18,8 +18,8 @@
 
 ## Active Work
 
-- 公交卡研究仍未完成。A已定位MiPayService→ChannelImpl→ct4、TSM迁出/迁入/SE会话链，合法账号认证与该联名卡源/目标资格未验证；空的只读云端查询返回401。系统虽有小米账号，GB实际UID的AccountManager查询可见数为0，未读账号名/token或改可见性。B原生执行路径成立，下一步静态核对S4固件host CE动作表和RF回调ABI，然后仅用测试AID做RF SELECT/固定应答及SPP/WTX实验。不能因快应用nfc/hce=null或函数名缺失认定硬件不支持。修改前读`docs/design/xiaomi-s4-transit-card.md`。
-- 本轮临时清理JNI的List/Collection签名错误导致一次进程崩溃，已修正并恢复原绑定连接、HFP活动。主要健康表计数未减少；原9表盘及原活动「昼与夜」实际回读一致，测试表盘/RPK已移除。长按、Gemini原声、真实闹钟、整点上传未重新物理验收。
+- 公交卡两条独立路线仍未完成；用户本阶段禁止修改生产app或发布APK。A：独立模块`tools/research/xiaomi-tsm-auth`已核对login模式AES/签名，11项测试与AccountSDK Java参考向量通过；K70实际GB UID绑定系统Token服务成功，但tsm-auth返回ERROR_APP_PERMISSION_FORBIDDEN/3，无授权Intent。官方独立QR初始化HTTP200/code0，等待窗口未得到批准响应，未完成认证、未查卡资格。B：`tools/research/xiaomi-nfc-host`已实读驱动/CE动作表和IPC；原始处理器对测试AID真实回调event0x15/status3/handleFFFF，注册失败，eSE flags前后8101。本地配置/注销/ISO-DEP技术槽是空函数，不得把返回1当成功。下一步核对NCI连接回调/Host路由与安全恢复ABI，不能清掉唯一eSE监听项或抢读NFC fd。先读两条独立设计文档，不能因快应用接口缺失推断硬件不支持。
+- 2026-11-22研究结束：零导入stock CE拒绝探针已卸载；原9表盘和原活动「昼与夜」回读一致，唯一测试表盘/RPK移除；手机so/DEX与ROG临时编译目录清理。GB始终原PID10882，本阶段无崩溃/重配对。较早研究曾因JNI List/Collection签名错误崩溃，已恢复；新的生命周期工具使用Collection.toArray并检查JNI异常。长按/Gemini/真实闹钟等未重新物理验收。
 - 2026.11.16/code272：手表发起的会话中，Gemini 语音会暂缓到 S4 的 SCO 接通再播；手机上直接用 Gemini 不受影响。用户已验收。实际会话中“开口即建路由”尚未在实机触发，只有单元测试覆盖。
 
 - 研究 S4 播放路线。2026-11-17 再验证 K70 + S4：HFP 语音识别模式约 5 秒录得 78720 个样本，实际路由为 S4 SCO，全部为零。手机麦克风对照 31040 个样本中 27273 个非零。模拟通话两轮均反复短暂连上后断开，蓝牙栈明确记录远端断开。测试后回到 MODE_NORMAL，S4 保持 HFP 活动，SCO 已关闭，手机诊断文件已删除。
@@ -35,7 +35,7 @@
 - 定向测试为 `AssistantResponseReaderTest`、`XiaomiVoiceAssistantFeedbackTest`、`XiaomiVoiceAssistantBridgeTest`、`XiaomiVoiceHandlerTest`，扩大回归包括 Xiaomi、手机闹钟、Google 天气、设置及主题迁移。
 - 提交后先单独运行 `:app:buildGitChangelog --rerun-tasks`，随后 `:app:assembleMainlineDebug`。沿用现有 debug 签名。
 - K70 序列号为 `dcc50feb`，当前无线 transport 每次从 `adb devices -l` 核对，安装使用 `--user 0 -r`。APK 更新后重新启动 Google 应用，加载更新后的 LSPosed hook。
-- NFC研究：`python3 -m unittest discover -s tools/research/xiaomi-nfc-probe -p test_response.py -v`；实机固定allowlist runner及空模块构建见该目录README。既有NDK28.2.13676358，无需安装运行时或重建APK。
+- NFC研究：原SE协议6项测试见`tools/research/xiaomi-nfc-probe`；A的11项测试/Java参考验证/B原始ARM离线与实机拒绝探针见各研究目录README。使用既有NDK28.2.13676358；依赖仅uv隔离缓存，无需全局安装或重建APK。
 
 ## Durable Lessons
 
@@ -49,7 +49,9 @@
 
 ## Docs Index
 
-- `docs/design/xiaomi-s4-transit-card.md` 记录恢复、TSM迁移链、wired SE实测、原生固件证据、未验证边界和下一步最小实验。
+- `docs/design/xiaomi-s4-transit-card.md` 保留此前恢复、迁移链与wired SE证据。
+- `docs/design/xiaomi-tsm-auth.md`：路线A，账号/TSM认证、签名、Binder拒绝、官方QR和只读资格判据。
+- `docs/design/xiaomi-s4-nfc-host.md`：路线B，驱动/IPC/CE ABI、真实注册失败证据及后续Host扩展路径。
 - `docs/design/xiaomi-assistant-feedback.md` 记录响应容器、会话与空内容反馈。
 - `docs/design/xiaomi-s4-official-audio.md` 记录官方音频与 AIVS 协议。
 - 其他模块沿主工作区 `AGENTS.md` 和已有设计文档继续。

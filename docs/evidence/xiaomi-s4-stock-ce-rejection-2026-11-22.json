@@ -1,0 +1,30 @@
+{
+  "execution": "REAL_S4_ORIGINAL_CE_DISPATCHER_GUARDED_REJECTION_BRANCH",
+  "phone_log_time": "2026-11-22 16:10:31 Asia/Shanghai",
+  "watch_firmware": "3.201.79",
+  "module_imports": 0,
+  "synthetic_aid": "F0010203040506",
+  "register_callback_count": 1,
+  "register_callback_event": "0x15",
+  "status": 3,
+  "handle": "0xffff",
+  "dispatcher_return": 1,
+  "ce_flags_before": "0x8101",
+  "ce_flags_after_register": "0x8101",
+  "deregister_dispatcher_return": 1,
+  "isodep_config_dispatcher_return": 1,
+  "ce_flags_final": "0x8101",
+  "registration_succeeded": false,
+  "rf_test_performed": false,
+  "module_unloaded": true,
+  "captures": {
+    "host-help.txt": "Hex dump:\n0000: 45 43 44 53 02 00 00 00 01 81 00 00 01 00 00 00 ECDS............\n0010: 15 00 00 00 03 00 00 00 ff ff 00 00 01 00 00 00 ................\n0020: 01 81 00 00 01 00 00 00 01 00 00 00 01 81 00 00 ................\n",
+    "module-load.txt": "",
+    "modules-before.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "modules-after.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_ce_reject     0x3d3c7c69        0        0        0 0x3d3c7c58      388 0x3d6a73e0       52\n",
+    "module-unload.txt": "",
+    "modules-final.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "nfc-mqueue.txt": "Hex dump:\n0000: 01 81 00 00                                     ....\n",
+    "lua-result.txt": "S4 stock CE rejection diagnostic; no RF or route writes\nlsmod => true,true,exit,0\ninsmod /data/quickapp/files/com.meta.s4nativeprobe/stock-ce.elf gb_ce_reject => true,true,exit,0\nlsmod => true,true,exit,0\nxd 0x3d6a73e0 48 => true,true,exit,0\nrmmod gb_ce_reject => true,true,exit,0\nlsmod => true,true,exit,0\nxd 3c2d46d4 4 => true,true,exit,0"
+  }
+}

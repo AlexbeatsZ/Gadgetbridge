@@ -1,0 +1,44 @@
+-- Firmware-specific diagnostic, NOT an RF/card emulation implementation.
+-- Loads only an import-free guarded rejection probe and always unloads it.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r")
+if not ready then return end
+ready:close()
+local done=io.open(base.."/stock-ce-done.txt","r")
+if done then done:close();return end
+local hex="@MODULE_HEX@"
+local f=io.open(base.."/stock-ce.elf","wb")
+if not f then return end
+f:write(hex:gsub("..",function(h) return string.char(tonumber(h,16)) end));f:close()
+local result={"S4 stock CE rejection diagnostic; no RF or route writes"}
+local function command(name,cmd)
+ local ok,a,b,c=pcall(function()return os.execute(cmd.." > "..base.."/"..name)end)
+ result[#result+1]=cmd.." => "..tostring(ok)..","..tostring(a)..","..tostring(b)..","..tostring(c)
+end
+command("modules-before.txt","lsmod")
+local before=io.open(base.."/modules-before.txt","r")
+local previous=before and before:read("*a") or ""
+if before then before:close() end
+if previous:find("gb_ce_reject",1,true) then return end
+command("module-load.txt","insmod "..base.."/stock-ce.elf gb_ce_reject")
+command("modules-after.txt","lsmod")
+local mods=io.open(base.."/modules-after.txt","r")
+local text=mods and mods:read("*a") or ""
+if mods then mods:close() end
+for line in text:gmatch("[^\n]+") do
+ if line:find("gb_ce_reject",1,true) then
+  local columns={}
+  for value in line:gmatch("%S+") do columns[#columns+1]=value end
+  local address=columns[8]
+  if address and address:match("^0x%x+$") then
+   command("host-help.txt","xd "..address.." 48")
+  end
+ end
+end
+command("module-unload.txt","rmmod gb_ce_reject")
+command("modules-final.txt","lsmod")
+command("nfc-mqueue.txt","xd 3c2d46d4 4")
+local out=io.open(base.."/lua-result.txt","w")
+if out then out:write(table.concat(result,"\n"));out:close() end
+local d=io.open(base.."/stock-ce-done.txt","w")
+if d then d:write("done");d:close() end

@@ -1,0 +1,57 @@
+{
+  "watchfaces": [
+    {
+      "id": "120917345117",
+      "name": "数据镜像",
+      "active": false
+    },
+    {
+      "id": "120917345130",
+      "name": "数据磁场",
+      "active": false
+    },
+    {
+      "id": "120917345136",
+      "name": "星尘",
+      "active": false
+    },
+    {
+      "id": "120917345418",
+      "name": "数据探索",
+      "active": false
+    },
+    {
+      "id": "120917345463",
+      "name": "日冕",
+      "active": false
+    },
+    {
+      "id": "120917345464",
+      "name": "昼与夜",
+      "active": true
+    },
+    {
+      "id": "120917345469",
+      "name": "正装2024",
+      "active": false
+    },
+    {
+      "id": "120917345484",
+      "name": "恒动轻机械",
+      "active": false
+    },
+    {
+      "id": "120917345677",
+      "name": "多功能数据",
+      "active": false
+    }
+  ],
+  "temporary_face_absent": true,
+  "native_probe_rpk_absent": true,
+  "gadgetbridge_pid_before": 10882,
+  "gadgetbridge_pid_after": 10882,
+  "native_module_unload_confirmed": true,
+  "rpk_list_response_observed": true,
+  "rog_temporary_build_directory_absent": true,
+  "phone_research_files_absent": true
+}

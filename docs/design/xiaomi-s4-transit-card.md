@@ -1,5 +1,7 @@
 # S4 复旦大学联名交通卡：恢复、迁移与 SE 代理研究
 
+2026-11-22后续研究已按用户要求分开：路线A见[xiaomi-tsm-auth.md](xiaomi-tsm-auth.md)，路线B见[xiaomi-s4-nfc-host.md](xiaomi-s4-nfc-host.md)。本文件保留早期证据；最新已验证到系统tsm-auth应用权限拒绝、独立官方QR初始化，以及S4原始CE注册处理器的真实失败回调。尚无已批准TSM会话或射频APDU往返。生产app不改，不发布APK。
+
 最后验证：2026-11-21（America/Los_Angeles）；K70 日志为 2026-11-22（Asia/Shanghai）。设备为 Redmi K70 + Xiaomi Watch S4，S4 固件 3.201.79。任务仍未完成：尚不能通过 S4 使用手机上的真实联名交通卡。
 
 ## 范围与验收

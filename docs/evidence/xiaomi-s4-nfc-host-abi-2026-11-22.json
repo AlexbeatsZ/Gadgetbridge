@@ -1,0 +1,197 @@
+{
+  "study": "B: NFC host stack ABI and IPC",
+  "client_date": "2026-11-22 America/Los_Angeles",
+  "watch_firmware": "3.201.79",
+  "memory_access": "read-only NSH xd; no NFC driver read/write/ioctl or routing mutation",
+  "captures": [
+    {
+      "capture": "ipc-",
+      "file": "host-help.txt",
+      "output": "help usage:  help [-v] [<cmd>]\n\n    .              df             ifup           pmconfig       source         \n    [              dmesg          insmod         poweroff       test           \n    ?              echo           kill           printf         time           \n    alias          env            ln             ps             timedatectl    \n    unalias        exec           ls             pwd            true           \n    arp            exit           lsmod          readlink       truncate       \n    basename       expr           md5            reboot         uname          \n    break          false          mkdir          resetcause     umount         \n    cat            fdinfo         mkfifo         rm             unset          \n    cd             free           mkrd           rmdir          uptime         \n    cp             memdump        mount          rmmod          urldecode      \n    cmp            help           mv             rptun          urlencode      \n    dirname        hexdump        mw             set            usleep         \n    date           ifconfig       nslookup       shutdown       xd             \n    dd             ifdown         pidof          sleep          wait           \n\nBuiltin Apps:\n    cu                       nxplayer                 miwear                   \n    bttool                   nxlooper                 fatutf8                  \n    setprop                  hello                    fsckexfat                \n    lyra_lite_sdk_tools      dkf_iccoa                ahost                    \n    wapi                     scp                      ssh                      \n    adapter_test             storage_test             sh                       \n    i2c                      sensor_middle_service    fstest                   \n    touchpoint               dkf_iccoa_tool           log_service              \n    lvgldemo                 mkgpt                    adig                     \n    nfc_stack_bridge         account                  dumpstack                \n    miwear_algo_service      getprop                  ramtest                  \n    nxrecorder               mediatool                miconnect                \n    curl                     miwear_model_get         sensor_load              \n    mqttc5                   offline_log              miwear_rtc_checker       \n    renew                    sb                       nsh                      \n    rexec                    uorb_listener            tar                      \n    sshd                     rb                       lua                      \n    iperf2                   miwear_model_set         gzip                     \n    bt_wt                    kvdbd                    gpio                     \n    mm                       setlogmask               \n    ping                     uorb_unit_test           \n"
+    },
+    {
+      "capture": "ipc-",
+      "file": "lua-result.txt",
+      "output": "S4 B1/B2 read-only fd/IPC inspection\nhelp => true,true,exit,0\nhelp fdinfo => true,true,exit,0\nls /proc/47/group => true,true,exit,0\nfdinfo -p 47 => true,nil,exit,65280\nls /var/mqueue => true,true,exit,0"
+    },
+    {
+      "capture": "ipc-",
+      "file": "nfc-fds.txt",
+      "output": ""
+    },
+    {
+      "capture": "ipc-",
+      "file": "nfc-mqueue.txt",
+      "output": "/var/mqueue:\n account_proxy_queue\n btnqueue\n c2s_queue_apps\n c2s_queue_miconnect\n client_task_msg\n nfc_msg_down\n nfc_msg_up\n nfc_task_msg\n notification_manager_mq\n panel1_onoffmq\n ui_data_msg\n wechat_proxy_queue\n"
+    },
+    {
+      "capture": "ipc-",
+      "file": "nfc-proc.txt",
+      "output": "/proc/47/group:\n status\n fd\n env\n"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-fd-help.txt",
+      "output": "mw usage:  mw <hex-address>[=<hex-value>] [<hex-byte-count>]\n"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-help.txt",
+      "output": "fdinfo usage:  fdinfo [pid]\n"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-host-help.txt",
+      "output": "xd usage:  xd <hex-address> <byte-count>\n"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-lua-result.txt",
+      "output": "S4 B1/B2 read-only fd/IPC inspection\nhelp xd => true,true,exit,0\nhelp mw => true,true,exit,0\ncat /proc/47/group/fd => true,true,exit,0\nfdinfo 47 => true,true,exit,0\ncat /proc/47/group/status => true,true,exit,0"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-nfc-fds.txt",
+      "output": "\nFD  OFLAGS  TYPE POS       PATH\n0   3       1    0         /dev/console\n1   3       1    0         /dev/console\n2   3       1    0         /dev/console\n3   79      5    0         /var/mqueue/panel1_onoffmq\n4   438     1    0         /dev/log\n5   1       3    77        /etc/init.d/rcS\n6   1031    5    0         /var/mqueue/nfc_msg_down\n7   1031    5    0         /var/mqueue/nfc_msg_up\n8   1027    1    0         /var/mqueue/nfc_msg_up\n"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-nfc-mqueue.txt",
+      "output": "Main task:  47\nParent:     12\nFlags:      0x00\nMembers:    5\nMember IDs: 47 54 58 59 60\n"
+    },
+    {
+      "capture": "fd-",
+      "file": "fd-nfc-proc.txt",
+      "output": "\nFD  OFLAGS  TYPE POS       PATH\n0   3       1    0         /dev/console\n1   3       1    0         /dev/console\n2   3       1    0         /dev/console\n3   79      5    0         /var/mqueue/panel1_onoffmq\n4   438     1    0         /dev/log\n5   1       3    77        /etc/init.d/rcS\n6   1031    5    0         /var/mqueue/nfc_msg_down\n7   1031    5    0         /var/mqueue/nfc_msg_up\n8   1027    1    0         /var/mqueue/nfc_msg_up\n"
+    },
+    {
+      "capture": "ram-",
+      "file": "ram-fd-help.txt",
+      "output": "Hex dump:\n0000: 80 b5 01 20 00 af 80 bd                         ... ....\n"
+    },
+    {
+      "capture": "ram-",
+      "file": "ram-host-help.txt",
+      "output": "Hex dump:\n0000: ad 0e 34 2c ed 1e 34 2c ad 0e 34 2c ad 0e 34 2c ..4,..4,..4,..4,\n0010: f9 18 34 2c 69 1e 34 2c                         ..4,i.4,\n"
+    },
+    {
+      "capture": "ram-",
+      "file": "ram-lua-result.txt",
+      "output": "S4 B1/B2 read-only fd/IPC inspection\nxd 2c8b4578 24 => true,true,exit,0\nxd 2c340eac 8 => true,true,exit,0\nxd 3c2d46d4 4 => true,true,exit,0\nfdinfo 54 => true,true,exit,0\nxd 3c203da8 4 => true,true,exit,0"
+    },
+    {
+      "capture": "ram-",
+      "file": "ram-nfc-fds.txt",
+      "output": "\nFD  OFLAGS  TYPE POS       PATH\n0   3       1    0         /dev/console\n1   3       1    0         /dev/console\n2   3       1    0         /dev/console\n3   79      5    0         /var/mqueue/panel1_onoffmq\n4   438     1    0         /dev/log\n5   1       3    77        /etc/init.d/rcS\n6   1031    5    0         /var/mqueue/nfc_msg_down\n7   1031    5    0         /var/mqueue/nfc_msg_up\n8   1027    1    0         /var/mqueue/nfc_msg_up\n"
+    },
+    {
+      "capture": "ram-",
+      "file": "ram-nfc-mqueue.txt",
+      "output": "Hex dump:\n0000: 4c 47 8b 2c                                     LG.,\n"
+    },
+    {
+      "capture": "ram-",
+      "file": "ram-nfc-proc.txt",
+      "output": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "capture": "driver-",
+      "file": "driver-fd-help.txt",
+      "output": "\nFD  OFLAGS  TYPE POS       PATH\n0   3       1    0         /dev/console\n1   3       1    0         /dev/console\n2   3       1    0         /dev/console\n3   79      5    0         /var/mqueue/panel1_onoffmq\n4   438     1    0         /dev/log\n5   1       3    77        /etc/init.d/rcS\n6   1031    5    0         /var/mqueue/nfc_msg_down\n7   1031    5    0         /var/mqueue/nfc_msg_up\n8   1027    1    0         /var/mqueue/nfc_msg_up\n"
+    },
+    {
+      "capture": "driver-",
+      "file": "driver-host-help.txt",
+      "output": "Hex dump:\n0000: 90 e0 4e 3c                                     ..N<\n"
+    },
+    {
+      "capture": "driver-",
+      "file": "driver-lua-result.txt",
+      "output": "S4 B1/B2 read-only fd/IPC inspection\nxd 3c2d3708 4 => true,true,exit,0\nfdinfo 58 => true,true,exit,0\nfdinfo 59 => true,true,exit,0\nxd 3c203dac 4 => true,true,exit,0\nxd 2c9d235c 40 => true,true,exit,0"
+    },
+    {
+      "capture": "driver-",
+      "file": "driver-nfc-fds.txt",
+      "output": "Hex dump:\n0000: 90 45 8b 2c                                     .E.,\n"
+    },
+    {
+      "capture": "driver-",
+      "file": "driver-nfc-mqueue.txt",
+      "output": "Hex dump:\n0000: 41 d3 33 2c 25 d3 33 2c 45 f0 33 2c 2d f1 33 2c A.3,%.3,E.3,-.3,\n0010: 00 00 00 00 4d ef 33 2c 00 00 00 00 00 00 00 00 ....M.3,........\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "capture": "driver-",
+      "file": "driver-nfc-proc.txt",
+      "output": "\nFD  OFLAGS  TYPE POS       PATH\n0   3       1    0         /dev/console\n1   3       1    0         /dev/console\n2   3       1    0         /dev/console\n3   79      5    0         /var/mqueue/panel1_onoffmq\n4   438     1    0         /dev/log\n5   1       3    77        /etc/init.d/rcS\n6   1031    5    0         /var/mqueue/nfc_msg_down\n7   1031    5    0         /var/mqueue/nfc_msg_up\n8   1027    1    0         /var/mqueue/nfc_msg_up\n"
+    },
+    {
+      "capture": "fd-value-",
+      "file": "fd-value-fd-help.txt",
+      "output": "Hex dump:\n0000: 10 89 20 3d                                     .. =\n"
+    },
+    {
+      "capture": "fd-value-",
+      "file": "fd-value-host-help.txt",
+      "output": "Hex dump:\n0000: 08 00 00 00                                     ....\n"
+    },
+    {
+      "capture": "fd-value-",
+      "file": "fd-value-lua-result.txt",
+      "output": "S4 B1/B2 read-only fd/IPC inspection\nxd 3c4ee0c8 4 => true,true,exit,0\nxd 3c2c3928 4 => true,true,exit,0\nfdinfo 59 => true,true,exit,0\nxd 3c203dac 4 => true,true,exit,0\nxd 2c9d235c 40 => true,true,exit,0"
+    },
+    {
+      "capture": "fd-value-",
+      "file": "fd-value-nfc-fds.txt",
+      "output": "Hex dump:\n0000: 90 45 8b 2c                                     .E.,\n"
+    },
+    {
+      "capture": "fd-value-",
+      "file": "fd-value-nfc-mqueue.txt",
+      "output": "Hex dump:\n0000: 41 d3 33 2c 25 d3 33 2c 45 f0 33 2c 2d f1 33 2c A.3,%.3,E.3,-.3,\n0010: 00 00 00 00 4d ef 33 2c 00 00 00 00 00 00 00 00 ....M.3,........\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "capture": "fd-value-",
+      "file": "fd-value-nfc-proc.txt",
+      "output": "\nFD  OFLAGS  TYPE POS       PATH\n0   3       1    0         /dev/console\n1   3       1    0         /dev/console\n2   3       1    0         /dev/console\n3   79      5    0         /var/mqueue/panel1_onoffmq\n4   438     1    0         /dev/log\n5   1       3    77        /etc/init.d/rcS\n6   1031    5    0         /var/mqueue/nfc_msg_down\n7   1031    5    0         /var/mqueue/nfc_msg_up\n8   1027    1    0         /var/mqueue/nfc_msg_up\n"
+    }
+  ],
+  "offline_execution": {
+    "execution": "OFFLINE_ORIGINAL_ARM_CODE_WITH_SYNTHETIC_RAM",
+    "real_watch_registration_attempted": false,
+    "real_rf_test": false,
+    "firmware": "S4 3.201.79",
+    "synthetic_flags": "0x8101",
+    "results": [
+      {
+        "event": "0x401",
+        "callbacks": [
+          {
+            "event": 21,
+            "status": 3,
+            "handle": 65535
+          }
+        ],
+        "dispatcher_free_buffer": 1,
+        "ce_control_unchanged": true
+      },
+      {
+        "event": "0x402",
+        "callbacks": [],
+        "dispatcher_free_buffer": 1,
+        "ce_control_unchanged": true
+      },
+      {
+        "event": "0x403",
+        "callbacks": [],
+        "dispatcher_free_buffer": 1,
+        "ce_control_unchanged": true
+      }
+    ]
+  },
+  "real_rf_apdu_round_trip": false,
+  "test_aid_registered_on_watch": false,
+  "physical_reader_test_performed": false,
+  "latency_wtx_metrics": null,
+  "native_module_loaded_during_these_readonly_captures": false,
+  "later_guarded_registration_failure_evidence": "xiaomi-s4-stock-ce-rejection-2026-11-22.json"
+}
