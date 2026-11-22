@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import nodomain.freeyourgadget.gadgetbridge.R;
-import nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSpecificSettings;
 import nodomain.freeyourgadget.gadgetbridge.devices.xiaomi.XiaomiCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 
@@ -53,13 +52,6 @@ public class XiaomiWatchS4Coordinator extends XiaomiCoordinator {
     @Override
     public DeviceKind getDeviceKind(@NonNull GBDevice device) {
         return DeviceKind.WATCH;
-    }
-
-    @Override
-    public DeviceSpecificSettings getDeviceSpecificSettings(@NonNull final GBDevice device) {
-        final DeviceSpecificSettings settings = super.getDeviceSpecificSettings(device);
-        settings.addRootScreen(R.xml.devicesettings_xiaomi_transit_card_migration);
-        return settings;
     }
 
     @Override

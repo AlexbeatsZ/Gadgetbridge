@@ -6006,10 +6006,4 @@
     <string name="pref_xiaomi_voice_assistant_playback_title">用手表播放助手回答</string>
     <string name="pref_xiaomi_voice_assistant_playback_summary">手表停止收音后，使用手表扬声器播放 Gemini 的语音回答</string>
     <string name="xiaomi_voice_assistant_no_visible_response">手机助手未返回可显示的内容，请在手机上查看操作结果。</string>
-    <string name="pref_xiaomi_transit_card_migration_title">公交卡迁移</string>
-    <string name="pref_xiaomi_transit_card_migration_summary">前往国区小米运动健康查看移卡资格</string>
-    <string name="pref_xiaomi_transit_card_migration_message">在国区小米运动健康中选择已绑定的手表，打开公交卡页面。如果原卡出现在「待移入公交卡」列表中，按小米运动健康的提示操作。确认发卡方支持迁到这块手表前，请保留原卡。</string>
-    <string name="xiaomi_transit_open_mi_fitness">打开小米运动健康</string>
-    <string name="xiaomi_transit_download_mi_fitness">下载小米运动健康</string>
-    <string name="xiaomi_transit_could_not_open">无法打开小米运动健康或其下载页面。</string>
 </resources>
