@@ -50,6 +50,8 @@ A 的验收至少包括合法认证、源卡和目标产品资格、可恢复的
 
 `MiOAuthImpl` 向 TokenManager 请求 `serviceToken,security,userId`；SDK 网络层加 cookie、加密/签名。401 只证明空请求未通过认证，不证明接口不可调用，不证明发行方拒绝这张卡，也不证明 S4 产品资格。Gadgetbridge 尚未实现自己的合法 TSM/OAuth 会话及签名客户端。
 
+系统服务实测补充：K70 的 Android AccountManager 中存在1个 `com.xiaomi` 账号，认证器为 `com.xiaomi.account/.authenticator.XmAuthenticationService`（R-24.05.28.12）。但在正在运行的 Gadgetbridge 实际 UID 内调用 `AccountManager.getAccountsByType("com.xiaomi")` 返回0；没有读取账号名、请求令牌或修改可见性。`account-visibility.cpp` 归档此只读检查。已有系统账号不能直接当成 GB 已获授权，下一步须接入用户授权的账号选择/访问或独立合法 OAuth，再获取 tsm-auth 会话。此结果同样不代表该账号无权迁卡。
+
 冻结、移出、目标个性化和激活由订单状态机及发行方脚本驱动，不能把某条 APDU 或一个可访问的 SE 当成可导出卡密钥。源卡不变的约束下，本轮停在只读资格/认证研究，未创建迁移订单。后续先取得合法认证并仅查询源卡 TRANSFER_OUT、目标产品/联名资格；不要试调用 prepare/start/confirm 来“看看是否支持”。
 
 ### 手机 SE

@@ -18,7 +18,7 @@
 
 ## Active Work
 
-- 公交卡研究仍未完成。A已定位MiPayService→ChannelImpl→ct4、TSM迁出/迁入/SE会话链，合法账号认证与该联名卡源/目标资格未验证；空的只读云端查询返回401。B原生执行路径成立，下一步静态核对S4固件host CE动作表和RF回调ABI，然后仅用测试AID做RF SELECT/固定应答及SPP/WTX实验。不能因快应用nfc/hce=null或函数名缺失认定硬件不支持。修改前读`docs/design/xiaomi-s4-transit-card.md`。
+- 公交卡研究仍未完成。A已定位MiPayService→ChannelImpl→ct4、TSM迁出/迁入/SE会话链，合法账号认证与该联名卡源/目标资格未验证；空的只读云端查询返回401。系统虽有小米账号，GB实际UID的AccountManager查询可见数为0，未读账号名/token或改可见性。B原生执行路径成立，下一步静态核对S4固件host CE动作表和RF回调ABI，然后仅用测试AID做RF SELECT/固定应答及SPP/WTX实验。不能因快应用nfc/hce=null或函数名缺失认定硬件不支持。修改前读`docs/design/xiaomi-s4-transit-card.md`。
 - 本轮临时清理JNI的List/Collection签名错误导致一次进程崩溃，已修正并恢复原绑定连接、HFP活动。主要健康表计数未减少；原9表盘及原活动「昼与夜」实际回读一致，测试表盘/RPK已移除。长按、Gemini原声、真实闹钟、整点上传未重新物理验收。
 - 2026.11.16/code272：手表发起的会话中，Gemini 语音会暂缓到 S4 的 SCO 接通再播；手机上直接用 Gemini 不受影响。用户已验收。实际会话中“开口即建路由”尚未在实机触发，只有单元测试覆盖。
 

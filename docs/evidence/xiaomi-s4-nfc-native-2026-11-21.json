@@ -30,5 +30,11 @@
     "No RF host APDU callback verified",
     "No real-card migration or transaction performed",
     "No new Gadgetbridge APK published"
-  ]
+  ],
+  "account_access": {
+    "system_xiaomi_account_present": true,
+    "accounts_visible_to_actual_gadgetbridge_uid": 0,
+    "names_or_tokens_read": false,
+    "account_visibility_modified": false
+  }
 }
