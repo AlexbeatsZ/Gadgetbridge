@@ -1,0 +1,29 @@
+-- Diagnostic only: no NFC/controller/card calls or firmware writes.
+-- Run only after the temporary companion has created ready.txt.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r")
+if not ready then return end
+ready:close()
+local hex="@MODULE_HEX@"
+local bytes=hex:gsub("..",function(h) return string.char(tonumber(h,16)) end)
+local f=io.open(base.."/probe.elf","wb")
+if not f then return end
+f:write(bytes);f:close()
+local commands={
+ {"device-list.txt","ls /dev"},
+ {"process-list.txt","ps"},
+ {"shell-help.txt","help insmod"},
+ {"version.txt","cat /proc/version"},
+ {"modules-before.txt","lsmod"},
+ {"module-load.txt","insmod "..base.."/probe.elf gb_readonly_probe"},
+ {"modules-after.txt","lsmod"},
+ {"module-unload.txt","rmmod gb_readonly_probe"},
+ {"modules-final.txt","lsmod"}
+}
+local lines={"S4 empty native module diagnostic"}
+for _,item in ipairs(commands) do
+ local ok,a,b,c=pcall(function() return os.execute(item[2].." > "..base.."/"..item[1]) end)
+ lines[#lines+1]=item[2].." => "..tostring(ok)..","..tostring(a)..","..tostring(b)..","..tostring(c)
+end
+local result=io.open(base.."/lua-result.txt","w")
+if result then result:write(table.concat(lines,"\n"));result:close() end

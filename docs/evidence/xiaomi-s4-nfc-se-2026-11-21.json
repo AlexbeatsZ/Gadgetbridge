@@ -1,0 +1,27 @@
+{
+  "transport": "existing authenticated Gadgetbridge connection",
+  "results": {
+    "capability": {
+      "capability": 1
+    },
+    "open": {
+      "status": 224,
+      "data": ""
+    },
+    "select-test": {
+      "status": 224,
+      "data": "6A82"
+    },
+    "cplc": {
+      "status": 224,
+      "sw": "9000",
+      "cplc_tlv_present": true,
+      "fabricator_and_ic_type": "479009DC"
+    },
+    "close": {
+      "status": 224,
+      "data": ""
+    }
+  },
+  "watch_firmware": "3.201.79"
+}

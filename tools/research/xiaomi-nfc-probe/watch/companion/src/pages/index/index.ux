@@ -1,0 +1,35 @@
+<template><div class="page"><text>{{status}}</text></div></template>
+<script>
+let file = null
+const interconnect = require('@system.interconnect')
+export default {
+ private: { status: 'Read-only native diagnostic' },
+ onInit() {
+  this.conn = interconnect.instance()
+  this.sent = ''
+  this.conn.onopen = () => this.sendStatus('ready')
+  this.conn.onerror = (e) => { this.status=JSON.stringify(e) }
+  this.conn.onmessage = () => { this.sendStatus('received-ping'); this.readAll() }
+  setTimeout(()=>require('@system.app').terminate(),6500)
+  this.beat = setInterval(()=>this.sendStatus('heartbeat-file-'+typeof file),3000)
+  try {file=require('@system.file')}catch(e) {this.sendStatus('file-error-'+String(e))}
+  if(file)file.writeText({uri:'internal://files/ready.txt',text:'ready',success:()=>this.sendStatus('sandbox-ready')})
+  this.timer = setInterval(()=>this.readAll(),1000)
+ },
+ onDestroy() { if(this.timer)clearInterval(this.timer);if(this.beat)clearInterval(this.beat) },
+ sendStatus(s) { try { this.conn.send({data:{probe:'native-nfc-readonly',status:s},fail:(e,c)=>{this.status='Send failed '+c}}) } catch(e){} },
+ readAll() {
+  const names=['version.txt','module-load.txt','modules-before.txt','modules-after.txt','module-unload.txt','modules-final.txt','shell-help.txt','proc-list.txt','ready.txt','device-list.txt','process-list.txt','modules.txt','lua-result.txt']
+  for(let i=0;i<names.length;i++) {
+   const name=names[i]
+   file.readText({uri:'internal://files/'+name,success:(r)=>{
+    const text=r.text||''
+    if(this[name]===text)return
+    this[name]=text
+    this.status='Read '+name
+    try {this.conn.send({data:{probe:'native-nfc-readonly',file:name,text:text.slice(0,3000)}})}catch(e){}
+   }})
+  }
+ }
+}
+</script><style>.page{width:466px;height:466px;background-color:#000000;justify-content:center;align-items:center;padding:80px;}text{color:#ffffff;font-size:24px;}</style>
