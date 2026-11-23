@@ -6,6 +6,14 @@
 
 用户已改为优先推进蓝牙代理，A的真实迁移暂停。本路线先验证外部读卡器↔S4主机固定APDU，再用现有Classic SPP接固定测试后端；BLE后评估。此选择不代表已经证明能代理真实公交卡或保留校园功能。
 
+2026-11-22 后续实机（手机Asia/Shanghai 11-23中午）：
+
+- 常驻Host测试会话、slot1注册、原栈STOP/START、固定测试AID增加、超时恢复、完整旧表复核、原队列barrier及卸载已实机通过。零窗口曾因NSH拒绝`sleep 0`中断脚本，受保护collector拒绝卸载；补完恢复后修复为省略延时命令，后续自动恢复预演通过。不能把`os.execute`返回成功当作后台脚本完成。
+- K70临时ReaderMode实读`mTechMask: 1 / mEnableReader: true / mEnableHostRouting: false / ON_UNLOCKED`。用户明确在窗口内贴近，rf2有7次Host ISO-DEP激活，rf3有10次，rf4有4次；元数据protocol4/listenA80/interface2，实际激活进入slot1，并逐次去激活/恢复RF回调。**Host激活实机通过，SELECT/固定响应尚未通过。**
+- K70 `IsoDep.connect()`成功，`transceive(test SELECT)`报TagLostException。rf3原激活回调返回后RF owner实读为原sink2c34472d；新增尾部仅在自身Host活动时重接，rf4证明重接到本模块，但仍只有去激活6002、没有DATA6003；不能把回调覆盖修复当成APDU成功。
+- 新增HAL被动计数，只计类型/长度/测试SELECT精确命中，不复制未知payload或UID，所有帧原样转发；原STOP或GET响应在owner内自撤销，原HAL查询barrier后才卸载。无贴近dryrun3实机通过（HALactive0、detach reason STOP、原表/槽/回调恢复、模块空）。外部RF HAL计数实验待做。
+- 主要脱敏证据`docs/evidence/xiaomi-s4-host-session-2026-11-22.json`；每次现场原始probe记录保留Mac任务临时目录。研究中的唯一测试表盘/RPK与手机/ROG文件仍待最终清理；生产应用PID10882保持，不安装APK，不触及真实卡。
+
 2026-11-22 新实机进展（手机Asia/Shanghai时间为11-23上午）：
 
 - 已完整捕获只读 GET_ROUTING 的通知 `61020c00020003c0e3000003c0e302`：两条技术路由为NFC-A/F→eSE C0，原始power字节均e3。HAL原owner实读为2c34cd85；只捕获路由通知、其他帧原样转发，随后自撤销，原HAL后续查询barrier完成、模块卸载。

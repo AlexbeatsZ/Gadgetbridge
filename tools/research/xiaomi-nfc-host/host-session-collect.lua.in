@@ -1,0 +1,40 @@
+-- Collect after bounded background recovery, then verify before any unload.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local done=io.open(base.."/@RUN_ID@-collect-done.txt","r");if done then done:close();return end
+local result={"RUN=@RUN_ID@; guarded post-recovery collect/unload"}
+@COMMON_HELPERS@
+local addr=moduleData("gb_host_test");local safe=false
+if addr then
+ command("host-help.txt","xd "..addr.." 296");local h=words("host-help.txt")
+ command("nfc-fds.txt","xd 3c2d4754 40");local entries=words("nfc-fds.txt")
+ command("device-list.txt","xd 3c2d4c30 4");local disc=words("device-list.txt")
+ command("process-list.txt","xd 3c2d4b90 4");local rf=words("process-list.txt")
+ command("modules.txt","xd 3c2d4746 4");local state=words("modules.txt")
+ command("proc-list.txt","xd 3c2d46d4 4");local ese=words("proc-list.txt")
+ command("work-hal.txt","xd 3c2d45cc 4");local hal=words("work-hal.txt")
+ local equal=#h==74 and #entries==10
+ if equal then for i=1,10 do if entries[i]~=h[32+i]then equal=false end end end
+ local idle=rawIdle()
+ result[#result+1]="CHECKS:words="..#h..",slots="..tostring(equal)..",phase="..tostring(h[2])..",disc="..tostring(disc[1])..",rf="..tostring(rf[1])..",state="..tostring(state[1])..",ese="..tostring(ese[1])..",raw_idle="..tostring(idle)
+ safe=equal and h[1]==0x53483454 and h[2]==5 and h[6]==0 and h[7]==0 and
+      disc[1]==0x2c344699 and rf[1]==0x2c34472d and state[1]==0x00010001 and ese[1]==0x8101 and idle and hal[1]==0x2c34cd85 and h[59]==0
+ result[#result+1]="CALLBACKS_SLOTS_STATE_RESTORED="..tostring(safe)
+ if safe and emit("get-routing-capture.elf","@CAPTURE_HEX@") and emit("get-routing-status.elf","@BARRIER_HEX@")then
+  safe=query("nfc-proc.txt")=="61020c00020003c0e3000003c0e302"
+  result[#result+1]="FINAL_ORIGINAL_TABLE="..tostring(safe)
+  if safe and rawIdle()then
+   -- query() includes an original-HAL/NFA barrier after self-detach. All
+   -- background requests precede this command and own no remaining pointer.
+   for _,name in ipairs({"gb_route_append","gb_route_restore","gb_host_hal_barrier","gb_host_test"})do
+    if moduleData(name)then command("work-unload.txt","rmmod "..name)end
+   end
+   result[#result+1]="RESIDENT_UNLOADED="..tostring(not moduleData("gb_host_test"))
+  end
+ end
+else result[#result+1]="NO_RESIDENT_MODULE"end
+command("modules-final.txt","lsmod")
+local f=io.open(base.."/lua-result.txt","w");if f then f:write(table.concat(result,"\n"));f:close()end
+if safe and not moduleData("gb_host_test")then
+ f=io.open(base.."/@RUN_ID@-collect-done.txt","w");if f then f:write("done");f:close()end
+end

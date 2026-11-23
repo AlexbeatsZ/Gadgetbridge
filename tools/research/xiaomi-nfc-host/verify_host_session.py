@@ -17,6 +17,7 @@ from verify_discovery_slots import REAL_ENTRY
 
 TEXT, DATA, CONTROL, CONTROL_DATA = 0x3D008000,0x3D009000,0x3D00A000,0x3D00B000
 ORIGINAL_DISC, ORIGINAL_RF = 0x2C344699,0x2C34472D
+HAL_SLOT, ORIGINAL_HAL = 0x3C2D45CC,0x2C34CD85
 
 
 class HostMachine(NciMachine):
@@ -28,13 +29,24 @@ class HostMachine(NciMachine):
         self.cpu.mem_write(DM+0x58,REAL_ENTRY+bytes(20))
         self.before_entries=bytes(self.cpu.mem_read(DM+0x58,40))
         self.write32(NFC+4,ORIGINAL_RF);self.write32(NFC+0xA4,ORIGINAL_DISC)
+        self.write32(HAL_SLOT,ORIGINAL_HAL);self.hal_forwarded=[]
         self.write32(0x3C203DE8,0x3D004000)
         self.cpu.mem_write(0x3D004000+7,b'\xff\xff')
         self.cpu.mem_write(DM+0x11E,b'\xc0\x00\xc0')
         self.enqueued=[];self.se_events=[]
+        self.force_activation_sink=False;self.discovery_return=None
 
     def _trace(self,cpu,address,size,data):
-        if address==BASE+0x18DE2C:
+        if address==ORIGINAL_DISC-1 and self.force_activation_sink:
+            self.discovery_return=cpu.reg_read(self.regs[4])&~1
+        if address==self.discovery_return:
+            # Real RF metadata observed the stock sink after the activation
+            # callback returned. Model that ownership change explicitly.
+            self.write32(NFC+4,ORIGINAL_RF);self.discovery_return=None
+        if address==ORIGINAL_HAL-1:
+            self.hal_forwarded.append(bytes(cpu.mem_read(cpu.reg_read(self.regs[1]),cpu.reg_read(self.regs[0]))))
+            self._return()
+        elif address==BASE+0x18DE2C:
             self.enqueued.append(cpu.reg_read(self.regs[0]));self._return()
         elif address==0x2C340EE8:
             self.se_events.append(cpu.reg_read(self.regs[0]));self._return()
@@ -47,11 +59,20 @@ class HostMachine(NciMachine):
 
     def header(self):return list(struct.unpack('<32I',bytes(self.cpu.mem_read(DATA,128))))
 
+    def rf_meta(self):return list(struct.unpack('<16I',bytes(self.cpu.mem_read(DATA+168,64))))
+
+    def hal_meta(self):return list(struct.unpack('<16I',bytes(self.cpu.mem_read(DATA+232,64))))
+
+    def hal_frame(self,packet):
+        target=self.read32(HAL_SLOT);ptr=0x3D00C000
+        self.cpu.mem_write(ptr,packet);self.call(target-BASE-1,len(packet),ptr)
+
     def finish_query(self):
         message=self.enqueued.pop(0)
         self.call(0x181334,message)
         self.cpu.mem_write(RESPONSE_MESSAGE,struct.pack('<4H',0x4000,4,1,0))
         self.cpu.mem_write(RESPONSE_MESSAGE+9,bytes.fromhex('41020100'))
+        if self.read32(HAL_SLOT)!=ORIGINAL_HAL:self.hal_frame(bytes.fromhex('41020100'))
         self.call(RAW_RESPONSE,RESPONSE_MESSAGE)
         assert self.read32(NFC+0x140)==0
         self.cpu.mem_write(NFC+0x1CF,b'\x01') # Emulated window/timer completion.
@@ -118,6 +139,8 @@ def main():
     freed_before=len(m.freed);m.receive()
     assert m.header()[9:11]==[1,1] and m.freed[freed_before:]==[MESSAGE]
     assert m.queue[-1]['payload_hex']=='5334544553549000'
+    assert m.rf_meta()[:8]==[1,1,0x6003,0,0,13,4,5]
+    assert m.header()[27]>0 and m.header()[30]==0x028004
     passed('test_select_submits_fixed_response_through_original_send_path_and_frees_once')
     m.receive(SELECT[:-1]);assert m.header()[9]==2
     passed('test_select_without_le_is_also_exact_match')
@@ -137,8 +160,25 @@ def main():
     assert bytes(m.cpu.mem_read(DM+0x11E,1))==b'\xc0'
     passed('direct_eSE_activation_uses_original_registration_and_unchanged_map')
     m=HostMachine(image,probe,controls);m.armed();m.write32(NFC+4,0x3D000901)
-    m.activate();assert m.header()[28]==1 and m.read32(NFC+4)==0x3D000901
+    m.activate();assert m.header()[28]>=1 and m.read32(NFC+4)==0x3D000901
+    assert m.rf_meta()[8]==0x3D000901
     passed('unexpected_rf_callback_owner_not_overwritten')
+    m=HostMachine(image,probe,controls);m.armed();m.force_activation_sink=True;m.activate()
+    assert m.rf_meta()[8]==ORIGINAL_RF and m.rf_meta()[12]==m.header()[16]
+    m.receive();assert m.header()[9:11]==[1,1]
+    passed('live_observed_activation_tail_sink_reinstall_repaired_before_test_select')
+    m=HostMachine(image,probe,controls);m.armed()
+    test=bytes([0,0,len(SELECT)])+SELECT
+    other=bytes.fromhex('000003a5a5a5')
+    m.hal_frame(test);m.hal_frame(other)
+    assert m.hal_meta()[3:5]==[2,1] and m.hal_forwarded[-2:]==[test,other]
+    assert m.hal_meta()[0]==0 and m.read32(HAL_SLOT)==m.hal_meta()[14]
+    m.hal_frame(bytes.fromhex('41060100'))
+    assert m.read32(HAL_SLOT)==ORIGINAL_HAL and m.hal_meta()[1]==3 and m.hal_meta()[0]==0
+    passed('passive_hal_counts_only_test_match_and_forwards_all_packets_then_self_detaches_on_stop')
+    m=HostMachine(image,probe,controls);m.armed();m.hal_frame(bytes.fromhex('41020100'))
+    assert m.read32(HAL_SLOT)==ORIGINAL_HAL and m.hal_meta()[1]==2
+    passed('passive_hal_get_routing_barrier_detaches_without_any_rf_activation')
     m=HostMachine(image,probe,controls);m.armed();m.activate()
     event=bytearray(16);event[1]=0;event[2]=1
     m.cpu.mem_write(EVENT_DATA,bytes(event))

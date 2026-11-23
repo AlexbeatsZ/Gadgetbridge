@@ -31,8 +31,10 @@ public final class S4TestReader {
         if (tag == null) return;
         IsoDep iso = IsoDep.get(tag);
         if (iso == null) {System.out.println("{\"result\":\"not_iso_dep\",\"tag_identity_logged\":false}");return;}
+        String stage="connect";
         try {
             iso.connect();iso.setTimeout(1000);
+            stage="test_select";
             long before=SystemClock.elapsedRealtimeNanos();
             byte[] response=iso.transceive(SELECT);
             long elapsed=SystemClock.elapsedRealtimeNanos()-before;
@@ -45,13 +47,13 @@ public final class S4TestReader {
                 System.out.println("{\"result\":\"unexpected_test_select_response\",\"response_length\":"+response.length+"}");
             }
         } catch(Exception e) {
-            System.out.println("{\"result\":\"test_select_error\",\"exception_type\":\""+e.getClass().getSimpleName()+"\"}");
+            System.out.println("{\"result\":\"test_select_error\",\"stage\":\""+stage+"\",\"exception_type\":\""+e.getClass().getSimpleName()+"\"}");
         } finally {try{iso.close();}catch(Exception ignored){}}
     }
 
     public static void main(String[] args) throws Exception {
         if(args.length==0 || !(args[0].equals("--inspect") || args[0].equals("--run")))
-            throw new IllegalArgumentException("--inspect or --run <1..120 seconds>");
+            throw new IllegalArgumentException("--inspect or --run <1..300 seconds>");
         Class<?> serviceManager=Class.forName("android.os.ServiceManager");
         IBinder binder=(IBinder)serviceManager.getMethod("getService",String.class).invoke(null,"nfc");
         if(binder==null)throw new IllegalStateException("NFC service absent");
@@ -65,7 +67,7 @@ public final class S4TestReader {
         System.out.println("{\"mode\":\"inspection\",\"uid\":"+Process.myUid()+",\"nfc_binder_alive\":"+binder.isBinderAlive()+",\"reader_signature\":\"token,callback,flags,extras,packageName\",\"tag_callback_transaction\":"+transaction+"}");
         if(args[0].equals("--inspect")){worker.shutdown();return;}
         int seconds=Integer.parseInt(args[1]);
-        if(seconds<1 || seconds>120)throw new IllegalArgumentException("bounded window required");
+        if(seconds<1 || seconds>300)throw new IllegalArgumentException("bounded window required");
         Binder callbackBinder=new Binder(){
             @Override protected boolean onTransact(int code,Parcel data,Parcel reply,int flags) throws android.os.RemoteException {
                 if(code==INTERFACE_TRANSACTION){if(reply!=null)reply.writeString(CALLBACK);return true;}
