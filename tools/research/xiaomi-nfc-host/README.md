@@ -110,7 +110,7 @@ python3 tools/research/xiaomi-nfc-host/firmware.py \
 
 `render_host_session.py`渲染setup或`--collect` Lua，不安装；`--window-seconds`只接受0..300，`--run-id`限制独立实验标记。setup使用后台NSH执行原栈路由/发现/绑定动作，零窗口**省略sleep**（NSH sleep0报错且终止整段脚本）。collector先核对全部槽/回调/状态、HAL owner和在途计数，再读原表并经过原队列barrier后才卸载；失败必须保留resident继续调查，不能强卸载。
 
-结果前32 words为session header，随后40字节为原discovery两槽、16 words为RF事件/状态/长度元数据、16 words为HAL类型/长度/固定SELECT命中计数。HAL观察器转发所有报文，只计数、不保存未知payload、UID或卡内容；STOP/GET响应owner内自撤销。`verify_host_session.py`15项离线检查不替代现场RF证据。最近实机记录为`docs/evidence/xiaomi-s4-host-session-2026-11-22.json`。
+结果前32 words为session header，随后40字节为原discovery两槽、16 words为RF事件/状态/长度元数据、16 words为HAL类型/长度/固定SELECT命中计数。HAL观察器转发所有报文，只计数、不保存未知payload、UID或卡内容；STOP/GET响应owner内自撤销。`verify_host_session.py`16项离线检查（新增原NCI DATA分支及接收队列/drain）不替代现场RF证据。最近实机记录为`docs/evidence/xiaomi-s4-host-session-2026-11-22.json`。
 
 ```sh
 python3 tools/research/xiaomi-nfc-host/render_host_session.py \

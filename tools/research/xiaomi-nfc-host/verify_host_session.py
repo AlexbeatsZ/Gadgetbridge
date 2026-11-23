@@ -35,8 +35,17 @@ class HostMachine(NciMachine):
         self.cpu.mem_write(DM+0x11E,b'\xc0\x00\xc0')
         self.enqueued=[];self.se_events=[]
         self.force_activation_sink=False;self.discovery_return=None
+        self.original_ingress=False
 
     def _trace(self,cpu,address,size,data):
+        if self.original_ingress:
+            if address in (0x2C342E70,0x2C342E5C):
+                self._return();return # Synthetic critical sections; no OS.
+            if address==0x2C340D50:
+                self._return(0);return # Synthetic pool buffer validation.
+            if address==BASE+0x18CEC0:return # Execute original data-event drain.
+            if address==BASE+0x190F08:
+                cpu.reg_write(self.regs[-1],0x3D000000);return # Original client-task loop boundary.
         if address==ORIGINAL_DISC-1 and self.force_activation_sink:
             self.discovery_return=cpu.reg_read(self.regs[4])&~1
         if address==self.discovery_return:
@@ -107,6 +116,25 @@ class HostMachine(NciMachine):
         self.packet(payload)
         self.cpu.mem_write(EVENT_DATA,struct.pack('<II',0,MESSAGE))
         self.call(self.read32(NFC+4)-BASE-1,conn,0x6003,EVENT_DATA)
+
+    def ingress(self,payload=SELECT):
+        from unicorn.arm_const import UC_ARM_REG_R4,UC_ARM_REG_R5,UC_ARM_REG_R7
+        for offset,expected in [(0x191018,'ab880833ee5cea1806f00f00'),
+                                (0x183F60,'b0b5054600af0846'),
+                                (0x183FA8,'b0b5044600af')]:
+            if bytes(self.cpu.mem_read(BASE+offset,len(bytes.fromhex(expected))))!=bytes.fromhex(expected):
+                raise AssertionError('original ingress/queue ABI differs')
+        nci=bytes([0,0,len(payload)])+payload
+        self.cpu.mem_write(MESSAGE-8,bytes(8));self.cpu.mem_write(MESSAGE-3,b'\x01')
+        self.cpu.mem_write(MESSAGE,struct.pack('<4H',0x4000,len(nci),4,0))
+        self.cpu.mem_write(MESSAGE+12,nci)
+        # Live activation metadata: interface2/protocol4, RF conn0 mapping1.
+        self.write32(NFC+0x20,0x00040200)
+        self.cpu.mem_write(NFC+0x131,b'\x01')
+        for reg,val in [(UC_ARM_REG_R4,NFC),(UC_ARM_REG_R5,MESSAGE),(UC_ARM_REG_R7,0x3D00E000)]:self.cpu.reg_write(reg,val)
+        self.original_ingress=True
+        self.call(0x191018)
+        self.original_ingress=False
 
 
 def main():
@@ -180,6 +208,12 @@ def main():
     assert m.read32(HAL_SLOT)==ORIGINAL_HAL and m.hal_meta()[1]==2
     passed('passive_hal_get_routing_barrier_detaches_without_any_rf_activation')
     m=HostMachine(image,probe,controls);m.armed();m.activate()
+    m.ingress()
+    assert m.header()[9:11]==[1,1] and m.rf_meta()[5:7]==[13,7]
+    assert m.freed.count(MESSAGE)==1 and m.queue[-1]['payload_hex']=='5334544553549000'
+    assert m.read32(NFC+0x14)==0 and m.read32(NFC+0x18)==0
+    passed('original_nci_data_parser_and_real_queue_drain_deliver_test_select_and_free_once')
+    m=HostMachine(image,probe,controls);m.armed();m.activate()
     event=bytearray(16);event[1]=0;event[2]=1
     m.cpu.mem_write(EVENT_DATA,bytes(event))
     m.call(m.read32(NFC+0xA4)-BASE-1,0x4005,EVENT_DATA)
@@ -199,7 +233,8 @@ def main():
     result={'execution':'OFFLINE_COMPILED_HOST_SESSION_AND_ORIGINAL_FULL_DISCOVERY_AND_RF_SEND',
             'cases_passed':len(cases),'cases':cases,'real_host_rf_apdu':False,
             'boundaries':['HAL output','GKI/timers','NFA queue','selected discovery mask',
-                          'RF stop completion','RF send queue','original eSE listener'],
+                          'RF stop completion','RF send queue','original eSE listener',
+                          'ingress critical sections/pool validation/client-task loop'],
             'not_verified':['live activation payload ABI','live callback ownership during RF',
                             'automatic timeout restoration','external reader RAPDU','SPP','WTX']}
     if a.output:a.output.write_text(json.dumps(result,indent=2)+'\n')
