@@ -6,11 +6,19 @@
 
 用户已改为优先推进蓝牙代理，A的真实迁移暂停。本路线先验证外部读卡器↔S4主机固定APDU，再用现有Classic SPP接固定测试后端；BLE后评估。此选择不代表已经证明能代理真实公交卡或保留校园功能。
 
-2026-11-22 新实机进展：通过原NFA DM/NCI队列发送唯一只读命令 `21 02 00`，控制器响应 **`41 02 01 00`（成功）**。响应回调event0x42/length4/count1；随后callback槽和busy flag清零、命令窗口恢复1、队列为空，诊断模块卸载exit0、lsmod为空，eSE flags前后0x8101。**这只是GET_ROUTING命令状态成功；单独的路由表通知还未捕获，不能当作路由备份或RF APDU成功。**
+2026-11-22 新实机进展（手机Asia/Shanghai时间为11-23上午）：
+
+- 已完整捕获只读 GET_ROUTING 的通知 `61020c00020003c0e3000003c0e302`：两条技术路由为NFC-A/F→eSE C0，原始power字节均e3。HAL原owner实读为2c34cd85；只捕获路由通知、其他帧原样转发，随后自撤销，原HAL后续查询barrier完成、模块卸载。
+- 控制器能力实读features00063e3a，AID routing支持位存在，capacity1030、ctrl payload255、NCI版本20。ISO-DEP discovery map引用实读与镜像对照。能力声明不等于RF成功。
+- 原NFA STOP/START实机达到flags/state `01000100 → 00000000 → 01000100`，eSE flags8101保持。
+- **测试AID路由增加和撤销真实通过**：`F0010203040506→DH00/power01`必须放在原技术路由前面。SET响应41010100，GET回读三项，原栈重启discovery后仍存在；恢复原两项响应41010100，再次重启后完整旧表相等。没有外部读卡器/APDU/SPP测试。
+- 第一次AID放在技术项后返回41010103（通用FAILED，不是INVALID_PARAM09），随后GET为空。立即用已捕获旧表恢复并读回，旧表/发现状态恢复。**SET失败也可能丢表，不能只看状态或以空SET清理。**
+- 额外实读两组RF discovery注册槽：slot0用于eSE，slot1为空。在停止发现后，通过GET响应进入原NFA任务调用原add/delete，实际得到handle1，恢复两槽全部40字节，默认RF callback未变；重新发现正常、模块卸载。该实验没有让注册跨越真实激活。
+- 已验证NSH脚本后台执行：Lua调用`sh <probe-private-script> > <probe-private-output> &`在0秒返回，独立脚本3秒后写入完成标记。后续RF等待和超时恢复应使用后台步骤，长Lua曾导致SPP短断连、原绑定自动恢复。
 
 2026-11-22 实机：原始 NFA CE 分发器对虚构 AID `F0010203040506` 返回 **REGISTERED事件0x15、status3、handle0xFFFF**，注册失败。当前固件CE动作表中的配置本地卡/注销/ISO-DEP配置槽是同一个空函数；注册处理器仅保留可用的eSE监听分支，当前eSE监听项已占用。
 
-这是原生栈入口的具体阻塞证据，**不是整个硬件不支持HCE的结论**。尚未完成测试AID射频SELECT/固定应答、SPP代理、时延/WTX测量，不能称功能完成。没有执行真实卡APDU或支付交易，没有停止现有NFC栈或改路由。
+这是原生栈入口的具体阻塞证据，**不是整个硬件不支持HCE的结论**。尚未完成测试AID射频SELECT/固定应答、SPP代理、时延/WTX测量，不能称功能完成。没有执行真实卡APDU或支付交易，没有停止NFC任务/原reader或操作真实卡；上述后续实验仅暂停/恢复RF discovery并测试可恢复的虚构AID路由。
 
 ## 精确材料和地址规则
 
@@ -141,11 +149,30 @@ BT_HDR为8字节，data在header+8+offset；发送要求offset≥4。raw handler
 
 `verify_nci_routing.py`的8例执行原始ARM：不透明的合成旧项+测试AID、合成恢复、more分段、空表的真实命令格式、分配失败、GET原dispatcher→原queue、原response后清指针、普通GET_ROUTING事件忽略。`verify_getroute_probe.py`另有7例执行实际编译探针：正常状态/清理和6个拒绝分支。总29例离线通过，明确不证明实卡路由或控制器支持Host AID。
 
-GET_ROUTING状态响应和包含路由表的`61 02 ...`通知是两个包。当前S4普通响应callback`0x2c343bd1`对event0x500b直接return；NFC任务的RF通知OID2也指向丢弃路径。本轮只保留了前者的原始状态响应，没有挂钩后者，所以**不能声称已经读取路由表**。
+GET_ROUTING状态响应与`61 02`通知是两个包；此前普通NFC分发裁剪了后者。现已通过实读的HAL槽3c2d45cc→trampoline2c340d35→original2c34cd85链捕获完整通知；见`get-routing-capture.c/.lua.in`。最多4包/1040字节，仅保留6102，其他包只计数/原样转发。最终通知或第二个只读查询响应触发callback owner内自撤销；确认active0、HAL恢复后，再经过原HAL查询barrier才卸载。原始实机只观测到对应RSP/NTF两包，不声称所有复位/恢复并发场景已验证。
 
-继续调查找到HAL data callback的精确链：HAL open=`0x2c34b1f5`将R1存入`0x3c2d45cc`；trampoline=`0x2c340d35`从该槽调用，签名为`(u16 length,u8 *packet)`；初始化传入`0x2c34cd85`，它将NCI帧复制进BT_HDR并排入原NFC任务。此链当前只有镜像证据，**尚未实读该槽当前值，尚未安装拦截器**。
+`routing_table.py`严格校验通知序列、TLV计数和完整长度，保存原字节及相对顺序；未知项可备份，但拒绝生成未经理解的写计划。当前单包写计划拒绝大于253字节TLV，不能猜分段。AID-first规划来自较新AOSP/NXP路由构造器（nfa_ee_lmrt_to_nfcc按AID→protocol→technology）；S4两次实机对照保持其他字节不变后证实顺序差异会决定接受/拒绝。
 
-下一项最小实验是：先只读确认HAL槽，再离线验证一个仅捕获本次查询`61 02`通知的短期转发器（其他帧原样转交且不记录）。必须覆盖通知分片、长度错误、没有通知、超时及撤销时的在途callback；回调引用清除和实际执行退出都可确认后才能在实机安装。取得完整原表及不可截断的备份后，才考虑追加测试AID→DH、查询回读和恢复。若原栈会自动重写路由，还需与其队列/状态机协调。此处不以清空eSE项绕过缺口。
+实机成功命令及回读：
+
+```text
+add:     210117000302090001f00102030405060003c0e3000003c0e302
+response:41010100
+routing: 610217000302090001f00102030405060003c0e3000003c0e302
+restore: 21010c00020003c0e3000003c0e302
+response:41010100
+routing: 61020c00020003c0e3000003c0e302
+```
+
+失败对照为AID-last `21011700030003c0e3000003c0e30202090001f0010203040506`，状态03后通知6102020000；已恢复，证据独立保存，不覆盖失败历史。恢复原表只移除拥有的测试项，不清空eSE表。
+
+## Host分发剩余条件
+
+原RF discovery API：add=2c344755，delete=2c341311，两个entry从DM+58起、步长20。add写callback@4、host_id@10、disc_mask@12、selected mask@16；delete只清in_use，**不会清callback指针**。因此探针必须在停止发现的原NFA任务中注册/删除，并恢复原本空闲entry的全部20字节；不能仅删in_use后就不检查地卸载。现已实机验证同步add/delete（新handle1），尚未验证长时间驻留及真实激活的所有权。
+
+原activate dispatcher=2c3410a1，参数activate.protocol@1、tech_mode@2、interface@27。原ARM离线执行证明：ISO-DEP/interface2/listenA80时，旧technology host映射DM+11e=C0仍选原eSE listener；在合成RAM中临时DH映射00且selected mask已由模拟discovery阶段设40000时才选spare Host listener；interface0的direct eSE路径仍到原listener。**这只是离线分发证据，不能直接在实机永久改映射。**下一步须验证选择性Host激活分发、原RF callback安装/去激活恢复、队列/在途撤销，且仅处理固定测试AID/APDU。
+
+下一项实机实验先建立自动超时/恢复的短后台步骤，读卡端可用K70独立临时app_process工具（只发送测试SELECT，无APK/生产app改动，ReaderMode结束必须恢复）。只有选择性回调与自动恢复路径离线和实机预演通过后，才让用户贴近手机与手表。成功判据仍为外部reader实际收到S4主机固定RAPDU；controller路由增加成功本身不够。
 
 ## 结束状态
 
@@ -167,3 +194,9 @@ Lua表盘本轮观察到首次加载时ready目录未就绪会直接return，点
 - https://github.com/NXPNFCLinux/linux_libnfc-nci/blob/master/src/libnfc-nci/nfc/nfc/nfc_main.c
 
 公开源码仅用于结构/语义对照，S4实际代码和实机数据优先。原生模块分别验证标准CE拒绝与只读NCI查询，不是公交卡/射频代理实现。
+
+## 本轮证据与状态（最新）
+
+- 路由通知、控制器能力、discovery stop/start、AID-last失败、AID-first成功/恢复、RF slots读数/同步add-delete、NSH后台分别保存在`docs/evidence/xiaomi-s4-{routing-notification,controller-capabilities,discovery-roundtrip,aid-last-rejected,test-aid-routing,discovery-slots,discovery-slot-roundtrip,background-execution}-2026-11-22.json`。
+- 本轮新离线定向检查：capture14、discovery12、constant writers12、routing parser6、discovery slots9均通过。现有GET状态7例仍通过。所有离线数据明确标模拟边界。
+- 最近实读：原路由恢复、flags/state01000100、eSE8101、HAL2c34cd85、lsmod空；原表盘已多次切回昼与夜。研究仍在进行，唯一测试face/RPK及手机/ROG暂存未最终撤下，不能沿用此前“已清理”作为本轮结束结论。实际最终清理另记。

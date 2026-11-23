@@ -1,0 +1,100 @@
+-- S4 3.201.79: original NFA discovery STOP -> START, no route/APDU command.
+-- Both probes enqueue an 8-byte event with no module-owned pointers/callbacks.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local done=io.open(base.."/discovery-slot-check-done.txt","r");if done then done:close();return end
+local result={"Original spare discovery slot add/delete on NFA task; no routing or APDU"}
+local function command(name,cmd)
+ local ok,a,b,c=pcall(function()return os.execute(cmd.." > "..base.."/"..name)end)
+ result[#result+1]=name..":"..tostring(ok)..","..tostring(a)..","..tostring(b)..","..tostring(c)
+end
+local function read(name)
+ local f=io.open(base.."/"..name,"r");if not f then return "" end
+ local text=f:read("*a");f:close();return text
+end
+local function words(name)
+ local out={}
+ for line in read(name):gmatch("[^\n]+") do
+  local h=line:match("^%x%x%x%x: (.*)")
+  if h then
+   local b={};for x in h:sub(1,47):gmatch("%x%x")do b[#b+1]=tonumber(x,16)end
+   for i=1,#b-3,4 do out[#out+1]=b[i]+256*b[i+1]+65536*b[i+2]+16777216*b[i+3]end
+  end
+ end
+ return out
+end
+local function moduleData(name)
+ command("work-modules.txt","lsmod")
+ for line in read("work-modules.txt"):gmatch("[^\n]+")do
+  if line:find(name,1,true)then
+   local cols={};for x in line:gmatch("%S+")do cols[#cols+1]=x end
+   if cols[8] and cols[8]:match("^0x%x+$")then return cols[8]end
+  end
+ end
+end
+local function emit(name,hex)
+ local f=io.open(base.."/"..name,"wb");if not f then return false end
+ f:write(hex:gsub("..",function(h)return string.char(tonumber(h,16))end));f:close();return true
+end
+local function invoke(action,output)
+ local name="gb_disc_"..action
+ if moduleData(name)then return false end
+ command("work-load.txt","insmod "..base.."/discovery-"..action..".elf "..name)
+ local addr=moduleData(name);if not addr then return false end
+ command(output,"xd "..addr.." 64")
+ local r=words(output)
+ -- The queued message has no reference into this module; no async callback.
+ command("work-unload.txt","rmmod "..name)
+ if moduleData(name)then return false end
+ return r[1]==0x4443544c and r[2]==2
+end
+command("modules-before.txt","lsmod")
+command("nfc-proc.txt","xd 3c2d4746 4")
+command("proc-list.txt","xd 3c2d46d4 4")
+local before=words("nfc-proc.txt")
+if before[1]==0x00010001 and not read("modules-before.txt"):find("gb_",1,true)then
+ if emit("discovery-stop.elf","@STOP_HEX@") and emit("discovery-start.elf","@START_HEX@") and emit("discovery-slot-check.elf","@SLOT_HEX@")then
+  local stopped=invoke("stop","host-help.txt")
+  result[#result+1]="STOP_ENQUEUED="..tostring(stopped)
+  if stopped then
+   local idle=false
+   for i=1,3 do
+    command("work-sleep.txt","sleep 1")
+    command("nfc-fds.txt","xd 3c2d4746 4")
+    local s=words("nfc-fds.txt")
+    if s[1]==0 then idle=true;break end
+   end
+   result[#result+1]="STOP_REACHED_IDLE="..tostring(idle)
+   if idle and not moduleData("gb_disc_slot")then
+    command("work-load.txt","insmod "..base.."/discovery-slot-check.elf gb_disc_slot")
+    command("work-sleep.txt","sleep 1")
+    local addr=moduleData("gb_disc_slot")
+    if addr then
+     command("shell-help.txt","xd "..addr.." 184")
+     local r=words("shell-help.txt")
+     command("work-slot.txt","xd 3c2d4ccc 4")
+     command("work-busy.txt","xd 3c2d4c48 4")
+     local callback=words("work-slot.txt");local busy=words("work-busy.txt")
+     local restored=r[1]==0x52464453 and r[2]==3 and r[5]==1 and r[13]==1
+     result[#result+1]="SPARE_SLOT_ADD_DELETE_RESTORED="..tostring(restored)
+     if restored and callback[1]==0 and busy[1] and busy[1]%256==0 then
+      command("work-unload.txt","rmmod gb_disc_slot")
+     else result[#result+1]="SLOT_MODULE_NOT_UNLOADED_UNCERTAIN"end
+    end
+   end
+   -- Always attempt guarded original START after our STOP, including timeout.
+   local started=invoke("start","fd-help.txt")
+   result[#result+1]="START_ENQUEUED="..tostring(started)
+   command("work-sleep.txt","sleep 1")
+  end
+  os.remove(base.."/discovery-stop.elf");os.remove(base.."/discovery-start.elf");if not moduleData("gb_disc_slot")then os.remove(base.."/discovery-slot-check.elf")end
+ end
+else result[#result+1]="PREFLIGHT_REJECTED_NO_ACTION" end
+command("nfc-mqueue.txt","xd 3c2d4746 4")
+local after=words("nfc-mqueue.txt")
+result[#result+1]="ORIGINAL_DISCOVERY_RESTORED="..tostring(after[1]==before[1])
+command("modules-final.txt","lsmod")
+command("device-list.txt","xd 3c2d45cc 4")
+command("process-list.txt","xd 3c2d46d4 4")
+local out=io.open(base.."/lua-result.txt","w");if out then out:write(table.concat(result,"\n"));out:close()end
+local f=io.open(base.."/discovery-slot-check-done.txt","w");if f then f:write("done");f:close()end

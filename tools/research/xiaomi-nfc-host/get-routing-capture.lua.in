@@ -1,0 +1,98 @@
+-- S4 3.201.79 read-only routing notification capture. No routing/SE writes.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local done=io.open(base.."/route-capture-done.txt","r");if done then done:close();return end
+local result={"GET_ROUTING capture; immutable read-only queries; no APDU capture"}
+local function command(name,cmd)
+ local ok,a,b,c=pcall(function()return os.execute(cmd.." > "..base.."/"..name)end)
+ result[#result+1]=name..":"..tostring(ok)..","..tostring(a)..","..tostring(b)..","..tostring(c)
+end
+local function read(name)
+ local f=io.open(base.."/"..name,"r");if not f then return "" end
+ local text=f:read("*a");f:close();return text
+end
+local function words(name)
+ local out={}
+ for line in read(name):gmatch("[^\n]+") do
+  local hex=line:match("^%x%x%x%x: (.*)")
+  if hex then
+   local bytes={};for b in hex:sub(1,47):gmatch("%x%x") do bytes[#bytes+1]=tonumber(b,16) end
+   for i=1,#bytes-3,4 do out[#out+1]=bytes[i]+256*bytes[i+1]+65536*bytes[i+2]+16777216*bytes[i+3] end
+  end
+ end
+ return out
+end
+local function moduleData(name)
+ command("work-modules.txt","lsmod")
+ for line in read("work-modules.txt"):gmatch("[^\n]+") do
+  if line:find(name,1,true) then
+   local cols={};for value in line:gmatch("%S+") do cols[#cols+1]=value end
+   if cols[8] and cols[8]:match("^0x%x+$") then return cols[8] end
+  end
+ end
+ return nil
+end
+local function emit(name,hex)
+ local f=io.open(base.."/"..name,"wb");if not f then return false end
+ f:write(hex:gsub("..",function(h)return string.char(tonumber(h,16))end));f:close();return true
+end
+local function rawIdle()
+ command("work-slot.txt","xd 3c2d4ccc 4")
+ command("work-flag.txt","xd 3c2d4c48 4")
+ local a=words("work-slot.txt");local b=words("work-flag.txt")
+ return a[1]==0 and b[1] and b[1]%256==0
+end
+local function queryBarrier(output)
+ if moduleData("gb_route_barrier") then return false end
+ command("work-load.txt","insmod "..base.."/barrier.elf gb_route_barrier")
+ command("work-sleep.txt","sleep 1")
+ local addr=moduleData("gb_route_barrier");if not addr then return false end
+ command(output,"xd "..addr.." 64")
+ local r=words(output)
+ if #r==16 and r[1]==0x5254534e and r[2]~=2 and rawIdle() then
+  command("work-unload.txt","rmmod gb_route_barrier")
+  if moduleData("gb_route_barrier") then return false end
+  return r[2]==3 and r[9]==1 and r[10]==0x42 and r[11]==4 and r[12]==0
+ end
+ return false
+end
+command("modules-before.txt","lsmod")
+if read("modules-before.txt"):find("gb_route_",1,true) then return end
+command("work-hal-before.txt","xd 3c2d45cc 4")
+command("work-trampoline.txt","xd 3c2d3c20 4")
+local slot=words("work-hal-before.txt");local trampoline=words("work-trampoline.txt")
+result[#result+1]="HAL before="..tostring(slot[1]).." trampoline="..tostring(trampoline[1])
+if slot[1]~=0x2c34cd85 or trampoline[1]~=0x2c340d35 then
+ result[#result+1]="PREFLIGHT_REJECTED_NO_HOOK"
+else
+ if not emit("capture.elf","@CAPTURE_HEX@") or not emit("barrier.elf","@BARRIER_HEX@") then return end
+ command("module-load.txt","insmod "..base.."/capture.elf gb_route_capture")
+ command("work-sleep.txt","sleep 1")
+ command("modules-after.txt","lsmod")
+ local addr=moduleData("gb_route_capture")
+ if addr then
+  command("shell-help.txt","xd "..addr.." 128")
+  local first=queryBarrier("version.txt")
+  result[#result+1]="first_barrier="..tostring(first)
+  command("host-help.txt","xd "..addr.." 128")
+  command("device-list.txt","xd 3c2d45cc 4")
+  local r=words("host-help.txt");local hal=words("device-list.txt")
+  local detached=#r==32 and r[1]==0x52544350 and r[2]~=2 and r[8]==0 and hal[1]==0x2c34cd85
+  local second=false
+  if detached and first then second=queryBarrier("modules.txt") end
+  result[#result+1]="original_HAL_barrier="..tostring(second)
+  command("host-help.txt","xd "..addr.." 128")
+  local a=tonumber(addr)
+  command("fd-help.txt",string.format("xd %x 16",a+128))
+  local names={"nfc-proc.txt","nfc-fds.txt","nfc-mqueue.txt","process-list.txt"}
+  for i,name in ipairs(names) do command(name,string.format("xd %x 260",a+144+(i-1)*260)) end
+  if detached and second and rawIdle() then
+   command("module-unload.txt","rmmod gb_route_capture")
+   if not moduleData("gb_route_capture") then os.remove(base.."/capture.elf");os.remove(base.."/barrier.elf") end
+  else result[#result+1]="NOT_UNLOADED: pending callback or no original-HAL barrier" end
+ end
+end
+command("modules-final.txt","lsmod")
+command("proc-list.txt","xd 3c2d46d4 4")
+local out=io.open(base.."/lua-result.txt","w");if out then out:write(table.concat(result,"\n"));out:close() end
+local d=io.open(base.."/route-capture-done.txt","w");if d then d:write("done");d:close() end

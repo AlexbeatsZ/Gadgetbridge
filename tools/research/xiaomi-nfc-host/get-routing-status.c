@@ -48,7 +48,7 @@ __attribute__((constructor,used)) int module_initialize(void) {
     }
     if (s4_route_result[2] != 0x8101 || s4_route_result[3] ||
         s4_route_result[4] || s4_route_result[5] != 1 ||
-        s4_route_result[6] || s4_route_result[7] != 1) {
+        s4_route_result[6] || s4_route_result[7] > 1) {
         s4_route_result[1] = 11; return 0;
     }
     u8 *(*allocate)(u16) = (u8 *(*)(u16))0x2c342e85;

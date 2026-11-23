@@ -1,0 +1,102 @@
+{
+  "kind": "real-watch-discovery-stop-start",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "version.txt",
+      "text": "NuttX Xiaomi Watch S4 3.6.1 3a1418973b Jul  3 2026 19:24:21 arm ap\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_route_capture 0x3d5076d9        0        0        0 0x3d5076d8      772 0x3d3d5e00     118U\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "shell-help.txt",
+      "text": "Hex dump:\n0000: a4 f8 c4 10 c4 f8 c0 30 84 f8 c6 00 f9 84 d1 79 .......0.......y\n0010: 13 f0 08 0f 84 f8 c7 10                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 4c 54 43 44 02 00 00 00 0f 01 00 00 01 00 00 00 LTCD............\n0010: 01 00 00 00 01 81 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: 4c 54 43 44 02 00 00 00 0e 01 00 00 00 00 00 00 LTCD............\n0010: 00 00 00 00 01 81 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: 01 00 01 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 01 00 01 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "device-list.txt",
+      "text": "Hex dump:\n0000: 85 cd 34 2c                                     ..4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "process-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules.txt",
+      "text": "Hex dump:\n0000: 4e 53 54 52 03 00 00 00 01 81 00 00 00 00 00 00 NSTR............\n0010: 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 ................\n0020: 01 00 00 00 42 00 00 00 04 00 00 00 00 00 00 00 ....B...........\n0030: 41 02 01 00 f1 54 56 3d 00 00 00 00 00 00 00 00 A....TV=........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "Original NFA discovery stop/start; no test route or APDU\nmodules-before.txt:true,true,exit,0\nnfc-proc.txt:true,true,exit,0\nproc-list.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nwork-load.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nhost-help.txt:true,true,exit,0\nwork-unload.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nSTOP_ENQUEUED=true\nwork-sleep.txt:true,true,exit,0\nnfc-fds.txt:true,true,exit,0\nSTOP_REACHED_IDLE=true\nwork-modules.txt:true,true,exit,0\nwork-load.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nfd-help.txt:true,true,exit,0\nwork-unload.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nSTART_ENQUEUED=true\nwork-sleep.txt:true,true,exit,0\nnfc-mqueue.txt:true,true,exit,0\nORIGINAL_DISCOVERY_RESTORED=true\nmodules-final.txt:true,true,exit,0\ndevice-list.txt:true,true,exit,0\nprocess-list.txt:true,true,exit,0"
+    }
+  ],
+  "scope": {
+    "test_aid_only": "F0010203040506",
+    "no_real_card_apdu": true,
+    "no_tsm_order_or_migration": true,
+    "no_production_app_change": true,
+    "no_apk_release": true
+  }
+}

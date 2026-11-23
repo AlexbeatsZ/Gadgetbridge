@@ -1,0 +1,153 @@
+-- Exact S4 3.201.79 baseline + synthetic F0010203040506 only; never a real card.
+-- Preflight GET -> original STOP -> append -> GET -> START -> GET -> STOP ->
+-- restore captured bytes -> GET -> START -> GET. No RF data callback installed.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local done=io.open(base.."/test-route-aid-first-done.txt","r");if done then done:close();return end
+local result={"Synthetic AID route roundtrip; no SE/APDU/SPP transaction"}
+local original="61020c00020003c0e3000003c0e302"
+local appended="610217000302090001f00102030405060003c0e3000003c0e302"
+local function command(name,cmd)
+ local ok,a,b,c=pcall(function()return os.execute(cmd.." > "..base.."/"..name)end)
+ if not ok or a~=true or c~=0 then result[#result+1]="CMD_ERROR:"..name..":"..tostring(c) end
+end
+local function read(name)
+ local f=io.open(base.."/"..name,"r");if not f then return "" end
+ local text=f:read("*a");f:close();return text
+end
+local function bytes(name)
+ local out={}
+ for line in read(name):gmatch("[^\n]+")do
+  local h=line:match("^%x%x%x%x: (.*)")
+  if h then for b in h:sub(1,47):gmatch("%x%x")do out[#out+1]=tonumber(b,16)end end
+ end
+ return out
+end
+local function words(name)
+ local b=bytes(name);local out={}
+ for i=1,#b-3,4 do out[#out+1]=b[i]+256*b[i+1]+65536*b[i+2]+16777216*b[i+3]end
+ return out
+end
+local function moduleData(name)
+ command("work-modules.txt","lsmod")
+ for line in read("work-modules.txt"):gmatch("[^\n]+")do
+  if line:find(name,1,true)then
+   local cols={};for x in line:gmatch("%S+")do cols[#cols+1]=x end
+   if cols[8] and cols[8]:match("^0x%x+$")then return cols[8]end
+  end
+ end
+end
+local function emit(name,hex)
+ local f=io.open(base.."/"..name,"wb");if not f then return false end
+ f:write(hex:gsub("..",function(h)return string.char(tonumber(h,16))end));f:close();return true
+end
+local function rawIdle()
+ command("work-slot.txt","xd 3c2d4ccc 4");command("work-busy.txt","xd 3c2d4c48 4")
+ local a=words("work-slot.txt");local b=words("work-busy.txt")
+ return a[1]==0 and b[1] and b[1]%256==0
+end
+local function invoke(stem,name,output,async)
+ if moduleData(name)then return nil end
+ command("work-load.txt","insmod "..base.."/"..stem..".elf "..name)
+ local addr=moduleData(name);if not addr then return nil end
+ if async then command("work-sleep.txt","sleep 1")end
+ command(output,"xd "..addr.." 64");local r=words(output)
+ if not async or (r[2]~=2 and rawIdle())then
+  command("work-unload.txt","rmmod "..name)
+  if moduleData(name)then return nil end
+ else result[#result+1]="PENDING_MODULE_NOT_UNLOADED:"..name;return nil end
+ return r
+end
+local function barrier()
+ local r=invoke("get-routing-status","gb_route_barrier","work-barrier.txt",true)
+ return r and r[1]==0x5254534e and r[2]==3 and r[9]==1 and r[10]==0x42 and r[11]==4 and r[12]==0
+end
+local function query(output)
+ if moduleData("gb_route_capture")then return nil end
+ command("work-load.txt","insmod "..base.."/get-routing-capture.elf gb_route_capture")
+ command("work-sleep.txt","sleep 1")
+ local addr=moduleData("gb_route_capture");if not addr then return nil end
+ command("work-capture.txt","xd "..addr.." 128")
+ command("work-hal.txt","xd 3c2d45cc 4")
+ local h=words("work-capture.txt");local hal=words("work-hal.txt")
+ -- A completed notification self-detaches before our first later query. Only
+ -- a missing notification needs an extra query to force callback-owner detach.
+ local first=true
+ if #h==32 and h[2]==2 then
+  first=barrier()
+  command("work-capture.txt","xd "..addr.." 128")
+  command("work-hal.txt","xd 3c2d45cc 4")
+  h=words("work-capture.txt");hal=words("work-hal.txt")
+ end
+ if #h~=32 or h[1]~=0x52544350 or h[2]==2 or h[8]~=0 or hal[1]~=0x2c34cd85 or not first or not barrier()then
+  result[#result+1]="QUERY_LIFECYCLE_UNCERTAIN_NOT_UNLOADED";return nil
+ end
+ command(output,string.format("xd %x 40",tonumber(addr)+144))
+ local b=bytes(output);local out={}
+ if h[9]==1 and h[10]==0 and h[7]==1 and h[11]<=40 then
+  for i=1,h[11]do out[#out+1]=string.format("%02x",b[i])end
+ end
+ command("work-unload.txt","rmmod gb_route_capture")
+ if moduleData("gb_route_capture")then return nil end
+ local packet=table.concat(out);result[#result+1]=output..":"..packet
+ if packet==""then return nil end;return packet
+end
+local function discovery(action)
+ local r=invoke("discovery-"..action,"gb_disc_"..action,"work-discovery.txt",false)
+ if not r or r[1]~=0x4443544c or r[2]~=2 then result[#result+1]="DISCOVERY_REJECTED:"..action;return false end
+ local target=action=="stop" and 0 or 0x00010001
+ for i=1,3 do
+  command("work-sleep.txt","sleep 1");command("work-state.txt","xd 3c2d4746 4")
+  if words("work-state.txt")[1]==target then result[#result+1]="DISCOVERY_OK:"..action;return true end
+ end
+ result[#result+1]="DISCOVERY_TIMEOUT:"..action;return false
+end
+local function writeRoute(action,output)
+ local r=invoke("test-route-"..action,"gb_test_route","work-write.txt",true)
+ command(output,"cat "..base.."/work-write.txt")
+ if not r then result[#result+1]="WRITE_LIFECYCLE_UNCERTAIN:"..action;return false,true end
+ local ok=r[1]==0x54414944 and r[2]==3 and r[9]==1 and r[10]==0x41 and r[11]==4 and r[12]==0
+ result[#result+1]="WRITE:"..action..":state="..tostring(r[2])..":status="..tostring(r[12])
+ return ok,r[2]==3 or r[2]==20
+end
+command("modules-before.txt","lsmod")
+if read("modules-before.txt"):find("gb_",1,true)then return end
+local payloads={
+ {"get-routing-capture","@CAPTURE_HEX@"},{"get-routing-status","@BARRIER_HEX@"},
+ {"discovery-stop","@STOP_HEX@"},{"discovery-start","@START_HEX@"},
+ {"test-route-append","@APPEND_HEX@"},{"test-route-restore","@RESTORE_HEX@"},
+}
+local prepared=true
+for _,p in ipairs(payloads)do if not emit(p[1]..".elf",p[2])then prepared=false end end
+if prepared and query("nfc-proc.txt")==original then
+ if discovery("stop")then
+  if query("nfc-fds.txt")==original then
+   local ok,attempted=writeRoute("append","host-help.txt")
+   local observed=query("nfc-mqueue.txt")
+   result[#result+1]="APPEND_READBACK="..tostring(ok and observed==appended)
+   if ok and observed==appended and discovery("start")then
+    result[#result+1]="PERSIST_AFTER_START="..tostring(query("process-list.txt")==appended)
+    discovery("stop")
+   end
+   -- If an append was issued, always attempt captured-baseline restoration.
+   -- The writer refuses unless original discovery is stopped and queue idle.
+   if attempted then
+    command("work-state.txt","xd 3c2d4746 4")
+    if words("work-state.txt")[1]==0x00010001 then discovery("stop")end
+    local restored=writeRoute("restore","fd-help.txt")
+    result[#result+1]="RESTORE_READBACK="..tostring(restored and query("shell-help.txt")==original)
+   end
+  else result[#result+1]="IDLE_TABLE_CHANGED_NO_WRITE"end
+  discovery("start")
+  result[#result+1]="FINAL_ORIGINAL_TABLE="..tostring(query("version.txt")==original)
+ end
+else result[#result+1]="BASELINE_MISMATCH_NO_WRITE"end
+command("modules-final.txt","lsmod")
+command("device-list.txt","xd 3c2d45cc 4")
+command("proc-list.txt","xd 3c2d46d4 4")
+command("modules.txt","xd 3c2d4746 4")
+if not read("modules-final.txt"):find("gb_",1,true)then
+ for _,p in ipairs(payloads)do os.remove(base.."/"..p[1]..".elf")end
+end
+local out=io.open(base.."/lua-result.txt","w");if out then out:write(table.concat(result,"\n"));out:close()end
+local f=io.open(base.."/test-route-aid-first-done.txt","w");if f then f:write("done");f:close()end
