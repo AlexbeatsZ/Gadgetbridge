@@ -2,13 +2,20 @@
 
 这是独立研究目录，**没有实现射频APDU往返**。详细地址、真实失败回调、边界和下一实验见 `docs/design/xiaomi-s4-nfc-host.md`。
 
+当前优先路线为蓝牙代理（先Classic SPP），A真实迁移暂停。新实机结果：原NFA/NCI队列发送只读`21 02 00`，控制器返回`41 02 01 00`，callback清理和模块卸载已实读。**未捕获路由表通知、未写路由、未做外部RF/APDU。**
+
 | 工具 | 用途 |
 | --- | --- |
 | `firmware.py` | 离线字符串/指针引用/Thumb反汇编；PC-relative literal注释 |
 | `verify_stock_ce.py` | 原始ARM代码 + 合成RAM离线验证，清楚标记不是实机RF |
+| `verify_rf_data.py` | 原RF receive/raw send/当前丢弃callback，14项合成执行；不连接硬件 |
+| `verify_nci_routing.py` | 原routing构造器和raw NCI queue/response，8项合成执行；不写真实路由 |
+| `verify_getroute_probe.py` | 实际编译的只读探针+原队列/响应与6种拒绝条件，7项离线执行 |
 | `watch-abi.lua` | 只读ROM表/控制元数据、fd和IPC；不读真实NCI buffer |
+| `rf-metadata.lua` | 只读DM/EE动作表、既有callback指针及ROM指纹；输出文件名复用原companion allowlist |
 | `stock-ce-rejection.c/.ld/.lua.in` | 小型、零导入、受版本和状态保护的真实拒绝分支验证 |
-| `build_stock_probe.py` | 用现有NDK编译上述诊断，未定义导入即拒绝产物 |
+| `get-routing-status.c/.lua.in` | 常量只读GET_ROUTING状态查询；异步回调未清除禁止卸载 |
+| `build_stock_probe.py` | 用现有NDK编译上述诊断，`--probe get-routing-status`选只读查询，未定义导入即拒绝产物 |
 | `watch-ops.cpp` | 现有debug GB连接的临时JNI生命周期控制；固定probe包/face ID，必须明确watch地址 |
 | `compile_watchface.ps1` | 使用现有隔离LuaDevTemplate编译器，重用固定face ID并修正格式头；不安装/刷机 |
 
@@ -17,6 +24,8 @@
 ## 离线复现
 
 适用S4 3.201.79原AP镜像，基址0x2c1c0000；其他版本须重新核对，不能直接调用这些地址。已测试capstone5.0.9、Unicorn2.1.4，使用隔离uv缓存。
+
+公开OTA来源为AstralSightStudios/MiWearFirmwareArchives的`firmware-mijia.watch.o62-v3.201.79-88e9c536` release，asset `mijia.watch.o62_v3.201.79_full_f86aa1eb.bin`。此bin实为ZIP，必须从中解出`vela_ap.bin`（本次9,568,256字节），不能将整个OTA当作AP地址空间。下载/解压只放任务临时目录，不提交固件。
 
 ```sh
 UV_CACHE_DIR=/tmp/.agents/gadgetbridge-transit-research/uv-cache uv run --no-project --with capstone==5.0.9 python tools/research/xiaomi-nfc-host/firmware.py \
@@ -30,7 +39,28 @@ UV_CACHE_DIR=/tmp/.agents/gadgetbridge-transit-research/uv-cache uv run --no-pro
 python3 tools/research/xiaomi-nfc-host/build_stock_probe.py \
   --ndk /Users/meta/Library/Android/sdk/ndk/28.2.13676358 \
   --output /tmp/.agents/gadgetbridge-transit-research/host-abi-live
+
+UV_CACHE_DIR=/tmp/.agents/gadgetbridge-transit-research/uv-cache uv run --no-project --with unicorn==2.1.4 python tools/research/xiaomi-nfc-host/verify_rf_data.py \
+  /tmp/.agents/gadgetbridge-transit-research/firmware/vela_ap.bin
+
+UV_CACHE_DIR=/tmp/.agents/gadgetbridge-transit-research/uv-cache uv run --no-project --with unicorn==2.1.4 python tools/research/xiaomi-nfc-host/verify_nci_routing.py \
+  /tmp/.agents/gadgetbridge-transit-research/firmware/vela_ap.bin
+
+python3 tools/research/xiaomi-nfc-host/build_stock_probe.py \
+  --ndk /Users/meta/Library/Android/sdk/ndk/28.2.13676358 \
+  --output /tmp/.agents/gadgetbridge-transit-research/host-abi-live \
+  --probe get-routing-status
+
+UV_CACHE_DIR=/tmp/.agents/gadgetbridge-transit-research/uv-cache uv run --no-project --with unicorn==2.1.4 python tools/research/xiaomi-nfc-host/verify_getroute_probe.py \
+  /tmp/.agents/gadgetbridge-transit-research/firmware/vela_ap.bin \
+  --llvm /Users/meta/Library/Android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/darwin-x86_64/bin \
+  --build-dir /tmp/.agents/gadgetbridge-transit-research/host-abi-live
+
+python3 tools/research/xiaomi-nfc-host/firmware.py \
+  /tmp/.agents/gadgetbridge-transit-research/firmware/vela_ap.bin calls 0x2c34e291
 ```
+
+`calls`扫描半字对齐的Thumb BL候选，可越过线性反汇编误读的inline table；候选仍需从确认的代码边界反汇编。原routing构造器候选调用为file offsets0x1824e6/0x182708。不得把候选搜索当成控制流证明。
 
 ## 实机复现范围
 
@@ -44,6 +74,14 @@ python3 tools/research/xiaomi-nfc-host/build_stock_probe.py \
 6. stock probe guard核对表槽、空函数机器码、CE注册指针、flags0x8101及vendor handler为空。任一不符只写模块内拒绝码；不调用原函数。guard_result2才表示确认预期的**注册失败**，不是HCE成功。
 7. 结果通过lsmod取得该模块data地址，只xd模块自己的48字节；随后rmmod并确认lsmod为空。禁止卸载仍有注册回调/handler的模块；本probe只调用同步拒绝路径，不留callback。
 8. 退出时复原原表盘、删除唯一测试表盘/RPK、移除probe私有文件与手机暂存so/DEX。保存源代码和脱敏证据，不发布APK。
+
+### GET_ROUTING只读状态探针
+
+该实验已经成功，不必为了确认重复执行。先完成上述离线三组29例，再用`get-routing-status.lua.in`，把`@MODULE_HEX@`替换为本轮`get-routing-status.elf`的十六进制。**先启动companion创建ready目录，再装入测试表盘**；同ID覆盖被拒时需恢复原表盘、删除旧测试项后重装，仍只用362991121。
+
+模块仅发送固定GET_ROUTING；不允许用这个探针替换任意命令。加载前检查callback槽/忙标志/队列/窗口/discovery/eSE元数据；加载后Lua读取自身结果和原栈的callback/busy。state2为pending，**不能卸载、移除仍被引用的模块或把无返回记成“不支持”**。成功时state3、event0x42、len4、status0；随后callback=0/busy=0才rmmod。state10/11/12为guard/分配拒绝，没有发送成功。
+
+读到`41 02 01 00`只说明控制器接受查询，不含真实路由表；不得拿合成旧路由覆盖真实表。新实机证据为`xiaomi-s4-get-routing-status-2026-11-22.json`，回调元数据和离线记录分别另存RF metadata/offline文件。
 
 ## 已验证判据
 

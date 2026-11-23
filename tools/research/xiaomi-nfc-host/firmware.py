@@ -14,6 +14,29 @@ def occurrences(data, needle):
         cursor += 1
 
 
+def thumb_bl_candidates(data, base, target):
+    """Halfword-aligned BL candidates, including regions after inline tables.
+
+    Candidates still need disassembly at a known instruction boundary; data can
+    contain the same bit pattern. This avoids losing real calls when linear
+    disassembly passes through a jump table or literal pool.
+    """
+    target &= ~1
+    for off in range(0, len(data) - 3, 2):
+        first, second = struct.unpack_from('<HH', data, off)
+        if first & 0xF800 != 0xF000 or second & 0xD000 != 0xD000:
+            continue
+        sign = (first >> 10) & 1
+        i1 = 1 ^ ((second >> 13) & 1) ^ sign
+        i2 = 1 ^ ((second >> 11) & 1) ^ sign
+        delta = (sign << 24) | (i1 << 23) | (i2 << 22)
+        delta |= ((first & 0x3FF) << 12) | ((second & 0x7FF) << 1)
+        if sign:
+            delta -= 1 << 25
+        if (base + off + 4 + delta) & 0xFFFFFFFF == target:
+            yield off
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('firmware', type=Path)
@@ -23,6 +46,8 @@ def main():
     strings.add_argument('text', nargs='+')
     refs = sub.add_parser('refs')
     refs.add_argument('address', nargs='+', type=lambda s: int(s, 0))
+    calls = sub.add_parser('calls', help='BL candidates; verify code boundaries')
+    calls.add_argument('target', type=lambda s: int(s, 0))
     dis = sub.add_parser('disasm')
     dis.add_argument('start', type=lambda s: int(s, 0), help='file offset')
     dis.add_argument('end', type=lambda s: int(s, 0), help='file offset, exclusive')
@@ -39,6 +64,9 @@ def main():
         for address in args.address:
             print(json.dumps({'address': hex(address), 'pointer_refs': [hex(r) for r in
                               occurrences(data, struct.pack('<I', address))]}))
+    elif args.command == 'calls':
+        print(json.dumps({'target': hex(args.target & ~1), 'candidate_call_offsets': [
+            hex(off) for off in thumb_bl_candidates(data, args.base, args.target)]}))
     else:
         if args.start & 1 or args.end <= args.start or args.end > len(data):
             parser.error('use even file offsets in range; clear Thumb address bit 0 before disassembly')

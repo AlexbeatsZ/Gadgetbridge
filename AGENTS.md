@@ -3,7 +3,7 @@
 ## Goal
 
 - 在小米手表 S4 上使用手机默认助手，并将助手文字与功能卡片反馈到手表。
-- 让 K70 上的复旦大学联名交通卡通过 S4 使用：优先实现真正的原生迁移，再研究手机 SE 蓝牙代理。核心链路未验证前不发布 APK；用户允许尝试真实迁出，但同时要求校园身份保留无法确定时不要迁移；保护余额、校园绑定和配对。
+- 让 K70 上的复旦大学联名交通卡通过 S4 使用：用户最新决定优先蓝牙代理（S4 NFC主机前端→Classic SPP→手机），A真实迁移暂停。先测试AID/APDU，核心链路未验证前不发布APK；保护原卡、余额、校园绑定和配对，不修改生产app。
 
 ## Current State
 
@@ -18,10 +18,13 @@
 
 ## Active Work
 
-- A身份/迁移研究2026-11-22：新增`xiaomi-transit-migration`公共资产检查及离线状态机（不接真实后台）。上海交通卡公共配置明确复旦联名产品SPTC.MOT.SH.FDU/partner06000047；H5由faceNo规范化cardNo后查联名信息，不能等同于小米基础产品SPTC_MOT或证明校园唯一映射键。迁入使用目标CPLC/deviceId+cloud transferOrder，卡号/联名映射连续性仍未知；虽用户允许尝试迁出，因其“未知则不要迁移”条件仍未满足，本阶段未创建订单/SE会话/执行preTransferOut。后者会启动CHECK_SHIFT_OUT并可能执行APDU，绝非只读。已定位原响应缓存补报/3007续拉/未完成业务，28项离线测试通过；正式源SE写适配、发行方联名会话和真实恢复语义仍需验证。完整方案与最小实验见`docs/design/xiaomi-transit-migration.md`，新证据`xiaomi-campus-migration-2026-11-22.json`。B本轮无新增RF实验。
+- B优先2026-11-22：原RF receive=2c34319f、DM raw send event10c/index12=2c3420d1→NFC_SendData=2c34e6d5已用原ARM代码合成验证，实读当前static RF callback2c34472d（丢弃数据）和DM app callback2c336741；不能直接覆盖。三组29项离线通过，非实机RF/SPP。原DM raw NCI event11a/index26=2c343181→原队列真实发送只读GET_ROUTING 210200，实机响应41020100/status0/event42/count1；callback/busy随后清0、window1/queue0、模块卸载成功、eSE前后8101。尚未捕获6102路由表通知，未写路由或注册Host AID。下一步先实读HAL callback槽3c2d45cc并验证限时转发/撤销ABI；初始化target2c34cd85只有镜像证据。精确地址/判据见xiaomi-s4-nfc-host设计，证据RF metadata、RF offline、GET_ROUTING status三个2026-11-22 JSON。
+- B本轮结束状态：原9表盘完整列表相等、昼与夜120917345464保持；单一probe face/RPK移除、原两个probe RPK保留；watch模块lsmod为空，phone so/face/rpk暂存及ROG两个编译目录删除，GB仍原PID10882。RPK sandbox删除未另读，原助手/闹钟/真实刷卡未物理重验。全程无迁移订单、SE/真实卡APDU或路由写；代理设置未改。
+
+- A身份/迁移研究2026-11-22：新增`xiaomi-transit-migration`公共资产检查及离线状态机（不接真实后台）。上海交通卡公共配置明确复旦联名产品SPTC.MOT.SH.FDU/partner06000047；H5由faceNo规范化cardNo后查联名信息，不能等同于小米基础产品SPTC_MOT或证明校园唯一映射键。迁入使用目标CPLC/deviceId+cloud transferOrder，卡号/联名映射连续性仍未知；虽用户允许尝试迁出，因其“未知则不要迁移”条件仍未满足，本阶段未创建订单/SE会话/执行preTransferOut。后者会启动CHECK_SHIFT_OUT并可能执行APDU，绝非只读。已定位原响应缓存补报/3007续拉/未完成业务，28项离线测试通过；正式源SE写适配、发行方联名会话和真实恢复语义仍需验证。完整方案与最小实验见`docs/design/xiaomi-transit-migration.md`，新证据`xiaomi-campus-migration-2026-11-22.json`。这是此前A阶段记录；其后已转向B，新增结果见上。
 - 公交卡两条路线仍未完成；禁止修改生产app或发布APK。A新进展2026-11-22：用户扫码批准官方tsm-auth QR，STS成功签发独立会话；源K70/vermeer/SPTC_MOT的已发行记录与批准账号、源CPLC匹配（尾8213），TRANSFER_OUT成功；S4官方alias=o62，实际目标CPLC的TRANSFER_IN和同产品目录成功；最终五项HTTP200/errCode200，云端列表为空。只读服务资格通过，真实迁移与复旦校园身份保留未验证，禁止为造云端卡而先迁出。新CLI保持会话、device_plan补齐真实元数据、四个精确只读路径；凭证仅内存，QR/完整CPLC临时计划已删除。见xiaomi-tsm-auth设计和xiaomi-tsm-eligibility-2026-11-22.json。此前系统Binder应用拒绝已由合法独立QR路径取得进展，不再当作认证未完成。
-- B：`tools/research/xiaomi-nfc-host`已实读驱动/CE动作表和IPC；原始处理器对测试AID真实回调event0x15/status3/handleFFFF，注册失败，eSE flags前后8101。本地配置/注销/ISO-DEP技术槽是空函数，不得把返回1当成功。下一步核对NCI连接回调/Host路由与安全恢复ABI，不能清掉唯一eSE监听项或抢读NFC fd。此次A扫码阶段无新RF实验，无需用户贴卡；不能因快应用接口缺失推断硬件不支持。
-- 2026-11-22研究结束：零导入stock CE拒绝探针已卸载；原9表盘和原活动「昼与夜」回读一致，唯一测试表盘/RPK移除；手机so/DEX与ROG临时编译目录清理。GB始终原PID10882，本阶段无崩溃/重配对。较早研究曾因JNI List/Collection签名错误崩溃，已恢复；新的生命周期工具使用Collection.toArray并检查JNI异常。长按/Gemini/真实闹钟等未重新物理验收。
+- B此前标准CE实验：`tools/research/xiaomi-nfc-host`已实读驱动/CE动作表和IPC；原始处理器对测试AID真实回调event0x15/status3/handleFFFF，注册失败，eSE flags前后8101。本地配置/注销/ISO-DEP技术槽是空函数，不得把返回1当成功。下一步核对NCI连接回调/Host路由与安全恢复ABI，不能清掉唯一eSE监听项或抢读NFC fd。此次A扫码阶段无新RF实验，无需用户贴卡；不能因快应用接口缺失推断硬件不支持。
+- 2026-11-22较早研究结束：零导入stock CE拒绝探针已卸载；原9表盘和原活动「昼与夜」回读一致，唯一测试表盘/RPK移除；手机so/DEX与ROG临时编译目录清理。GB始终原PID10882，本阶段无崩溃/重配对。较早研究曾因JNI List/Collection签名错误崩溃，已恢复；新的生命周期工具使用Collection.toArray并检查JNI异常。长按/Gemini/真实闹钟等未重新物理验收。
 - 2026.11.16/code272：手表发起的会话中，Gemini 语音会暂缓到 S4 的 SCO 接通再播；手机上直接用 Gemini 不受影响。用户已验收。实际会话中“开口即建路由”尚未在实机触发，只有单元测试覆盖。
 
 - 研究 S4 播放路线。2026-11-17 再验证 K70 + S4：HFP 语音识别模式约 5 秒录得 78720 个样本，实际路由为 S4 SCO，全部为零。手机麦克风对照 31040 个样本中 27273 个非零。模拟通话两轮均反复短暂连上后断开，蓝牙栈明确记录远端断开。测试后回到 MODE_NORMAL，S4 保持 HFP 活动，SCO 已关闭，手机诊断文件已删除。
@@ -37,7 +40,7 @@
 - 定向测试为 `AssistantResponseReaderTest`、`XiaomiVoiceAssistantFeedbackTest`、`XiaomiVoiceAssistantBridgeTest`、`XiaomiVoiceHandlerTest`，扩大回归包括 Xiaomi、手机闹钟、Google 天气、设置及主题迁移。
 - 提交后先单独运行 `:app:buildGitChangelog --rerun-tasks`，随后 `:app:assembleMainlineDebug`。沿用现有 debug 签名。
 - K70 序列号为 `dcc50feb`，当前无线 transport 每次从 `adb devices -l` 核对，安装使用 `--user 0 -r`。APK 更新后重新启动 Google 应用，加载更新后的 LSPosed hook。
-- NFC研究：原SE协议6项测试见`tools/research/xiaomi-nfc-probe`；A的11项测试/Java参考验证/B原始ARM离线与实机拒绝探针见各研究目录README。使用既有NDK28.2.13676358；依赖仅uv隔离缓存，无需全局安装或重建APK。
+- NFC研究：原SE协议6项测试见`tools/research/xiaomi-nfc-probe`；A的11项测试/Java参考验证/B原始ARM三组29例与实机CE拒绝、GET_ROUTING只读探针见各研究目录README。使用既有NDK28.2.13676358；依赖仅uv隔离缓存，无需全局安装或重建APK。
 
 ## Durable Lessons
 
@@ -47,7 +50,7 @@
 - K70 + S4 上 HFP 语音识别模式接通但麦克风上行全零，模拟通话模式被远端断开。此前 SCO 在小爱开始录音后接通还中断过 SPP 收音。手机助手使用 SPP PCM 注入，2026.11.14 已支持停止收音后经 SCO 播报 Gemini 原声。
 - 不使用 `uiautomator dump` 抓 K70 界面，它会使已启用的 Switch Access 服务重连并弹出设置向导。UI 验收使用截图或现有 hook。
 - 卡片后代经常没有资源 ID，读取响应容器整体才能覆盖只有功能卡片的结果。
-- 3.201.79 Lua表盘可执行shell；快应用私有目录是`/data/quickapp/files/<package>/`。此固件shell不接受`2>&1`。表盘上传完成后的即时列表可能早于安装；必须等type4/subtype5结果并重新查询，code3表示已安装启用，不能当错误码。
+- 3.201.79 Lua表盘可执行shell；首次装入ready未就绪会return，不能靠点亮保证重跑；同ID直接覆盖可能code5，先准备companion目录再恢复原表盘/删除旧测试项/重装同ID。快应用私有目录是`/data/quickapp/files/<package>/`。此固件shell不接受`2>&1`。表盘上传完成后的即时列表可能早于安装；必须等type4/subtype5结果并重新查询，code3表示已安装启用，不能当错误码。
 
 ## Docs Index
 
