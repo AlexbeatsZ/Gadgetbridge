@@ -7,7 +7,7 @@
 
 ## Current State
 
-- 现有 worktree `/Users/meta/Project/Workspaces/Gadgetbridge-inject`，分支 `feat/xiaomi-voice-inject`；只推送个人远程 `personal`。
+- 现有 worktree `/Users/meta/Developer/Gadgetbridge-inject`，分支 `feat/xiaomi-voice-inject`；只推送个人远程 `personal`。
 - 用户要求删除小米运动健康跳转入口并撤回发布。GitHub 的 v2026.11.17 及其 APK 已删除，个人分支通过回退提交恢复 2026.11.16/code272 应用源码。K70 已原地装回 v2026.11.16 的原发布 APK，原安装时间与应用 ID 保持，S4 通过原绑定重新认证。本地 APK 已替换为 v2026.11.16。
 - 2026-11-21 复核：远程错误 Tag v2026.11.17 已删除，回滚提交985018fbea保留，v2026.11.16 Release/Tag/APK保留。无线ADB实读K70为272，与原发布APK逐字节一致，本轮没有再安装。研究工具/文档不改变生产应用源码或版本。
 - S4 3.201.79 实测通过 type5 C0/C2/C1：SE打开、虚构AID F0010203040506→6A82、CPLC元数据→9000、关闭。连接为Classic SPP V2。另验证Lua shell/file IPC、自建空ET_REL模块加载/卸载，实机存在/dev/nfc_sn100及NFC栈进程。均不等于射频卡模拟或真实移卡已实现。

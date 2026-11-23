@@ -5,7 +5,7 @@
 `public_identity.py` 只可GET代码内固定的4个发行方公共静态URL，不发送账号、Cookie或Token，不调用H5的业务API；从公开配置提取精确“复旦大学”条目和字段allowlist，并给出JS锚点字符偏移。其卡号规范化函数仅实现已观察的11位→19位查询表示，不证明校园映射主键，也不读取真实卡号。
 
 ```sh
-cd /Users/meta/Project/Workspaces/Gadgetbridge-inject/tools/research/xiaomi-transit-migration
+cd /Users/meta/Developer/Gadgetbridge-inject/tools/research/xiaomi-transit-migration
 python3 public_identity.py \
   --assets-root /tmp/.agents/gadgetbridge-transit-research/campus-migration \
   --fetch-public
