@@ -1,0 +1,88 @@
+{
+  "client_date": "2026-11-22",
+  "phone_timestamp": "2026-11-23 08:35:51 Asia/Shanghai",
+  "kind": "real-watch-readonly-metadata",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "version.txt",
+      "text": "NuttX Xiaomi Watch S4 3.6.1 3a1418973b Jul  3 2026 19:24:21 arm ap\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": "Hex dump:\n0000: 41 67 33 2c                                     Ag3,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "Hex dump:\n0000: 2d 47 34 2c                                     -G4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "Hex dump:\n0000: 99 46 34 2c                                     .F4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": "Hex dump:\n0000: 01 00 00 00 ff 00 ff ff                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "Hex dump:\n0000: 01 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 75 0f 34 2c 59 45 34 2c 2d 13 34 2c 29 2f 34 2c u.4,YE4,-.4,)/4,\n0010: 2d 13 34 2c 2d 13 34 2c 91 47 34 2c f5 1f 34 2c -.4,-.4,.G4,..4,\n0020: 2d 13 34 2c 2d 13 34 2c 2d 13 34 2c 2d 13 34 2c -.4,-.4,-.4,-.4,\n0030: d1 20 34 2c 2d 13 34 2c b1 34 34 2c 79 20 34 2c . 4,-.4,.44,y 4,\n0040: 2d 13 34 2c 55 46 34 2c 2d 13 34 2c 2d 13 34 2c -.4,UF4,-.4,-.4,\n0050: 2d 13 34 2c 2d 13 34 2c 2d 13 34 2c e9 0f 34 2c -.4,-.4,-.4,..4,\n0060: 2d 13 34 2c 3d 46 34 2c 81 31 34 2c 45 10 34 2c -.4,=F4,.14,E.4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: b1 15 34 2c 3d 14 34 2c 91 13 34 2c 05 22 34 2c ..4,=.4,..4,.\"4,\n0010: 35 48 34 2c b1 15 34 2c bb 22 34 2c b1 15 34 2c 5H4,..4,.\"4,..4,\n0020: 19 3f 34 2c b1 15 34 2c b1 15 34 2c b1 15 34 2c .?4,..4,..4,..4,\n0030: 5d 23 34 2c c1 49 34 2c 15 4c 34 2c 1d 15 34 2c ]#4,.I4,.L4,..4,\n0040: d5 4b 34 2c 03 15 34 2c a5 14 34 2c a5 14 34 2c .K4,..4,..4,..4,\n0050: 61 1b 34 2c e1 4c 34 2c 85 15 34 2c 11 3e 34 2c a.4,.L4,..4,.>4,\n0060: ad 14 34 2c 89 38 34 2c                         ..4,.84,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: b0 b5 19 4b 01 46 93 f8 4c 20 18 4c 10 1f 01 28 ...K.F..L .L...(\n0010: 00 af 24 d8 18 68 40 f4 00 65 1d 60 00 25 80 07 ..$..h@..e.`.%..\n0020: 84 f8 31 51 12 d4 05 2a 10 d0 93 f8 50 30 5a 1e ..1Q...*....P0Z.\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 46 f2 03 03 90 b5 99 42 ad b0 00 af 13 d1 54 68 F......B......Th\n0010: 74 b1 13 78 09 20 3b 71 a3 88 39 1d 08 33 23 44 t..x. ;q..9..3#D\n0020: bb 60 63 88 bb 81 fd f7 6a fe 20 46 ff f7 a7 ff .`c.....j. F....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 80 b5 04 4b 00 af 43 f8 04 0f 18 46 fe f7 60 ff ...K..C....F..`.\n0010: 80 bd 00 bf 8c 4b 2d 3c                         .....K-<\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "S4 3.201.79 RF metadata; readonly\nuname -a => true,true,exit,0\nxd 2c8b459c 112 => true,true,exit,0\nxd 2c8b46a8 104 => true,true,exit,0\nxd 3c2d4720 4 => true,true,exit,0\nxd 3c2d4b90 4 => true,true,exit,0\nxd 3c2d4c30 4 => true,true,exit,0\nxd 3c2d4748 8 => true,true,exit,0\nxd 3c2d46fc 4 => true,true,exit,0\nxd 2c3420d0 48 => true,true,exit,0\nxd 2c34319e 48 => true,true,exit,0\nxd 2c34dff0 24 => true,true,exit,0\nxd 3c2d46d4 4 => true,true,exit,0"
+    }
+  ],
+  "interpretation": {
+    "dm_application_callback": "0x2c336741",
+    "static_rf_callback": "0x2c34472d",
+    "discovery_callback": "0x2c344699",
+    "dm_discovery_state": 1,
+    "dm_flags": 1,
+    "ese_flags": "0x8101",
+    "real_rf_test": false,
+    "route_write": false,
+    "callback_replacement": false
+  }
+}

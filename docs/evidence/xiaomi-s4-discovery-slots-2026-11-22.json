@@ -1,0 +1,100 @@
+{
+  "kind": "real-watch-readonly-discovery-slots",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "version.txt",
+      "text": "NuttX Xiaomi Watch S4 3.6.1 3a1418973b Jul  3 2026 19:24:21 arm ap\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_route_capture 0x3d5076d9        0        0        0 0x3d5076d8      772 0x3d3d5e00     118U\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "shell-help.txt",
+      "text": "Hex dump:\n0000: f0 b5 0d 4b 05 46 93 f8 58 40 00 af 2c b1 93 f8 ...K.F..X@..,...\n0010: 6c 40 4f f6 ff 70 74 b9 01 24 14 26 06 fb 04 33 l@O..pt..$.&...3\n0020: 01 20 da 65 10 22 83 f8 58 00 5d 66 83 f8 62 10 . .e.\"..X.]f..b.\n0030: a3 f8 60 20 a0 b2 f0 bd fc 46 2d 3c b0 b5 ac b0 ..` .....F-<....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: c0 00 c0 00 00 00                               ......\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: 01 00 01 00 00 00 ff 00 ff ff 00 00 00 00 01 00 ................\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 2d 47 34 2c                                     -G4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 99 46 34 2c                                     .F4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "device-list.txt",
+      "text": "Hex dump:\n0000: 85 cd 34 2c                                     ..4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "process-list.txt",
+      "text": "Hex dump:\n0000: 80 b5 01 28 00 af 06 d8 14 22 03 4b 02 fb 00 33 ...(.....\".K...3\n0010: 00 22 83 f8 58 20 80 bd                         .\"..X ..\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules.txt",
+      "text": "Hex dump:\n0000: 01 00 01 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "S4 original discovery slots; readonly\nuname -a:true,true,exit,0\nxd 3c2d4754 40:true,true,exit,0\nxd 3c2d481a 6:true,true,exit,0\nxd 3c2d4746 16:true,true,exit,0\nxd 3c2d4b90 4:true,true,exit,0\nxd 3c2d4c30 4:true,true,exit,0\nxd 2c344754 64:true,true,exit,0\nxd 2c341310 24:true,true,exit,0\nxd 3c2d45cc 4:true,true,exit,0\nxd 3c2d46d4 4:true,true,exit,0\nlsmod:true,true,exit,0"
+    }
+  ],
+  "scope": {
+    "no_real_card_apdu": true,
+    "no_production_app_change": true,
+    "no_apk_release": true
+  }
+}

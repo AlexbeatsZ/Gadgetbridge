@@ -1,0 +1,157 @@
+{
+  "client_date": "2026-11-22",
+  "phone_timestamp": "2026-11-23 08:55:48 Asia/Shanghai",
+  "kind": "real-controller-readonly-get-routing-status",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_route_status  0x3d56c221        0        0        0 0x3d56c220      380 0x3d209560       68\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "shell-help.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 4e 53 54 52 03 00 00 00 01 81 00 00 00 00 00 00 NSTR............\n0010: 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 ................\n0020: 01 00 00 00 42 00 00 00 04 00 00 00 00 00 00 00 ....B...........\n0030: 41 02 01 00 39 c3 56 3d 00 00 00 00 00 00 00 00 A...9.V=........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: 01                                              .\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "Only NCI 21 02 00; no route writes or SE APDU\nlsmod => true,true,exit,0\ninsmod /data/quickapp/files/com.meta.s4nativeprobe/getroute.elf gb_route_status => true,true,exit,0\nsleep 1 => true,true,exit,0\nlsmod => true,true,exit,0\nxd 0x3d209560 64 => true,true,exit,0\nxd 3c2d4ccc 4 => true,true,exit,0\nxd 3c2d4c48 4 => true,true,exit,0\nxd 3c2d4d5b 1 => true,true,exit,0\nxd 3c2d4cd8 4 => true,true,exit,0\nrmmod gb_route_status => true,true,exit,0\nlsmod => true,true,exit,0\nxd 3c2d46d4 4 => true,true,exit,0"
+    }
+  ],
+  "command_hex": "210200",
+  "response_hex": "41020100",
+  "nci_status": 0,
+  "callback_event": "0x42",
+  "callback_count": 1,
+  "raw_response_callback_after": 0,
+  "raw_command_busy_flag_after": 0,
+  "command_window_after": 1,
+  "command_queue_count_after": 0,
+  "ese_flags_before": "0x8101",
+  "ese_flags_after": "0x8101",
+  "native_module_unload_exit": 0,
+  "routing_table_notification_captured": false,
+  "routing_table_backup_completed": false,
+  "real_route_write": false,
+  "real_rf_apdu_test": false,
+  "cleanup": {
+    "watchfaces": [
+      {
+        "id": "120917345117",
+        "name": "数据镜像",
+        "active": false
+      },
+      {
+        "id": "120917345130",
+        "name": "数据磁场",
+        "active": false
+      },
+      {
+        "id": "120917345136",
+        "name": "星尘",
+        "active": false
+      },
+      {
+        "id": "120917345418",
+        "name": "数据探索",
+        "active": false
+      },
+      {
+        "id": "120917345463",
+        "name": "日冕",
+        "active": false
+      },
+      {
+        "id": "120917345464",
+        "name": "昼与夜",
+        "active": true
+      },
+      {
+        "id": "120917345469",
+        "name": "正装2024",
+        "active": false
+      },
+      {
+        "id": "120917345484",
+        "name": "恒动轻机械",
+        "active": false
+      },
+      {
+        "id": "120917345677",
+        "name": "多功能数据",
+        "active": false
+      }
+    ],
+    "original_face_list_equal": true,
+    "temporary_face_absent": true,
+    "probe_rpk_absent": true,
+    "preexisting_probe_rpks_retained": true,
+    "gadgetbridge_pid_before": 10882,
+    "gadgetbridge_pid_after": 10882,
+    "phone_staging_files_absent": true,
+    "rog_temporary_directories_absent": [
+      "s4-rf-metadata",
+      "s4-getroute-status"
+    ],
+    "watch_module_lsmod_empty": true,
+    "watch_sandbox_removal": "RPK uninstall observed; sandbox absence not separately read back",
+    "pairing_not_changed": true,
+    "original_assistant_and_real_card_functions": "not physically retested"
+  }
+}

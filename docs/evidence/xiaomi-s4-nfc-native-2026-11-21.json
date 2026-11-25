@@ -1,0 +1,40 @@
+{
+  "watch_firmware": "3.201.79",
+  "lua_os_execute": "function",
+  "lua_io_open": "function",
+  "nfc_device": "/dev/nfc_sn100",
+  "nfc_processes": [
+    "nfc_stack_bridge",
+    "nfc_task",
+    "nfc_readerTask",
+    "nfc_writerTask"
+  ],
+  "private_file_directory": "/data/quickapp/files/com.meta.s4nativeprobe/",
+  "module": {
+    "before": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "after_contains_probe": true,
+    "after_unload": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+  },
+  "tsm_readonly_unauthenticated_query": {
+    "path": "api/oauth/spcard/v2/queryShiftInCardProducts",
+    "http_status": 401,
+    "real_card_or_account_identifiers_sent": false
+  },
+  "cleanup": {
+    "original_face_count": 9,
+    "original_current_face_restored": true,
+    "probe_face_absent": true,
+    "probe_rpk_absent": true
+  },
+  "limitations": [
+    "No RF host APDU callback verified",
+    "No real-card migration or transaction performed",
+    "No new Gadgetbridge APK published"
+  ],
+  "account_access": {
+    "system_xiaomi_account_present": true,
+    "accounts_visible_to_actual_gadgetbridge_uid": 0,
+    "names_or_tokens_read": false,
+    "account_visibility_modified": false
+  }
+}

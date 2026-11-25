@@ -7,6 +7,11 @@
         Comment in for testing Pebble Emulator
         <uses-permission android:name="android.permission.INTERNET" />
     -->
+    <!-- Only this signed app may ask the hook inside Google to cancel its band-owned session. -->
+    <permission android:name="${applicationId}.permission.CANCEL_PHONE_ASSISTANT"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="${applicationId}.permission.CANCEL_PHONE_ASSISTANT" />
+
     <!-- Used for Bluetooth access -->
     <!--
         Request legacy Bluetooth permissions on older devices.
@@ -177,6 +182,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:requestLegacyExternalStorage="true"
         android:theme="@style/GadgetbridgeTheme">
+
+        <!-- Xposed module: feeds the band's voice assistant audio to the phone assistant's microphone -->
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:value="@string/voice_mic_xposed_description" />
+        <meta-data android:name="xposedminversion" android:value="82" />
+        <meta-data android:name="xposedscope" android:resource="@array/voice_mic_xposed_scope" />
+
         <activity
             android:name=".activities.ControlCenterv2"
             android:configChanges="keyboard|keyboardHidden|navigation"
@@ -1032,6 +1044,11 @@
             android:name=".activities.FindPhoneActivity"
             android:label="@string/prefs_find_phone"
             android:launchMode="singleTask" />
+
+        <provider
+            android:name=".service.devices.xiaomi.voicemic.VoiceMicProvider"
+            android:authorities="${applicationId}.voicemic"
+            android:exported="true" />
 
         <provider
             android:name=".contentprovider.PebbleContentProvider"

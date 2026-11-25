@@ -124,6 +124,76 @@ public class XiaomiRpkServiceTest {
                 .noneMatch(cmd -> cmd.getSubtype() == XiaomiRpkService.CMD_RPK_MESSAGE));
     }
 
+    @Test
+    public void openAppGetsMessagesWithoutLaunch() throws Exception {
+        final XiaomiSupport support = mockSupport();
+        final XiaomiRpkService service = serviceWithInstalledApp(support);
+        final long[] now = {1_000};
+        service.monotonicMillis = () -> now[0];
+
+        service.handleCommand(XiaomiProto.Command.parseFrom(GB.hexStringToByteArray(CAPTURED_LAUNCHED)));
+        now[0] += XiaomiRpkService.OPEN_WINDOW_MS - 1;
+        service.sendWearAppMessage(APP_ID, bytes("reply"));
+
+        final List<XiaomiProto.Command> sent = sentCommands(support);
+        Assert.assertTrue(sent.stream().noneMatch(cmd -> cmd.getSubtype() == XiaomiRpkService.CMD_RPK_LAUNCH));
+        Assert.assertEquals(3, sent.size());
+        Assert.assertEquals("reply", sent.get(1).getRpk().getRpkMessage().getPayload().toStringUtf8());
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_SESSION_END, sent.get(2).getSubtype());
+    }
+
+    @Test
+    public void wearMessageMarksAppOpen() {
+        final XiaomiSupport support = mockSupport();
+        final XiaomiRpkService service = serviceWithInstalledApp(support);
+        service.monotonicMillis = () -> 5_000;
+
+        service.handleCommand(wearMessage("{\"n\":1}"));
+        service.sendWearAppMessage(APP_ID, bytes("reply"));
+
+        final List<XiaomiProto.Command> sent = sentCommands(support);
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_MESSAGE, sent.get(0).getSubtype());
+    }
+
+    @Test
+    public void appNotSeenRecentlyIsLaunchedFirst() throws Exception {
+        final XiaomiSupport support = mockSupport();
+        final XiaomiRpkService service = serviceWithInstalledApp(support);
+        final long[] now = {1_000};
+        service.monotonicMillis = () -> now[0];
+
+        service.handleCommand(XiaomiProto.Command.parseFrom(GB.hexStringToByteArray(CAPTURED_LAUNCHED)));
+        now[0] += XiaomiRpkService.OPEN_WINDOW_MS;
+        service.sendWearAppMessage(APP_ID, bytes("later"));
+
+        final List<XiaomiProto.Command> sent = sentCommands(support);
+        Assert.assertEquals(2, sent.size());
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_LAUNCH, sent.get(1).getSubtype());
+    }
+
+    @Test
+    public void disconnectForgetsOpenApps() throws Exception {
+        final XiaomiSupport support = mockSupport();
+        final XiaomiRpkService service = serviceWithInstalledApp(support);
+        service.monotonicMillis = () -> 1_000;
+
+        service.handleCommand(XiaomiProto.Command.parseFrom(GB.hexStringToByteArray(CAPTURED_LAUNCHED)));
+        service.onDisconnect();
+        service.sendWearAppMessage(APP_ID, bytes("after reconnect"));
+
+        final List<XiaomiProto.Command> sent = sentCommands(support);
+        Assert.assertEquals(XiaomiRpkService.CMD_RPK_LAUNCH, sent.get(sent.size() - 1).getSubtype());
+    }
+
+    private XiaomiProto.Command wearMessage(final String payload) {
+        return XiaomiProto.Command.newBuilder()
+                .setType(XiaomiRpkService.COMMAND_TYPE)
+                .setSubtype(XiaomiRpkService.CMD_RPK_WEAR_MESSAGE)
+                .setRpk(Rpk.newBuilder().setRpkMessage(nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.RpkMessage.newBuilder()
+                        .setApp(app).setPayload(ByteString.copyFrom(bytes(payload)))))
+                .build();
+    }
+
     private static XiaomiSupport mockSupport() {
         final XiaomiSupport support = Mockito.mock(XiaomiSupport.class);
         final XiaomiWatchfaceService watchfaces = Mockito.mock(XiaomiWatchfaceService.class);

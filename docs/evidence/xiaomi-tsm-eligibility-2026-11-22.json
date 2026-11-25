@@ -1,0 +1,1671 @@
+{
+  "credential_values_recorded": false,
+  "card_http_requests": 17,
+  "steps": [
+    {
+      "step": "qr_bootstrap",
+      "http_status": 200,
+      "origin": "account.xiaomi.com",
+      "request_query_keys": [
+        "sid"
+      ],
+      "cookie_names": [
+        "uLocale"
+      ],
+      "response_fields": [
+        "code",
+        "desc",
+        "description",
+        "loginUrl",
+        "lp",
+        "qr",
+        "qrTips",
+        "result",
+        "sl",
+        "timeInterval",
+        "timeout"
+      ],
+      "code": 0,
+      "qr_tips": "可使用小米手机或平板，点击设置 > 小米账号后扫码登录，或使用其他扫码工具。"
+    },
+    {
+      "step": "qr_poll",
+      "http_status": 200,
+      "origin": "c3.lp.account.xiaomi.com",
+      "request_query_keys": [
+        "k"
+      ],
+      "cookie_names": [
+        "cUserId",
+        "passInfo",
+        "passToken",
+        "uLocale",
+        "userId"
+      ],
+      "response_fields": [
+        "cUserId",
+        "captchaUrl",
+        "child",
+        "code",
+        "desc",
+        "description",
+        "location",
+        "miDemo",
+        "nonce",
+        "notificationUrl",
+        "passToken",
+        "psecurity",
+        "pwd",
+        "result",
+        "securityStatus",
+        "ssecurity",
+        "userId"
+      ],
+      "code": 0
+    },
+    {
+      "step": "sts_exchange",
+      "http_status": 200,
+      "origin": "tsmapi.pay.xiaomi.com",
+      "request_query_keys": [
+        "_group",
+        "_ssign",
+        "_userIdNeedEncrypt",
+        "auth",
+        "clientSign",
+        "fid",
+        "m",
+        "nonce",
+        "p_ca",
+        "p_idc",
+        "p_lm",
+        "p_ts",
+        "p_ur",
+        "pwd",
+        "ticket",
+        "tsl"
+      ],
+      "cookie_names": [
+        "cUserId",
+        "passInfo",
+        "passToken",
+        "serviceToken",
+        "tsm-auth_ph",
+        "tsm-auth_slh",
+        "uLocale",
+        "userId"
+      ]
+    }
+  ],
+  "result": "AUTHORIZED_READ_ONLY_RESEARCH",
+  "queries": [
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_OUT",
+        "deviceModel": "vermeer",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryShiftInCardProducts",
+      "request_fields": [
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "M2425W1"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 203,
+        "errDesc": "无效参数"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_IN",
+        "deviceModel": "M2425W1",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 219,
+        "errDesc_keywords": [
+          "支持"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryShiftInCardProducts",
+      "request_fields": [
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "mijia.watch.o62"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 203,
+        "errDesc": "无效参数"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_IN",
+        "deviceModel": "mijia.watch.o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 219,
+        "errDesc_keywords": [
+          "支持"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryShiftInCardProducts",
+      "request_fields": [
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 203,
+        "errDesc": "无效参数"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_IN",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryShiftInCardProducts",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 0,
+          "item_shapes": []
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryCardProduct",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "cardName": "string(redacted)",
+              "cardType": "number",
+              "issueFee": "number",
+              "title": "string(redacted)",
+              "subTitle": "string(redacted)",
+              "preIssuedListBg": "string(redacted)",
+              "issuedListBg": "string(redacted)",
+              "logo": "string(redacted)",
+              "preIssuedDetailBg": "string(redacted)",
+              "issuedDetailBg": "string(redacted)",
+              "issuedListBgHd": "string(redacted)",
+              "detailDesc": "string(redacted)",
+              "status": "number",
+              "statusDesc": "string(redacted)",
+              "rechargeStatus": "number",
+              "rechargeStatusDesc": "string(redacted)",
+              "issueStatus": "number",
+              "issueStatusDesc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardGroup": "number",
+              "themeFgRules": "string(redacted)",
+              "gifUrl": "string(redacted)",
+              "configId": "number",
+              "serviceFeeDesc": "string(redacted)",
+              "supportAreas": "string(redacted)",
+              "rideDiscount": "string(redacted)",
+              "issueFeeDetailDesc": "string(redacted)",
+              "simpleSupportAreas": "string(redacted)",
+              "simpleRideDiscount": "string(redacted)",
+              "newCardDetailDesc": "string(redacted)",
+              "issuerName": "string(redacted)",
+              "hasChildren": "boolean",
+              "familyDesc1": "null",
+              "familyDesc2": "null",
+              "owner": "boolean",
+              "subCardGroup": "number",
+              "subGroupName": "string(redacted)",
+              "techType": "number",
+              "extra": "string(redacted)",
+              "customInfo": {
+                "minFee": "number",
+                "maxFee": "number",
+                "customIssueFee": "number"
+              },
+              "groupName": "string(redacted)",
+              "fees": {
+                "type": "array",
+                "count": 4,
+                "item_shapes": [
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT",
+            "title": "上海公共交通卡·交通联合版",
+            "issuerName": "上海公共交通卡股份有限公司",
+            "customInfo": {},
+            "fees": [
+              {},
+              {},
+              {},
+              {}
+            ]
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/queryIssuedCardList",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "vermeer",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "userId": "string(redacted)",
+              "cplc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardName": "string(redacted)",
+              "orderId": "string(redacted)",
+              "cardId": "string(redacted)",
+              "faceNo": "string(redacted)",
+              "logicalNo": "string(redacted)",
+              "physicalNo": "string(redacted)",
+              "dpanCode": "string(redacted)",
+              "extra": "string(redacted)",
+              "uwbProperties": "number"
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT"
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      },
+      "issued_card_checks": [
+        {
+          "matches_requested_product": true,
+          "matches_requested_cplc": true,
+          "matches_approved_account": true,
+          "face_number_last4": "8213"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_IN",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryCardProduct",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79"
+      },
+      "http_status": 200,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "cardName": "string(redacted)",
+              "cardType": "number",
+              "issueFee": "number",
+              "title": "string(redacted)",
+              "subTitle": "string(redacted)",
+              "preIssuedListBg": "string(redacted)",
+              "issuedListBg": "string(redacted)",
+              "logo": "string(redacted)",
+              "preIssuedDetailBg": "string(redacted)",
+              "issuedDetailBg": "string(redacted)",
+              "issuedListBgHd": "string(redacted)",
+              "detailDesc": "string(redacted)",
+              "status": "number",
+              "statusDesc": "string(redacted)",
+              "rechargeStatus": "number",
+              "rechargeStatusDesc": "string(redacted)",
+              "issueStatus": "number",
+              "issueStatusDesc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardGroup": "number",
+              "themeFgRules": "string(redacted)",
+              "gifUrl": "string(redacted)",
+              "configId": "number",
+              "serviceFeeDesc": "string(redacted)",
+              "supportAreas": "string(redacted)",
+              "rideDiscount": "string(redacted)",
+              "issueFeeDetailDesc": "string(redacted)",
+              "simpleSupportAreas": "string(redacted)",
+              "simpleRideDiscount": "string(redacted)",
+              "newCardDetailDesc": "string(redacted)",
+              "issuerName": "string(redacted)",
+              "hasChildren": "boolean",
+              "familyDesc1": "null",
+              "familyDesc2": "null",
+              "owner": "boolean",
+              "subCardGroup": "number",
+              "subGroupName": "string(redacted)",
+              "techType": "number",
+              "extra": "string(redacted)",
+              "customInfo": {
+                "minFee": "number",
+                "maxFee": "number",
+                "customIssueFee": "number"
+              },
+              "groupName": "string(redacted)",
+              "fees": {
+                "type": "array",
+                "count": 4,
+                "item_shapes": [
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT",
+            "title": "上海公共交通卡·交通联合版",
+            "issuerName": "上海公共交通卡股份有限公司",
+            "customInfo": {},
+            "fees": [
+              {},
+              {},
+              {},
+              {}
+            ]
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "observed_at_utc": "2026-11-22T11:50:19.646141+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_OUT",
+        "deviceModel": "vermeer",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-source-out-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 146,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/queryIssuedCardList",
+      "observed_at_utc": "2026-11-22T11:50:19.799615+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "vermeer",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16",
+        "type": "1"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-source-issued-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 113,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "userId": "string(redacted)",
+              "cplc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardName": "string(redacted)",
+              "orderId": "string(redacted)",
+              "cardId": "string(redacted)",
+              "faceNo": "string(redacted)",
+              "logicalNo": "string(redacted)",
+              "physicalNo": "string(redacted)",
+              "dpanCode": "string(redacted)",
+              "extra": "string(redacted)",
+              "uwbProperties": "number"
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT"
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      },
+      "issued_card_checks": [
+        {
+          "matches_requested_product": true,
+          "matches_requested_cplc": true,
+          "matches_approved_account": true,
+          "face_number_last4": "8213"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "observed_at_utc": "2026-11-22T11:50:19.923059+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_IN",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-target-in-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 122,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryCardProduct",
+      "observed_at_utc": "2026-11-22T11:50:20.058975+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16",
+        "supportCardTransfer": "true",
+        "type": "1"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-target-product-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 152,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "cardName": "string(redacted)",
+              "cardType": "number",
+              "issueFee": "number",
+              "title": "string(redacted)",
+              "subTitle": "string(redacted)",
+              "preIssuedListBg": "string(redacted)",
+              "issuedListBg": "string(redacted)",
+              "logo": "string(redacted)",
+              "preIssuedDetailBg": "string(redacted)",
+              "issuedDetailBg": "string(redacted)",
+              "issuedListBgHd": "string(redacted)",
+              "detailDesc": "string(redacted)",
+              "status": "number",
+              "statusDesc": "string(redacted)",
+              "rechargeStatus": "number",
+              "rechargeStatusDesc": "string(redacted)",
+              "issueStatus": "number",
+              "issueStatusDesc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardGroup": "number",
+              "themeFgRules": "string(redacted)",
+              "gifUrl": "string(redacted)",
+              "configId": "number",
+              "serviceFeeDesc": "string(redacted)",
+              "supportAreas": "string(redacted)",
+              "rideDiscount": "string(redacted)",
+              "issueFeeDetailDesc": "string(redacted)",
+              "simpleSupportAreas": "string(redacted)",
+              "simpleRideDiscount": "string(redacted)",
+              "newCardDetailDesc": "string(redacted)",
+              "issuerName": "string(redacted)",
+              "hasChildren": "boolean",
+              "familyDesc1": "null",
+              "familyDesc2": "null",
+              "owner": "boolean",
+              "subCardGroup": "number",
+              "subGroupName": "string(redacted)",
+              "techType": "number",
+              "extra": "string(redacted)",
+              "customInfo": {
+                "minFee": "number",
+                "maxFee": "number",
+                "customIssueFee": "number"
+              },
+              "groupName": "string(redacted)",
+              "fees": {
+                "type": "array",
+                "count": 4,
+                "item_shapes": [
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT",
+            "title": "上海公共交通卡·交通联合版",
+            "issuerName": "上海公共交通卡股份有限公司",
+            "customInfo": {},
+            "fees": [
+              {},
+              {},
+              {},
+              {}
+            ]
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryShiftInCardProducts",
+      "observed_at_utc": "2026-11-22T11:50:20.225336+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "272",
+        "tsmclientVersionName": "2026.11.16",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16",
+        "supportCardTransfer": "true",
+        "type": "1"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-target-cloud-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 135,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 0,
+          "item_shapes": []
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    }
+  ],
+  "session_issued": true,
+  "session_closed": true,
+  "source_and_target_cplc_distinct": true,
+  "official_catalog": {
+    "http_status": 200,
+    "code": 0,
+    "model": "mijia.watch.o62",
+    "alias": "o62",
+    "pd_id": 19969,
+    "pd_name": "Xiaomi Watch S4"
+  },
+  "final_verified_queries": [
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "observed_at_utc": "2026-11-22T11:50:19.646141+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_OUT",
+        "deviceModel": "vermeer",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-source-out-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 146,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/queryIssuedCardList",
+      "observed_at_utc": "2026-11-22T11:50:19.799615+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "vermeer",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16",
+        "type": "1"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-source-issued-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 113,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "userId": "string(redacted)",
+              "cplc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardName": "string(redacted)",
+              "orderId": "string(redacted)",
+              "cardId": "string(redacted)",
+              "faceNo": "string(redacted)",
+              "logicalNo": "string(redacted)",
+              "physicalNo": "string(redacted)",
+              "dpanCode": "string(redacted)",
+              "extra": "string(redacted)",
+              "uwbProperties": "number"
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT"
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      },
+      "issued_card_checks": [
+        {
+          "matches_requested_product": true,
+          "matches_requested_cplc": true,
+          "matches_approved_account": true,
+          "face_number_last4": "8213"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/acl/checkServiceAvailable",
+      "observed_at_utc": "2026-11-22T11:50:19.923059+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardActionType",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "os",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "tsmclientVersionCode",
+        "tsmclientVersionName"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "cardActionType": "TRANSFER_IN",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-target-in-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 122,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "errCode": "number",
+        "errDesc": "string(redacted)",
+        "data": "null"
+      },
+      "response_status_and_eligibility": {
+        "errCode": 200,
+        "errDesc": "success"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryCardProduct",
+      "observed_at_utc": "2026-11-22T11:50:20.058975+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "4230",
+        "tsmclientVersionName": "26.10.09.4.f",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16",
+        "supportCardTransfer": "true",
+        "type": "1"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-target-product-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 152,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 1,
+          "item_shapes": [
+            {
+              "cardName": "string(redacted)",
+              "cardType": "number",
+              "issueFee": "number",
+              "title": "string(redacted)",
+              "subTitle": "string(redacted)",
+              "preIssuedListBg": "string(redacted)",
+              "issuedListBg": "string(redacted)",
+              "logo": "string(redacted)",
+              "preIssuedDetailBg": "string(redacted)",
+              "issuedDetailBg": "string(redacted)",
+              "issuedListBgHd": "string(redacted)",
+              "detailDesc": "string(redacted)",
+              "status": "number",
+              "statusDesc": "string(redacted)",
+              "rechargeStatus": "number",
+              "rechargeStatusDesc": "string(redacted)",
+              "issueStatus": "number",
+              "issueStatusDesc": "string(redacted)",
+              "aid": "string(redacted)",
+              "cardGroup": "number",
+              "themeFgRules": "string(redacted)",
+              "gifUrl": "string(redacted)",
+              "configId": "number",
+              "serviceFeeDesc": "string(redacted)",
+              "supportAreas": "string(redacted)",
+              "rideDiscount": "string(redacted)",
+              "issueFeeDetailDesc": "string(redacted)",
+              "simpleSupportAreas": "string(redacted)",
+              "simpleRideDiscount": "string(redacted)",
+              "newCardDetailDesc": "string(redacted)",
+              "issuerName": "string(redacted)",
+              "hasChildren": "boolean",
+              "familyDesc1": "null",
+              "familyDesc2": "null",
+              "owner": "boolean",
+              "subCardGroup": "number",
+              "subGroupName": "string(redacted)",
+              "techType": "number",
+              "extra": "string(redacted)",
+              "customInfo": {
+                "minFee": "number",
+                "maxFee": "number",
+                "customIssueFee": "number"
+              },
+              "groupName": "string(redacted)",
+              "fees": {
+                "type": "array",
+                "count": 4,
+                "item_shapes": [
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  },
+                  {
+                    "displayFee": "number",
+                    "payFee": "number",
+                    "rechargeFee": "number",
+                    "msg": "string(redacted)",
+                    "feeId": "number",
+                    "actionType": "number",
+                    "amount": "number",
+                    "suggested": "boolean",
+                    "useCoupon": "boolean",
+                    "recommend": "boolean"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [
+          {
+            "cardName": "SPTC_MOT",
+            "title": "上海公共交通卡·交通联合版",
+            "issuerName": "上海公共交通卡股份有限公司",
+            "customInfo": {},
+            "fees": [
+              {},
+              {},
+              {},
+              {}
+            ]
+          }
+        ],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/login/spcard/v2/queryShiftInCardProducts",
+      "observed_at_utc": "2026-11-22T11:50:20.225336+00:00",
+      "request_fields": [
+        "androidVersion",
+        "appPackageName",
+        "appVersionCode",
+        "appVersionName",
+        "cardName",
+        "cplc",
+        "deviceModel",
+        "firmwareVersion",
+        "hyperOSVersion",
+        "lang",
+        "miuiRomType",
+        "miuiSystemVersion",
+        "roProductDevice",
+        "roProductName",
+        "romType",
+        "supportCardTransfer",
+        "tsmclientVersionCode",
+        "tsmclientVersionName",
+        "type"
+      ],
+      "credential_values_recorded": false,
+      "request_context": {
+        "cardName": "SPTC_MOT",
+        "deviceModel": "o62",
+        "appPackageName": "nodomain.freeyourgadget.gadgetbridge",
+        "firmwareVersion": "3.201.79",
+        "appVersionCode": "272",
+        "appVersionName": "2026.11.16",
+        "tsmclientVersionCode": "272",
+        "tsmclientVersionName": "2026.11.16",
+        "miuiRomType": "ANDROID",
+        "miuiSystemVersion": "1781883594",
+        "androidVersion": "16",
+        "supportCardTransfer": "true",
+        "type": "1"
+      },
+      "cplc_length": 84,
+      "cplc_full_recorded": false,
+      "plan_name": "current-target-cloud-plan.json",
+      "http_status": 200,
+      "http_round_trip_ms": 135,
+      "response_encoding": "session_aes_json",
+      "response_shape": {
+        "data": {
+          "type": "array",
+          "count": 0,
+          "item_shapes": []
+        },
+        "errCode": "number",
+        "errDesc": "string(redacted)"
+      },
+      "response_status_and_eligibility": {
+        "data": [],
+        "errCode": 200,
+        "errDesc": "成功"
+      }
+    }
+  ],
+  "scope_note": "TRANSFER_OUT/IN service checks and matching product/account/SE are verified. No transaction was prepared or executed. Fudan campus identity preservation is unverified."
+}

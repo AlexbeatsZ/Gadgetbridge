@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_mic_xposed_description">把小米手表语音助手的音频作为麦克风交给手机助手。作用域：Google 应用。</string>
+</resources>

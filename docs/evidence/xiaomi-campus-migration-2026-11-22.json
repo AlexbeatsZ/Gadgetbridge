@@ -1,0 +1,453 @@
+{
+  "recorded_at": "2026-11-22T04:40:15.239751-08:00",
+  "scope": "Route A campus identity and migration state-machine research; no real-card operations",
+  "production_app_modified": false,
+  "apk_built_or_published": false,
+  "personalized_tsm_http_requests_this_phase": 0,
+  "se_sessions_created_this_phase": 0,
+  "real_orders_created": 0,
+  "real_apdus_sent_this_phase": 0,
+  "existing_eligibility_evidence": "xiaomi-tsm-eligibility-2026-11-22.json",
+  "public_issuer_assets": {
+    "scope": "public static assets; no personalized request or credential",
+    "fudan_product": {
+      "coBrandCardName": "复旦大学",
+      "partnerNo": "06000047",
+      "coBrandCard": "SPTC.MOT.SH.FDU",
+      "campusTag": "fudan",
+      "cobrandTag": "fudan",
+      "cardTag": "8001",
+      "openCardFree": true,
+      "openCardInfo": {
+        "xyTitle": "开通复旦大学上海公共交通联名卡",
+        "xySummary": "上海交通卡App开通的复旦大学上海公共交通联名卡，是基于复旦大学校园一卡通、上海公共交通卡·交通联合版“二卡合一”的联名卡，两卡各自的资金互相独立",
+        "xyContent": "1）当前设备仅支持开通3张上海手机交通卡•交通联合版（含复旦大学上海公共交通联名卡）。\n2）上海交通卡App只对上海公共交通卡•交通联合版电子钱包进行查询、充值、申领开具近180天内充值电子发票。\n3）若对校园账户充值需在复旦ecard微信小程序、自助终端、校园人工窗口完成。"
+      }
+    },
+    "anchors": [
+      {
+        "file": "index.7c61fc0b.js",
+        "anchor": "/wind/{cardtype}/1/0/get-token",
+        "character_offsets": [
+          4522
+        ],
+        "found": true
+      },
+      {
+        "file": "index.7c61fc0b.js",
+        "anchor": "/wind/{cardtype}/1/0/check-card",
+        "character_offsets": [
+          4604
+        ],
+        "found": true
+      },
+      {
+        "file": "index.7c61fc0b.js",
+        "anchor": "/wind/{cardtype}/1/0/issue-card-verify",
+        "character_offsets": [
+          4676
+        ],
+        "found": true
+      },
+      {
+        "file": "index.7c61fc0b.js",
+        "anchor": "appKeyIndex:t.appKeyIndex",
+        "character_offsets": [
+          17081
+        ],
+        "found": true
+      },
+      {
+        "file": "index.7c61fc0b.js",
+        "anchor": "timestamp:t.timestamp,sign:t.sign",
+        "character_offsets": [
+          17165
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-49ae6640.e3c89e80.js",
+        "anchor": "cardNo:t.faceNo",
+        "character_offsets": [
+          6683
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-49ae6640.e3c89e80.js",
+        "anchor": "19===t.cardNo.length?t.cardNo:\"31047700\"+t.cardNo",
+        "character_offsets": [
+          7105
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-49ae6640.e3c89e80.js",
+        "anchor": "cardNoList:e",
+        "character_offsets": [
+          7265
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-49ae6640.e3c89e80.js",
+        "anchor": "e.cardInfoList||[]",
+        "character_offsets": [
+          7361
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-49ae6640.e3c89e80.js",
+        "anchor": "coBrandCardName",
+        "character_offsets": [
+          1309,
+          4228,
+          4248,
+          5033,
+          8149
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-36847e1b.791d9362.js",
+        "anchor": "openCampusCardCertified",
+        "character_offsets": [
+          9753,
+          9818
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-36847e1b.791d9362.js",
+        "anchor": "encryCertificateForCampus",
+        "character_offsets": [
+          9718
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-36847e1b.791d9362.js",
+        "anchor": "partnerToken",
+        "character_offsets": [
+          9880,
+          10108,
+          11487,
+          11602,
+          14354,
+          14369,
+          15351
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-36847e1b.791d9362.js",
+        "anchor": "partnerNo:this.cardObj.partnerNo",
+        "character_offsets": [
+          8856,
+          10677,
+          11569
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-36847e1b.791d9362.js",
+        "anchor": "coBrandCard:this.cardObj.coBrandCard",
+        "character_offsets": [
+          8889,
+          10640,
+          11532,
+          15366
+        ],
+        "found": true
+      },
+      {
+        "file": "chunk-36847e1b.791d9362.js",
+        "anchor": "cplc:r,userId:a",
+        "character_offsets": [
+          8948
+        ],
+        "found": true
+      }
+    ],
+    "all_expected_anchors_found": true,
+    "not_established": [
+      "backend sole key",
+      "card number continuity",
+      "phone-to-S4 campus preservation"
+    ],
+    "http": [
+      {
+        "url": "https://wind.fmswift.net/wind/front/data/partnerCardData/cobrand_card/sptcc/campuscard/cardList.json",
+        "file": "public-campus-card-list.json",
+        "http_status": 200,
+        "bytes": 40023,
+        "capture_file_mtime": "2026-11-22T04:32:37.635252-08:00",
+        "status_provenance": "actual --fetch-public command in this task; no personalized HTTP"
+      },
+      {
+        "url": "https://frontend.fmswift.net/wind/front/w-202308-cobrand-card/js/index.7c61fc0b.js",
+        "file": "index.7c61fc0b.js",
+        "http_status": 200,
+        "bytes": 41480,
+        "capture_file_mtime": "2026-11-22T04:32:37.937400-08:00",
+        "status_provenance": "actual --fetch-public command in this task; no personalized HTTP"
+      },
+      {
+        "url": "https://frontend.fmswift.net/wind/front/w-202308-cobrand-card/js/chunk-49ae6640.e3c89e80.js",
+        "file": "chunk-49ae6640.e3c89e80.js",
+        "http_status": 200,
+        "bytes": 11975,
+        "capture_file_mtime": "2026-11-22T04:32:38.087859-08:00",
+        "status_provenance": "actual --fetch-public command in this task; no personalized HTTP"
+      },
+      {
+        "url": "https://frontend.fmswift.net/wind/front/w-202308-cobrand-card/js/chunk-36847e1b.791d9362.js",
+        "file": "chunk-36847e1b.791d9362.js",
+        "http_status": 200,
+        "bytes": 18389,
+        "capture_file_mtime": "2026-11-22T04:32:38.209884-08:00",
+        "status_provenance": "actual --fetch-public command in this task; no personalized HTTP"
+      }
+    ]
+  },
+  "official_references": [
+    {
+      "url": "https://ecampus.fudan.edu.cn/fddxshggjtlmksyzn/list.htm",
+      "supports": "separate campus/transport funds; UIS; unbind consequences; same-brand phone cloud migration",
+      "does_not_establish": "K70-to-S4 identifier/campus continuity"
+    },
+    {
+      "url": "https://jtw.sh.gov.cn/zsk/20241014/0cab825b020641d8b1db5886f3512deb.html",
+      "supports": "same-brand phone card/fund migration",
+      "does_not_establish": "Fudan campus mapping or watch migration"
+    }
+  ],
+  "sptcc_static_bridge_attempt": {
+    "apk_version": "202610.1 / code224",
+    "dex_bytes": 40634776,
+    "dex_classes": 9,
+    "dex_methods": 95,
+    "wrapper_namespace": "com.secneo.apkwrapper",
+    "method": "Androguard DEX class/string/instruction tables; scan for another valid DEX header",
+    "campus_keywords_in_dex_string_table": false,
+    "additional_parseable_dex_headers_found": 0,
+    "raw_payload_keyword_offsets": {
+      "FD_schoolCard": 21605554,
+      "getFD_schoolCard": 22687464,
+      "startSchoolCardPage": 23125662,
+      "w202103campuscard": 22767948
+    },
+    "result": "native get-token signing call chain not recovered from the visible wrapper; not evidence of no API",
+    "no_runtime_unpacking_or_credential_capture": true
+  },
+  "mifitness_static_sources": {
+    "version": "3.61.0 / code361000",
+    "root_on_mac": "/tmp/.agents/gadgetbridge-transit-research/mifitness/sources",
+    "precheck": "com/miui/tsmclient/model/s.java -> model/f.java:a -> model/mitsm/g.java:d -> model/mitsm/f.java:preTransferOut",
+    "precheck_may_mutate": "CHECK_SHIFT_OUT; startSeOperation may execute returned CAPDUs and SYNC",
+    "order_out": "model/s.java:b -> transferCard/prepareTransferOut",
+    "order_in": "defpackage/eqw.java -> transferCard/startTransferIn; target CPLC/deviceId/model",
+    "scripts": "model/mitsm/j.java maps SHIFT_OUT/SHIFT_IN; defpackage/tsv.java pullBusCardPersoData/processFinishNotify",
+    "recovery": "entity/ApduFixEntity.java + model/mitsm/c.java:fixApdu; original responses/session/scriptsId, no blind CAPDU replay",
+    "queries": "net/TSMAuthManager.java:queryByOrderId/queryByUserId/queryUncompletedBusiness; defpackage/tsv.java:getOperationResult",
+    "uncompleted_statuses": [
+      "TRANSFER_OUT_ING",
+      "TRANSFER_IN_ING",
+      "IN_ISSUE",
+      "OUT_RETURN",
+      "IN_RETURN"
+    ],
+    "general_order_statuses": {
+      "0": "finish",
+      "1": "waitingpay",
+      "2": "paid",
+      "3": "payFailed"
+    },
+    "caveat": "complex JADX methods partly fail; server state/idempotency/transferStatus dictionary not fully verified"
+  },
+  "campus_preservation": {
+    "result": "UNDETERMINED",
+    "baseline_product": "SPTC_MOT",
+    "co_brand_product": "SPTC.MOT.SH.FDU",
+    "partner_no": "06000047",
+    "direct_finding": "issuer H5 sends normalized faceNo-derived cardNoList to check-card and reads co-brand data",
+    "not_proven": [
+      "sole campus backend mapping key",
+      "full card-number continuity",
+      "FDU metadata preservation across target SE personalization",
+      "campus permission retention for vermeer-to-o62"
+    ],
+    "real_migration_gate": "remain blocked while campus continuity is unconfirmed under the user instruction"
+  },
+  "local_verification": {
+    "command": "python3 -m unittest discover -v",
+    "cwd": "tools/research/xiaomi-transit-migration",
+    "tests": 28,
+    "passed": 28,
+    "failed": 0,
+    "simulation_only": true,
+    "scenarios": [
+      {
+        "simulation_only": true,
+        "scenario": "unknown-campus",
+        "status": "BLOCKED",
+        "reason": "campus_preservation_confirmed",
+        "actions": [],
+        "source_usable": true,
+        "target_issued": false
+      },
+      {
+        "simulation_only": true,
+        "scenario": "success",
+        "status": "COMPLETE",
+        "reason": "",
+        "actions": [
+          "query_preflight",
+          "precheck_out",
+          "prepare_out",
+          "create_out_session",
+          "start_out_operation",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "report_out",
+          "confirm_out",
+          "query_cloud",
+          "start_in_order",
+          "create_in_session",
+          "start_in_operation",
+          "pull_in_scripts",
+          "write_in_scripts",
+          "report_in",
+          "query_target",
+          "query_campus"
+        ],
+        "source_usable": false,
+        "target_issued": true
+      },
+      {
+        "simulation_only": true,
+        "scenario": "multiple-batches",
+        "status": "COMPLETE",
+        "reason": "",
+        "actions": [
+          "query_preflight",
+          "precheck_out",
+          "prepare_out",
+          "create_out_session",
+          "start_out_operation",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "report_out",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "report_out",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "report_out",
+          "confirm_out",
+          "query_cloud",
+          "start_in_order",
+          "create_in_session",
+          "start_in_operation",
+          "pull_in_scripts",
+          "write_in_scripts",
+          "report_in",
+          "pull_in_scripts",
+          "write_in_scripts",
+          "report_in",
+          "pull_in_scripts",
+          "write_in_scripts",
+          "report_in",
+          "query_target",
+          "query_campus"
+        ],
+        "source_usable": false,
+        "target_issued": true
+      },
+      {
+        "simulation_only": true,
+        "scenario": "lost-report",
+        "status": "COMPLETE",
+        "reason": "",
+        "actions": [
+          "query_preflight",
+          "precheck_out",
+          "prepare_out",
+          "create_out_session",
+          "start_out_operation",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "report_out",
+          "query_reconcile:report_out",
+          "report_out",
+          "confirm_out",
+          "query_cloud",
+          "start_in_order",
+          "create_in_session",
+          "start_in_operation",
+          "pull_in_scripts",
+          "write_in_scripts",
+          "report_in",
+          "query_target",
+          "query_campus"
+        ],
+        "source_usable": false,
+        "target_issued": true
+      },
+      {
+        "simulation_only": true,
+        "scenario": "lost-confirm",
+        "status": "COMPLETE",
+        "reason": "",
+        "actions": [
+          "query_preflight",
+          "precheck_out",
+          "prepare_out",
+          "create_out_session",
+          "start_out_operation",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "report_out",
+          "confirm_out",
+          "query_reconcile:confirm_out",
+          "query_cloud",
+          "start_in_order",
+          "create_in_session",
+          "start_in_operation",
+          "pull_in_scripts",
+          "write_in_scripts",
+          "report_in",
+          "query_target",
+          "query_campus"
+        ],
+        "source_usable": false,
+        "target_issued": true
+      },
+      {
+        "simulation_only": true,
+        "scenario": "lost-apdu",
+        "status": "HOLD",
+        "reason": "APDU may have applied; original response missing; issuer repair required",
+        "actions": [
+          "query_preflight",
+          "precheck_out",
+          "prepare_out",
+          "create_out_session",
+          "start_out_operation",
+          "pull_out_scripts",
+          "write_out_scripts",
+          "query_reconcile:write_out_scripts"
+        ],
+        "source_usable": false,
+        "target_issued": false
+      }
+    ]
+  },
+  "next_minimum_experiments": [
+    "Legitimate independent issuer get-token signing/auth challenge; no borrowed UID/token or forged client identity",
+    "Authorized read-only source check-card FDU/partner/validity comparison; log only redacted status and equality",
+    "Issuer-supported phone-to-watch identifier continuity rule/read-only preview, otherwise authorized no-balance test card sandbox",
+    "Source/target SE adapters and server-authorized interrupted-script/report recovery before touching the real card"
+  ]
+}

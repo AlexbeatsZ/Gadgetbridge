@@ -28,6 +28,12 @@ dependencyResolutionManagement {
                 includeGroupByRegex("com\\.github\\..*")
             }
         }
+        // Xposed API, compile only: Gadgetbridge doubles as a module that feeds the band's voice to the phone assistant
+        maven("https://api.xposed.info/") {
+            content {
+                includeGroup("de.robv.android.xposed")
+            }
+        }
     }
 }
 

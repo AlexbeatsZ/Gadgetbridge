@@ -15,12 +15,36 @@ message AivsInstructionList {
 }
 
 message AivsInstruction {
-  // 3 STOP_CAPTURE, 4 DIALOG_FINISH, 256 TEMPLATE_TOAST, 264 SPEECHSYNTHESIZER_SPEAK
+  // 3 STOP_CAPTURE, 4 DIALOG_FINISH, 256 TEMPLATE_TOAST, 264 SPEECHSYNTHESIZER_SPEAK,
+  // 289 LLM_LOADING_CARD, 292 LLM_TOAST_STREAM, 293 LLM_FINISH_STREAM
   optional uint32 resultType = 1;
+  // 2 RECOGNIZE_RESULT
+  optional AivsRecognizeResult recognizeResult = 2;
   optional AivsText templateToast = 3;
   optional AivsText speak = 11;
   // session ID from the START command on the voice channel
   optional uint32 sessionId = 13;
+  // 289 LLM_LOADING_CARD
+  optional AivsLlmLoadingCard llmLoadingCard = 30;
+  // 292 LLM_TOAST_STREAM, followed by 293 LLM_FINISH_STREAM without payload
+  optional AivsLlmToastStream llmToastStream = 33;
+}
+
+message AivsRecognizeResult {
+  optional bool isFinal = 1;
+  optional AivsRecognizeResultItems results = 2;
+}
+
+message AivsRecognizeResultItems {
+  repeated AivsText item = 1;
+}
+
+message AivsLlmLoadingCard {
+  optional uint32 timeout = 1; // seconds
+}
+
+message AivsLlmToastStream {
+  optional string markdownText = 1;
 }
 
 message AivsText {

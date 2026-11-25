@@ -121,7 +121,8 @@ SPP V2 的 L2 通道 3，opCode 2
 
 - HFP 语音识别模式(`startVoiceRecognition`):SCO 以 mSBC 16 kHz 接通，录音路由到手表(设备类型 7),但上行全部为数字零(-120 dBFS),课堂环境下也没有底噪。Gemini 经 `ACTION_VOICE_COMMAND` 接管手表耳机时同样听不到。
 - 虚拟通话模式(`MODE_IN_COMMUNICATION` + `setCommunicationDevice`,系统走 `startScoUsingVirtualVoiceCall`):手表每次都主动断开 SCO(`audio disconnected by remote`),系统反复重连仍被拒绝。
-- 结论:S4 只在真实电话中把麦克风接入 HFP。手机默认助手无法通过蓝牙耳机经手表收音;`xiaomi_voice_assistant_handoff` 能唤起助手，但助手实际收不到手表声音，应保持默认关闭。手表麦克风只能经 SPP 通道 3 的 Opus 音频获得。
+- 上述两种模式未取得可用上行，真实电话麦克风仍需单独验证。当前手机助手通过 SPP 通道 3 的 Opus 音频收音。
+- 后续实测确认收音期间开 SCO 会中断小爱音频流。结束手表收音后再打开语音识别 SCO，S4 可播放测试音和 Gemini 原声。集成顺序及生命周期见 `xiaomi-assistant-feedback.md`。
 
 ## 证据定位与复现入口
 

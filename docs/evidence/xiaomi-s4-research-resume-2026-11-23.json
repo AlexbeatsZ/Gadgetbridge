@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-23 America/Los_Angeles",
+  "phone_serial": "dcc50feb",
+  "gadgetbridge_pid": "10882",
+  "nfc_state_metadata_only": [
+    "mState=on",
+    "mScreenState=OFF_LOCKED",
+    "mTechMask: default",
+    "mEnableLPD: true",
+    "mEnableReader: false",
+    "mEnableHostRouting: true",
+    ""
+  ],
+  "rf6_started": false,
+  "watch_final_check_source": "host-rf5-final.json; original table/callbacks/slots/eSE/HAL verified, modules empty",
+  "reader_previous_result": "reader_mode_disable_request_returned=true; successful_presentations=0; user missed window"
+}

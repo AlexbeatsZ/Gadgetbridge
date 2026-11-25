@@ -1,0 +1,121 @@
+{
+  "kind": "real-watch-aid-first-route-roundtrip-after-reconnect",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "version.txt",
+      "text": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_route_capture 0x3d5076d9        0        0        0 0x3d5076d8      772 0x3d3d5e00     118U\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "shell-help.txt",
+      "text": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 44 49 41 54 03 00 00 00 00 00 00 00 01 81 00 00 DIAT............\n0010: 3a 3e 06 00 06 04 00 00 00 00 00 00 00 00 00 00 :>..............\n0020: 01 00 00 00 41 00 00 00 04 00 00 00 00 00 00 00 ....A...........\n0030: 41 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 A...............\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: 44 49 41 54 03 00 00 00 01 00 00 00 01 81 00 00 DIAT............\n0010: 3a 3e 06 00 06 04 00 00 00 00 00 00 00 00 00 00 :>..............\n0020: 01 00 00 00 41 00 00 00 04 00 00 00 00 00 00 00 ....A...........\n0030: 41 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 A...............\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 61 02 17 00 03 02 09 00 01 f0 01 02 03 04 05 06 a...............\n0010: 00 03 c0 e3 00 00 03 c0 e3 02 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "device-list.txt",
+      "text": "Hex dump:\n0000: 85 cd 34 2c                                     ..4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "process-list.txt",
+      "text": "Hex dump:\n0000: 61 02 17 00 03 02 09 00 01 f0 01 02 03 04 05 06 a...............\n0010: 00 03 c0 e3 00 00 03 c0 e3 02 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules.txt",
+      "text": "Hex dump:\n0000: 01 00 01 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "Synthetic AID route roundtrip; no SE/APDU/SPP transaction\nnfc-proc.txt:61020c00020003c0e3000003c0e302\nDISCOVERY_OK:stop\nnfc-fds.txt:61020c00020003c0e3000003c0e302\nWRITE:append:state=3:status=0\nnfc-mqueue.txt:610217000302090001f00102030405060003c0e3000003c0e302\nAPPEND_READBACK=true\nDISCOVERY_OK:start\nPERSIST_AFTER_START=true\nDISCOVERY_OK:stop\nWRITE:restore:state=3:status=0\nRESTORE_READBACK=true\nDISCOVERY_OK:start\nFINAL_ORIGINAL_TABLE=true"
+    }
+  ],
+  "firmware": "3.201.79",
+  "test_aid": "F0010203040506",
+  "command_order": "AID first; original two technology entries retain bytes and relative order",
+  "append_command_hex": "210117000302090001f00102030405060003c0e3000003c0e302",
+  "append_response_hex": "41010100",
+  "appended_routing_notifications_hex": [
+    "610217000302090001f00102030405060003c0e3000003c0e302"
+  ],
+  "persisted_after_original_discovery_restart": true,
+  "restore_command_hex": "21010c00020003c0e3000003c0e302",
+  "restore_response_hex": "41010100",
+  "final_routing_notifications_hex": [
+    "61020c00020003c0e3000003c0e302"
+  ],
+  "real_controller_test_aid_route_added_and_removed": true,
+  "real_rf_apdu_test": false,
+  "ese_flags_before_after_hex": "8101",
+  "final_dm_flags_state_hex": "01000100",
+  "modules_unloaded": true,
+  "scope": {
+    "test_aid_only": "F0010203040506",
+    "no_real_card_apdu": true,
+    "no_tsm_order_or_migration": true,
+    "no_production_app_change": true,
+    "no_apk_release": true
+  }
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <SwitchPreferenceCompat
+        android:icon="@drawable/ic_microphone"
+        android:defaultValue="false"
+        android:dependency="xiaomi_voice_assistant_handoff"
+        android:key="xiaomi_voice_assistant_playback"
+        android:layout="@layout/preference_checkbox"
+        android:summary="@string/pref_xiaomi_voice_assistant_playback_summary"
+        android:title="@string/pref_xiaomi_voice_assistant_playback_title" />
+</androidx.preference.PreferenceScreen>

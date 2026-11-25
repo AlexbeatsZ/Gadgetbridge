@@ -1,0 +1,240 @@
+{
+  "study": "A: legitimate Mi Account/TSM authentication only",
+  "client_date": "2026-11-21 through 2026-11-22 America/Los_Angeles",
+  "phone_log_date": "2026-11-22 Asia/Shanghai",
+  "caller_package": "nodomain.freeyourgadget.gadgetbridge",
+  "caller_uid": 10261,
+  "binder": {
+    "service": "com.xiaomi.account/.PassportServiceTokenService",
+    "bind_accepted": true,
+    "support_service_token_ui_response": true,
+    "support_access_account": true,
+    "requested_sid": "tsm-auth",
+    "request_elapsed_ms": 455,
+    "error_code": 3,
+    "error_name": "ERROR_APP_PERMISSION_FORBIDDEN",
+    "interaction_intent_present": false,
+    "credential_values_read": false,
+    "card_http_requests": 0
+  },
+  "http": [
+    {
+      "probe": "account-whitelist",
+      "observed_at": "2026-11-22T07:52:03.550985+00:00",
+      "method": "GET",
+      "url": "https://account.xiaomi.com/appConf/getWhiteList",
+      "http_status": 200,
+      "response_fields": [
+        "code",
+        "data",
+        "desc",
+        "description",
+        "result"
+      ],
+      "code": 0,
+      "result": "ok",
+      "credential_values_recorded": false,
+      "policy_fields": [
+        "list"
+      ],
+      "entry_count": 123,
+      "entry_fields": [
+        "createTime",
+        "hash",
+        "packageName",
+        "passtoken",
+        "sids",
+        "updateTime"
+      ],
+      "selected_entries": [
+        {
+          "package_name": "nodomain.freeyourgadget.gadgetbridge",
+          "match_count": 0,
+          "sids": []
+        },
+        {
+          "package_name": "com.mi.health",
+          "match_count": 0,
+          "sids": []
+        }
+      ]
+    },
+    {
+      "probe": "tsm-login-bootstrap",
+      "observed_at": "2026-11-22T07:51:10.742314+00:00",
+      "method": "GET",
+      "url": "https://account.xiaomi.com/pass/serviceLogin?sid=tsm-auth&_json=true",
+      "http_status": 200,
+      "content_type": "application/json;charset=UTF-8",
+      "cookie_names": [
+        "deviceId",
+        "pass_ua",
+        "uLocale",
+        "theme",
+        "userId",
+        "cUserId",
+        "serviceToken",
+        "serviceToken",
+        "serviceToken",
+        "sns_type",
+        "passToken",
+        "cUserId",
+        "ptn_count",
+        "cUserId",
+        "etao_qs",
+        "ptn_count",
+        "userId",
+        "cUserId",
+        "userId",
+        "userId",
+        "passToken",
+        "cUserId",
+        "ptn_count",
+        "serviceToken",
+        "userId",
+        "serviceToken",
+        "continue",
+        "theme"
+      ],
+      "credential_values_recorded": false,
+      "response_fields": [
+        "_sign",
+        "callback",
+        "captchaUrl",
+        "child",
+        "code",
+        "desc",
+        "description",
+        "location",
+        "miDemo",
+        "pwd",
+        "qs",
+        "result",
+        "securityStatus",
+        "serviceParam",
+        "sid"
+      ],
+      "code": 70016,
+      "result": "error",
+      "description": "<redacted>",
+      "bootstrap_present": {
+        "_sign": true,
+        "qs": true,
+        "callback": true,
+        "location": true,
+        "ssecurity": false,
+        "serviceToken": false,
+        "notificationUrl": false
+      }
+    },
+    {
+      "probe": "tsm-qr-bootstrap",
+      "observed_at": "2026-11-22T07:52:03.691300+00:00",
+      "method": "GET",
+      "url": "https://account.xiaomi.com/longPolling/loginUrl?sid=tsm-auth",
+      "http_status": 200,
+      "response_fields": [
+        "code",
+        "desc",
+        "description",
+        "loginUrl",
+        "lp",
+        "qr",
+        "qrTips",
+        "result",
+        "sl",
+        "timeInterval",
+        "timeout"
+      ],
+      "code": 0,
+      "result": "ok",
+      "credential_values_recorded": false,
+      "bootstrap_present": {
+        "lp": true,
+        "loginUrl": true,
+        "qr": true,
+        "ssecurity": false,
+        "serviceToken": false
+      },
+      "login_url_host": "ak.account.xiaomi.com",
+      "poll_url_host": "ak.lp.account.xiaomi.com"
+    },
+    {
+      "probe": "passport-authorization",
+      "credential_values_recorded": false,
+      "card_http_requests": 0,
+      "steps": [
+        {
+          "step": "qr_bootstrap",
+          "http_status": 200,
+          "origin": "account.xiaomi.com",
+          "request_query_keys": [
+            "sid"
+          ],
+          "cookie_names": [
+            "uLocale"
+          ],
+          "response_fields": [
+            "code",
+            "desc",
+            "description",
+            "loginUrl",
+            "lp",
+            "qr",
+            "qrTips",
+            "result",
+            "sl",
+            "timeInterval",
+            "timeout"
+          ],
+          "code": 0
+        },
+        {
+          "step": "qr_poll",
+          "result": "client_wait_timeout",
+          "http_status": null
+        },
+        {
+          "step": "qr_poll",
+          "result": "client_wait_timeout",
+          "http_status": null
+        },
+        {
+          "step": "qr_poll",
+          "result": "client_wait_timeout",
+          "http_status": null
+        },
+        {
+          "step": "qr_poll",
+          "result": "client_wait_timeout",
+          "http_status": null
+        },
+        {
+          "step": "qr_poll",
+          "result": "client_wait_timeout",
+          "http_status": null
+        }
+      ],
+      "result": "QR approval timed out"
+    }
+  ],
+  "account_mutations": false,
+  "production_app_changes": false,
+  "authentication_completed": false,
+  "card_eligibility_queried": false,
+  "interpretation": [
+    "Binder refusal is app authorization, not a card migration eligibility result.",
+    "QR bootstrap code 0 is not completed authentication.",
+    "Five poll client timeouts have no HTTP status and are not server rejection responses.",
+    "The authorization window elapsed without a completed approved response; no card APIs were called.",
+    "Set-Cookie header names can include deletion/expiry directives; their presence does not prove credential issuance."
+  ],
+  "earlier_qr_attempt": {
+    "bootstrap_http_status": 200,
+    "bootstrap_business_code": 0,
+    "poll_result": "authentication transport failed",
+    "poll_http_status": null,
+    "credential_values_recorded": false,
+    "note": "Initial transport diagnostic; timeout handling was subsequently corrected. No detailed exception type was retained."
+  }
+}

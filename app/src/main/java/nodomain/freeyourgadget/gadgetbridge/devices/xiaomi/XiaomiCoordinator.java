@@ -22,6 +22,7 @@ import android.app.Activity;
 import android.bluetooth.le.ScanFilter;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Size;
@@ -69,6 +70,7 @@ import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySample;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySummaryEntries;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySummaryParser;
+import nodomain.freeyourgadget.gadgetbridge.model.DeviceType;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivityTrackProvider;
 import nodomain.freeyourgadget.gadgetbridge.model.BodyEnergySample;
 import nodomain.freeyourgadget.gadgetbridge.model.HeartRateSample;
@@ -674,6 +676,9 @@ public abstract class XiaomiCoordinator extends AbstractBLEDeviceCoordinator {
         if (getConnectionType().equals(ConnectionType.BT_CLASSIC)) {
             // the voice channel is only implemented for SPP V2
             deviceSpecificSettings.addRootScreen(R.xml.devicesettings_xiaomi_voice_assistant_handoff);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && device.getType() == DeviceType.XIAOMI_WATCH_S4) {
+                deviceSpecificSettings.addRootScreen(R.xml.devicesettings_xiaomi_voice_assistant_playback);
+            }
         }
 
         //

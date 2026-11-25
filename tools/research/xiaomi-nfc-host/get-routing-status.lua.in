@@ -1,0 +1,53 @@
+-- S4 3.201.79 ONLY. Immutable read-only GET_ROUTING status query.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local done=io.open(base.."/getroute-done.txt","r");if done then done:close();return end
+local result={"Only NCI 21 02 00; no route writes or SE APDU"}
+local function command(name,cmd)
+ local ok,a,b,c=pcall(function()return os.execute(cmd.." > "..base.."/"..name)end)
+ result[#result+1]=cmd.." => "..tostring(ok)..","..tostring(a)..","..tostring(b)..","..tostring(c)
+end
+local function read(name)
+ local f=io.open(base.."/"..name,"r");if not f then return "" end
+ local s=f:read("*a");f:close();return s
+end
+local function words(name)
+ local out={}
+ for line in read(name):gmatch("[^\n]+") do
+  local h=line:match("^%x%x%x%x: (.*)")
+  if h then
+   local bytes={};h=h:sub(1,47)
+   for x in h:gmatch("%x%x") do bytes[#bytes+1]=tonumber(x,16) end
+   for i=1,#bytes-3,4 do out[#out+1]=bytes[i]+256*bytes[i+1]+65536*bytes[i+2]+16777216*bytes[i+3] end
+  end
+ end
+ return out
+end
+command("modules-before.txt","lsmod")
+if read("modules-before.txt"):find("gb_route_status",1,true) then return end
+local f=io.open(base.."/getroute.elf","wb");if not f then return end
+f:write(("@MODULE_HEX@"):gsub("..",function(h)return string.char(tonumber(h,16))end));f:close()
+command("module-load.txt","insmod "..base.."/getroute.elf gb_route_status")
+command("shell-help.txt","sleep 1")
+command("modules-after.txt","lsmod")
+local address=nil
+for line in read("modules-after.txt"):gmatch("[^\n]+") do
+ if line:find("gb_route_status",1,true) then
+  local cols={};for value in line:gmatch("%S+") do cols[#cols+1]=value end
+  if cols[8] and cols[8]:match("^0x%x+$") then address=cols[8] end
+ end
+end
+if address then command("host-help.txt","xd "..address.." 64") end
+command("fd-help.txt","xd 3c2d4ccc 4")
+command("nfc-fds.txt","xd 3c2d4c48 4")
+command("nfc-proc.txt","xd 3c2d4d5b 1")
+command("nfc-mqueue.txt","xd 3c2d4cd8 4")
+local r=words("host-help.txt");local slot=words("fd-help.txt");local flag=words("nfc-fds.txt")
+if address and #r==16 and r[1]==0x5254534e and r[2]~=2 and slot[1]==0 and flag[1] and flag[1]%256==0 then
+ command("module-unload.txt","rmmod gb_route_status")
+ command("modules-final.txt","lsmod")
+ if not read("modules-final.txt"):find("gb_route_status",1,true) then os.remove(base.."/getroute.elf") end
+else result[#result+1]="NOT_UNLOADED: pending or unverified callback ownership" end
+command("proc-list.txt","xd 3c2d46d4 4")
+local out=io.open(base.."/lua-result.txt","w");if out then out:write(table.concat(result,"\n"));out:close() end
+local d=io.open(base.."/getroute-done.txt","w");if d then d:write("done");d:close() end

@@ -6001,7 +6001,9 @@
     <string name="weather_google_root_refresh">立即同步 Google 天气</string>
     <string name="weather_google_root_success">已同步 Google 天气</string>
     <string name="weather_google_root_failure">无法读取 Google 天气，请允许 Root 权限并打开 Google 天气刷新数据。</string>
-    <string name="xiaomi_voice_phone_assistant_listening">手机助手正在聆听…</string>
     <string name="pref_xiaomi_voice_assistant_handoff_title">使用手机语音助手</string>
-    <string name="pref_xiaomi_voice_assistant_handoff_summary">唤醒手表语音助手时改为启动手机的默认助手，并把手表当作蓝牙耳机收音和播报</string>
+    <string name="pref_xiaomi_voice_assistant_handoff_summary">唤醒手表语音助手时改为启动手机的默认助手，并把手表收到的语音作为它的麦克风。需要在 LSPosed 中为 Google 应用启用手环模块</string>
+    <string name="pref_xiaomi_voice_assistant_playback_title">用手表播放助手回答</string>
+    <string name="pref_xiaomi_voice_assistant_playback_summary">手表停止收音后，使用手表扬声器播放 Gemini 的语音回答</string>
+    <string name="xiaomi_voice_assistant_no_visible_response">手机助手未返回可显示的内容，请在手机上查看操作结果。</string>
 </resources>

@@ -1,0 +1,344 @@
+{
+  "capture": {
+    "execution": "OFFLINE_COMPILED_TAP_AND_ORIGINAL_ARM_WITH_SYNTHETIC_RAM",
+    "real_notification_capture": false,
+    "cases_passed": 14,
+    "cases": [
+      {
+        "case": "complete_notification_self_detach_then_original_hal_barrier",
+        "passed": true
+      },
+      {
+        "case": "more_notification_segments_preserved_in_order",
+        "passed": true
+      },
+      {
+        "case": "all_other_packets_forwarded_without_payload_logging",
+        "passed": true
+      },
+      {
+        "case": "no_notification_second_read_only_query_forces_self_detach",
+        "passed": true
+      },
+      {
+        "case": "rejected_controller_query_self_detaches",
+        "passed": true
+      },
+      {
+        "case": "short_notification_retained_as_bad_evidence_not_backup",
+        "passed": true
+      },
+      {
+        "case": "wrong_payload_length_retained_as_bad_evidence_not_backup",
+        "passed": true
+      },
+      {
+        "case": "invalid_more_retained_as_bad_evidence_not_backup",
+        "passed": true
+      },
+      {
+        "case": "notification_before_response_not_accepted_as_backup",
+        "passed": true
+      },
+      {
+        "case": "notification_bound_overflow_detaches_without_truncated_backup",
+        "passed": true
+      },
+      {
+        "case": "unexpected_hal_owner_refuses_install",
+        "passed": true
+      },
+      {
+        "case": "unexpected_hal_trampoline_refuses_install",
+        "passed": true
+      },
+      {
+        "case": "unexpected_hal_table_refuses_install",
+        "passed": true
+      },
+      {
+        "case": "busy_nci_callback_refuses_install",
+        "passed": true
+      }
+    ],
+    "boundaries": [
+      "original HAL receiver",
+      "GKI allocation/free/enqueue",
+      "HAL output",
+      "timers"
+    ],
+    "not_verified": [
+      "live HAL callback owner and serialization",
+      "live original-HAL quiescence barrier",
+      "real routing table",
+      "host AID routing",
+      "external RF"
+    ]
+  },
+  "discovery": {
+    "execution": "OFFLINE_COMPILED_PROBES_AND_ORIGINAL_DM_ACTIONS_WITH_SYNTHETIC_RAM",
+    "cases_passed": 12,
+    "cases": [
+      {
+        "case": "compiled_stop_enqueues_original_action_without_module_callback",
+        "passed": true
+      },
+      {
+        "case": "compiled_start_enqueues_original_action_without_module_callback",
+        "passed": true
+      },
+      {
+        "case": "rf_active_refuses_stop",
+        "passed": true
+      },
+      {
+        "case": "already_disabled_refuses_stop",
+        "passed": true
+      },
+      {
+        "case": "raw_command_busy_refuses_stop",
+        "passed": true
+      },
+      {
+        "case": "window_closed_refuses_stop",
+        "passed": true
+      },
+      {
+        "case": "queue_busy_refuses_stop",
+        "passed": true
+      },
+      {
+        "case": "allocation_failure_enqueues_nothing",
+        "passed": true
+      },
+      {
+        "case": "resume_does_not_guess_incomplete_stop_state",
+        "passed": true
+      },
+      {
+        "case": "original_start_already_enabled",
+        "passed": true
+      },
+      {
+        "case": "original_start_wrong_state",
+        "passed": true
+      },
+      {
+        "case": "original_stop_already_disabled",
+        "passed": true
+      }
+    ],
+    "real_discovery_stop_start": false,
+    "boundaries": [
+      "GKI allocation",
+      "NFA message queue",
+      "application notification",
+      "RF deactivation completion",
+      "discovery start/configuration"
+    ],
+    "not_verified": [
+      "live stop completion",
+      "live start/configuration completion",
+      "unchanged controller routing after discovery restart",
+      "external RF"
+    ]
+  },
+  "constant_writers": {
+    "execution": "OFFLINE_COMPILED_CONSTANT_WRITERS_AND_ORIGINAL_NCI_QUEUE",
+    "cases_passed": 12,
+    "cases": [
+      {
+        "case": "compiled_append_constant_matches_lossless_plan_and_callback_clears",
+        "passed": true
+      },
+      {
+        "case": "compiled_restore_constant_matches_lossless_plan_and_callback_clears",
+        "passed": true
+      },
+      {
+        "case": "no_aid_routing_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "capacity_too_small_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "discovery_running_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "rf_active_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "raw_callback_busy_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "command_busy_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "queue_busy_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "window_closed_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "unexpected_hal_owner_refuses_write",
+        "passed": true
+      },
+      {
+        "case": "allocation_failure_no_write",
+        "passed": true
+      }
+    ],
+    "real_route_write": false,
+    "boundaries": [
+      "NFA queue",
+      "GKI allocation/free",
+      "HAL output",
+      "timers"
+    ],
+    "not_verified": [
+      "controller acceptance",
+      "actual readback and restoration",
+      "RF SELECT and APDU",
+      "SPP"
+    ]
+  },
+  "routing_parser": {
+    "cases_passed": 6,
+    "test_command": "python3 -m unittest discover -s tools/research/xiaomi-nfc-host -p test_routing_table.py -v"
+  },
+  "discovery_slots": {
+    "execution": "OFFLINE_COMPILED_SPARE_SLOT_PROBE_AND_ORIGINAL_ARM_DISPATCH",
+    "cases_passed": 9,
+    "cases": [
+      {
+        "case": "compiled_probe_registers_spare_host_slot_then_restores_all_original_bytes",
+        "passed": true
+      },
+      {
+        "case": "discovery_running_refuses_register",
+        "passed": true
+      },
+      {
+        "case": "both_slots_used_refuses_register",
+        "passed": true
+      },
+      {
+        "case": "original_slot_absent_refuses_register",
+        "passed": true
+      },
+      {
+        "case": "raw_queue_busy_refuses_register",
+        "passed": true
+      },
+      {
+        "case": "state_changed_before_nfa_callback_refuses_register",
+        "passed": true
+      },
+      {
+        "case": "original_activation_old_technology_map_still_selects_eSE",
+        "passed": true
+      },
+      {
+        "case": "original_activation_temporary_DH_map_selects_test_listener",
+        "passed": true
+      },
+      {
+        "case": "original_activation_direct_eSE_interface_remains_original",
+        "passed": true
+      }
+    ],
+    "real_host_apdu_callback": false,
+    "boundaries": [
+      "NFA enqueue",
+      "HAL output",
+      "GKI/timers",
+      "discovery callbacks"
+    ],
+    "not_verified": [
+      "live spare-slot registration/removal",
+      "live host activation",
+      "callback lifecycle across real activation/deactivation",
+      "RF APDU"
+    ]
+  },
+  "host_session": {
+    "execution": "OFFLINE_COMPILED_HOST_SESSION_AND_ORIGINAL_FULL_DISCOVERY_AND_RF_SEND",
+    "cases_passed": 12,
+    "cases": [
+      {
+        "case": "registration_and_removal_without_arming_restore_all_original_entry_bytes",
+        "passed": true
+      },
+      {
+        "case": "original_full_discovery_callback_selects_extra_host_and_restores_technology_map",
+        "passed": true
+      },
+      {
+        "case": "test_select_submits_fixed_response_through_original_send_path_and_frees_once",
+        "passed": true
+      },
+      {
+        "case": "test_select_without_le_is_also_exact_match",
+        "passed": true
+      },
+      {
+        "case": "non_test_aid_forwarded_to_original_sink_without_response_or_payload_log",
+        "passed": true
+      },
+      {
+        "case": "own_listener_deactivation_restores_original_rf_callback",
+        "passed": true
+      },
+      {
+        "case": "stop_completion_then_remove_clears_all_module_references",
+        "passed": true
+      },
+      {
+        "case": "direct_eSE_activation_uses_original_registration_and_unchanged_map",
+        "passed": true
+      },
+      {
+        "case": "unexpected_rf_callback_owner_not_overwritten",
+        "passed": true
+      },
+      {
+        "case": "original_deactivation_and_discovery_restart_keep_session_wrapper_owned",
+        "passed": true
+      },
+      {
+        "case": "bounded_stop_owned_test_listen_allowed",
+        "passed": true
+      },
+      {
+        "case": "bounded_stop_original_eSE_listen_refused",
+        "passed": true
+      }
+    ],
+    "real_host_rf_apdu": false,
+    "boundaries": [
+      "HAL output",
+      "GKI/timers",
+      "NFA queue",
+      "selected discovery mask",
+      "RF stop completion",
+      "RF send queue",
+      "original eSE listener"
+    ],
+    "not_verified": [
+      "live activation payload ABI",
+      "live callback ownership during RF",
+      "automatic timeout restoration",
+      "external reader RAPDU",
+      "SPP",
+      "WTX"
+    ]
+  }
+}

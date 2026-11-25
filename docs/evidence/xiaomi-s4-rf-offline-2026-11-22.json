@@ -1,0 +1,212 @@
+{
+  "client_date": "2026-11-22",
+  "rf_data": {
+    "execution": "OFFLINE_ORIGINAL_ARM_CODE_WITH_SYNTHETIC_RAM",
+    "firmware": "S4 3.201.79",
+    "real_rf_test": false,
+    "spp_test": false,
+    "test_aid": "F0010203040506",
+    "cases_passed": 14,
+    "cases": [
+      {
+        "case": "test_select_receive",
+        "passed": true,
+        "callbacks": [
+          {
+            "event": 9,
+            "status": 0,
+            "payload_hex": "00a4040007f001020304050600"
+          }
+        ],
+        "original_buffer_freed_exactly_once": true
+      },
+      {
+        "case": "live_pointer_target_drops_rf_data",
+        "passed": true,
+        "original_buffer_freed_exactly_once": true
+      },
+      {
+        "case": "null_receive_buffer",
+        "passed": true
+      },
+      {
+        "case": "deactivate_clears_static_callback",
+        "passed": true
+      },
+      {
+        "case": "callback_install_restore",
+        "passed": true,
+        "pending_data_drain_boundary_called": 2
+      },
+      {
+        "case": "listen_fixed_response_send",
+        "passed": true,
+        "queued_to_emulated_nci_boundary": [
+          {
+            "connection_cb": "0x3c2d4b90",
+            "payload_hex": "5334544553549000",
+            "bt_hdr_offset": 4
+          }
+        ],
+        "dispatcher_must_not_free_buffer": true
+      },
+      {
+        "case": "send_queue_error_frees_once_restores_reassembly",
+        "passed": true
+      },
+      {
+        "case": "insufficient_bt_header_offset",
+        "passed": true
+      },
+      {
+        "case": "missing_rf_connection",
+        "passed": true
+      },
+      {
+        "case": "inactive_state_0_caller_owns_buffer",
+        "passed": true
+      },
+      {
+        "case": "inactive_state_1_caller_owns_buffer",
+        "passed": true
+      },
+      {
+        "case": "inactive_state_2_caller_owns_buffer",
+        "passed": true
+      },
+      {
+        "case": "inactive_state_3_caller_owns_buffer",
+        "passed": true
+      },
+      {
+        "case": "inactive_state_6_caller_owns_buffer",
+        "passed": true
+      }
+    ],
+    "synthetic_ese_control_unchanged_all_cases": true,
+    "emulator_boundaries": [
+      "application callback",
+      "GKI_freebuf",
+      "nfc_data_event pending drain",
+      "nfc_ncif_send_data queue"
+    ],
+    "not_verified": [
+      "controller RF receipt/transmit",
+      "host AID routing registration/removal",
+      "live callback ownership/lifecycle",
+      "SPP latency",
+      "WTX"
+    ]
+  },
+  "nci_routing": {
+    "execution": "OFFLINE_ORIGINAL_ARM_CODE_WITH_SYNTHETIC_RAM",
+    "firmware": "S4 3.201.79",
+    "real_controller_query": false,
+    "real_route_backup": false,
+    "real_route_write": false,
+    "cases_passed": 8,
+    "cases": [
+      {
+        "case": "synthetic_baseline_and_test_aid",
+        "passed": true,
+        "emulated_command_hex": "21011200020103c0010402090001f0010203040506"
+      },
+      {
+        "case": "synthetic_original_table_restore",
+        "passed": true,
+        "emulated_command_hex": "21010700010103c00104"
+      },
+      {
+        "case": "segmented_routing_more_flag",
+        "passed": true,
+        "emulated_command_hex": "21010701010103c00104"
+      },
+      {
+        "case": "empty_routing_is_destructive_not_a_query",
+        "passed": true,
+        "emulated_command_hex": "2101020000"
+      },
+      {
+        "case": "route_builder_allocation_failure",
+        "passed": true
+      },
+      {
+        "case": "read_only_get_routing_through_original_dm_and_nci_queue",
+        "passed": true,
+        "emulated_command_hex": "210200",
+        "original_queue_frees_message_once": true
+      },
+      {
+        "case": "raw_response_callback_returns_then_pointer_is_cleared",
+        "passed": true,
+        "response": [
+          {
+            "event": 66,
+            "packet_hex": "41020100"
+          }
+        ]
+      },
+      {
+        "case": "ordinary_get_routing_response_event_is_ignored",
+        "passed": true
+      }
+    ],
+    "boundaries": [
+      "GKI allocation/free",
+      "memcpy",
+      "HAL output",
+      "timers",
+      "application callback",
+      "routing builder send boundary",
+      "command-window update after response"
+    ],
+    "not_verified": [
+      "RF_GET_ROUTING notification capture",
+      "live command queue idle state and timeout cleanup",
+      "controller supports DH AID routing",
+      "test-AID RF round trip"
+    ]
+  },
+  "compiled_getroute_probe": {
+    "execution": "OFFLINE_COMPILED_PROBE_AND_ORIGINAL_ARM_WITH_SYNTHETIC_RAM",
+    "real_controller_query": false,
+    "cases_passed": 7,
+    "cases": [
+      {
+        "case": "compiled_probe_original_queue_response_and_callback_cleanup",
+        "passed": true
+      },
+      {
+        "case": "busy_callback_refuses_query",
+        "passed": true
+      },
+      {
+        "case": "raw_command_busy_refuses_query",
+        "passed": true
+      },
+      {
+        "case": "command_window_closed_refuses_query",
+        "passed": true
+      },
+      {
+        "case": "queued_other_command_refuses_query",
+        "passed": true
+      },
+      {
+        "case": "active_rf_state_refuses_query",
+        "passed": true
+      },
+      {
+        "case": "unexpected_ese_state_refuses_query",
+        "passed": true
+      }
+    ],
+    "not_verified": [
+      "live callback completion",
+      "real command timeout",
+      "routing notification capture",
+      "live controller support"
+    ]
+  },
+  "total_cases_passed": 29
+}

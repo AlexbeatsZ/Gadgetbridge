@@ -1,0 +1,12 @@
+{
+  "kind": "K70-shell-reader-preflight-no-physical-tag",
+  "inspect": "{\"mode\":\"inspection\",\"uid\":2000,\"nfc_binder_alive\":true,\"reader_signature\":\"token,callback,flags,extras,packageName\",\"tag_callback_transaction\":1}",
+  "bounded_request_log": "{\"mode\":\"inspection\",\"uid\":2000,\"nfc_binder_alive\":true,\"reader_signature\":\"token,callback,flags,extras,packageName\",\"tag_callback_transaction\":1}\n{\"mode\":\"bounded_test_reader\",\"request_returned\":true,\"accepted_by_service\":\"requires_live_service_check\",\"window_seconds\":3}\n{\"live_service_selected_metadata\": [\"mState=on\"]}\n{\"reader_mode_disable_request_returned\":true,\"successful_presentations\":0}",
+  "real_reader_response": false,
+  "limits": [
+    "ReaderMode binder request return alone does not prove polling or successful RF",
+    "only synthetic test SELECT is allowed",
+    "no tag UID, full unexpected response or card credentials logged"
+  ],
+  "no_apk_or_production_app_change": true
+}

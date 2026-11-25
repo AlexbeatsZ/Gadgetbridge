@@ -1,0 +1,156 @@
+{
+  "kind": "real-watch-readonly-routing-notification-experiment",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "version.txt",
+      "text": "Hex dump:\n0000: 4e 53 54 52 03 00 00 00 01 81 00 00 00 00 00 00 NSTR............\n0010: 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 ................\n0020: 01 00 00 00 42 00 00 00 04 00 00 00 00 00 00 00 ....B...........\n0030: 41 02 01 00 e1 e7 54 3c 00 00 00 00 00 00 00 00 A.....T<........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_route_capture 0x3d5076d9        0        0        0 0x3d5076d8      772 0x3d3d5e00     118U\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "shell-help.txt",
+      "text": "Hex dump:\n0000: 50 43 54 52 03 00 00 00 01 81 00 00 85 cd 34 2c PCTR..........4,\n0010: 85 cd 34 2c 01 00 00 00 01 00 00 00 00 00 00 00 ..4,............\n0020: 01 00 00 00 00 00 00 00 0f 00 00 00 51 78 50 3d ............QxP=\n0030: 00 00 00 00 02 00 00 00 00 00 00 00 a0 04 00 00 ................\n0040: 35 0d 34 2c 38 37 2d 3c 01 00 00 00 00 00 00 00 5.4,87-<........\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 50 43 54 52 03 00 00 00 01 81 00 00 85 cd 34 2c PCTR..........4,\n0010: 85 cd 34 2c 01 00 00 00 01 00 00 00 00 00 00 00 ..4,............\n0020: 01 00 00 00 00 00 00 00 0f 00 00 00 51 78 50 3d ............QxP=\n0030: 00 00 00 00 02 00 00 00 00 00 00 00 a0 04 00 00 ................\n0040: 35 0d 34 2c 38 37 2d 3c 01 00 00 00 00 00 00 00 5.4,87-<........\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: 0f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "device-list.txt",
+      "text": "Hex dump:\n0000: 85 cd 34 2c                                     ..4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "process-list.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules.txt",
+      "text": "Hex dump:\n0000: 4e 53 54 52 03 00 00 00 01 81 00 00 00 00 00 00 NSTR............\n0010: 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 ................\n0020: 01 00 00 00 42 00 00 00 04 00 00 00 00 00 00 00 ....B...........\n0030: 41 02 01 00 f1 54 56 3d 00 00 00 00 00 00 00 00 A....TV=........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "GET_ROUTING capture; immutable read-only queries; no APDU capture\nmodules-before.txt:true,true,exit,0\nwork-hal-before.txt:true,true,exit,0\nwork-trampoline.txt:true,true,exit,0\nHAL before=741657989 trampoline=741608757\nmodule-load.txt:true,true,exit,0\nwork-sleep.txt:true,true,exit,0\nmodules-after.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nshell-help.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nwork-load.txt:true,true,exit,0\nwork-sleep.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nversion.txt:true,true,exit,0\nwork-slot.txt:true,true,exit,0\nwork-flag.txt:true,true,exit,0\nwork-unload.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nfirst_barrier=true\nhost-help.txt:true,true,exit,0\ndevice-list.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nwork-load.txt:true,true,exit,0\nwork-sleep.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nmodules.txt:true,true,exit,0\nwork-slot.txt:true,true,exit,0\nwork-flag.txt:true,true,exit,0\nwork-unload.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\noriginal_HAL_barrier=true\nhost-help.txt:true,true,exit,0\nfd-help.txt:true,true,exit,0\nnfc-proc.txt:true,true,exit,0\nnfc-fds.txt:true,true,exit,0\nnfc-mqueue.txt:true,true,exit,0\nprocess-list.txt:true,true,exit,0\nwork-slot.txt:true,true,exit,0\nwork-flag.txt:true,true,exit,0\nmodule-unload.txt:true,true,exit,0\nwork-modules.txt:true,true,exit,0\nmodules-final.txt:true,true,exit,0\nproc-list.txt:true,true,exit,0"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "status": "heartbeat-file-object"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "status": "heartbeat-file-object"
+    }
+  ],
+  "header": [
+    1381253968,
+    3,
+    33025,
+    741657989,
+    741657989,
+    1,
+    1,
+    0,
+    1,
+    0,
+    15,
+    1028683857,
+    0,
+    2,
+    0,
+    1184,
+    741608757,
+    1009596216,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "packet_lengths": [
+    15,
+    0,
+    0,
+    0
+  ],
+  "routing_notifications_hex": [
+    "61020c00020003c0e3000003c0e302"
+  ],
+  "hal_restored": true,
+  "read_only_barriers_success": true,
+  "modules_unloaded": true,
+  "scope": {
+    "test_aid_only": "F0010203040506",
+    "no_real_card_apdu": true,
+    "no_tsm_order_or_migration": true,
+    "no_production_app_change": true,
+    "no_apk_release": true
+  }
+}

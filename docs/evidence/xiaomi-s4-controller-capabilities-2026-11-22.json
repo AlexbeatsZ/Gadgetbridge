@@ -1,0 +1,142 @@
+{
+  "kind": "real-watch-readonly-controller-metadata",
+  "records": [
+    {
+      "probe": "native-nfc-readonly",
+      "file": "version.txt",
+      "text": "NuttX Xiaomi Watch S4 3.6.1 3a1418973b Jul  3 2026 19:24:21 arm ap\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-load.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-before.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-after.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\ngb_route_capture 0x3d5076d9        0        0        0 0x3d5076d8      772 0x3d3d5e00     118U\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "module-unload.txt",
+      "text": ""
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules-final.txt",
+      "text": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "shell-help.txt",
+      "text": "Hex dump:\n0000: a4 f8 c4 10 c4 f8 c0 30 84 f8 c6 00 f9 84 d1 79 .......0.......y\n0010: 13 f0 08 0f 84 f8 c7 10                         ........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "proc-list.txt",
+      "text": "Hex dump:\n0000: 01 81 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "host-help.txt",
+      "text": "Hex dump:\n0000: 3a 3e 06 00 06 04 01 ff                         :>......\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "fd-help.txt",
+      "text": "Hex dump:\n0000: 20 ff 01 ff                                      ...\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-proc.txt",
+      "text": "Hex dump:\n0000: 04 01 00 05                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-fds.txt",
+      "text": "Hex dump:\n0000: 01 00 01 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "nfc-mqueue.txt",
+      "text": "Hex dump:\n0000: 58 47 8b 2c 80 81 83 00 00 00 07 00 00 00 00 04 XG.,............\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "ready.txt",
+      "text": "ready"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "device-list.txt",
+      "text": "Hex dump:\n0000: 85 cd 34 2c                                     ..4,\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "process-list.txt",
+      "text": "Hex dump:\n0000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 00 00 00 00                                     ....\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "modules.txt",
+      "text": "Hex dump:\n0000: 4e 53 54 52 03 00 00 00 01 81 00 00 00 00 00 00 NSTR............\n0010: 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 ................\n0020: 01 00 00 00 42 00 00 00 04 00 00 00 00 00 00 00 ....B...........\n0030: 41 02 01 00 f1 54 56 3d 00 00 00 00 00 00 00 00 A....TV=........\n"
+    },
+    {
+      "probe": "native-nfc-readonly",
+      "file": "lua-result.txt",
+      "text": "S4 controller metadata; readonly; no routing or SE writes\nuname -a => true,true,exit,0\nxd 3c2d4c4c 8 => true,true,exit,0\nxd 3c2d4d84 4 => true,true,exit,0\nxd 3c2d4cbc 4 => true,true,exit,0\nxd 3c2d4746 4 => true,true,exit,0\nxd 3c2d4c54 16 => true,true,exit,0\nxd 3c2d45cc 4 => true,true,exit,0\nxd 3c2d46d4 4 => true,true,exit,0\nlsmod => true,true,exit,0\nxd 2c34d018 24 => true,true,exit,0"
+    }
+  ],
+  "decoded": {
+    "nci_features_hex": "00063e3a",
+    "technology_routing": true,
+    "protocol_routing": true,
+    "aid_routing": true,
+    "max_routing_table_bytes": 1030,
+    "max_logical_connections": 1,
+    "max_control_payload_bytes": 255,
+    "nci_version_raw_hex": "20",
+    "nfc_state": 4,
+    "dm_discovery_flags": 1,
+    "dm_state": 1
+  },
+  "offline_discovery_map": {
+    "address": "0x2c8b4758",
+    "raw_hex": "040302030201800180020101",
+    "entries": [
+      {
+        "protocol": 4,
+        "mode": 3,
+        "interface": 2
+      },
+      {
+        "protocol": 3,
+        "mode": 2,
+        "interface": 1
+      },
+      {
+        "protocol": 128,
+        "mode": 1,
+        "interface": 128
+      },
+      {
+        "protocol": 2,
+        "mode": 1,
+        "interface": 1
+      }
+    ],
+    "real_readback": false
+  },
+  "scope": {
+    "test_aid_only": "F0010203040506",
+    "no_real_card_apdu": true,
+    "no_tsm_order_or_migration": true,
+    "no_production_app_change": true,
+    "no_apk_release": true
+  }
+}
