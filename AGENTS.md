@@ -10,7 +10,7 @@
 - 进行中: 在小米手表 S4 上运行自定义快应用并替换语音助手。任务日志 `~/.agents/xiaomi-watch-s4--custom-apps-voice-assistant/AGENTS.md`,探测快应用项目 `/Users/meta/Developer/S4-Vela-Probe`。
 
 ## Current State
-- 分支 `feat/app-timezone`(基于上游 master 8976702fc3)。2026-11-25 已合入 `feat/xiaomi-voice-inject`(手机助手、S4 活动通话设备、Gemini 播报、公交卡研究工具与快应用前台直发)，版本 2026.11.18/code273。合并后 Xiaomi、设置外观和主题迁移回归 418 项、0 失败、2 跳过；APK `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk` 已用原 debug 证书 cbde4ad4… 签名。合并前 K70 运行的是 inject 分支的 2026.11.16/code272；新版尚未安装、未发 GitHub release(等 K70 空闲)。`origin` 是 Codeberg 上游，个人发布仓库为 GitHub `AlexbeatsZ/Gadgetbridge`，只推送 `personal`。
+- 分支 `feat/app-timezone`(基于上游 master 8976702fc3)。2026-11-25 已合入 `feat/xiaomi-voice-inject`(手机助手、S4 活动通话设备、Gemini 播报、公交卡研究工具与快应用前台直发)，版本 2026.11.18/code273。合并后 Xiaomi、设置外观和主题迁移回归 418 项、0 失败、2 跳过；APK `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk` 已用原 debug 证书 cbde4ad4… 签名。合并前 K70 运行的是 inject 分支的 2026.11.16/code272；2026-11-26 01:02(K70 时间)已覆盖安装 K70(`adb install -r --user current`，首次安装时间 2026-11-10 保留)，S4 原绑定重新认证、手表通话设备恢复 ACTIVE、手表消息开关仍为 true；GitHub 预发布 v2026.11.18 已附 APK。快应用前台回包尚未实机复测(用户暂时不能测试)。`origin` 是 Codeberg 上游，个人发布仓库为 GitHub `AlexbeatsZ/Gadgetbridge`，只推送 `personal`。
 - mainline 名称为「手环」，使用用户提供的新图标及 Google Settings 风格原生设置行。默认动态取色，偏好迁移 73 将旧 system 一次性迁到 dynamic，保留 light/dark 与迁移后手动选择。旧 checkbox 显式布局别名复用新圆角行。设计见 `docs/design/pixel-settings.md`。
 - 2026-11-15 已提交并推送 `610827c031`，个人 fork prerelease `v2026.11.5` 已发布。APK 为 `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk`，沿用原 debug 签名，干净提交重建，项目仅保留当前 APK。
 - 2026-11-15 主聊天已在 K70 覆盖安装 2026.11.5/code261。后台进程自动启动后只读确认 `pref_key_theme=dynamic`、`shared_preferences_version=73`，旧 system 自动迁移实机成立。安装后立即读取曾仍为 system，迁移在进程启动时执行。
@@ -26,7 +26,7 @@
 - S4 官方 App 音频静态研究已完成。com.mi.health 3.59.2 的蓝牙语音为 channel3/type103，AIVS START/DATA/END/QUIT，80字节 Opus 帧、16kHz 单声道；停止收音和回答走 type14/subtype0，TTS PCM 走 HFP/SCO。真实帧解码与设备应答待验证，详见 `docs/design/xiaomi-s4-official-audio.md`。用户要求先静态分析并保留绑定，仅必要时考虑重绑。
 - 2026.11.6: 手表快应用 interconnect 已在 S4 实测双向中的手表→手机方向；手机→手表和广播开关路径未实测。下一步是 AIVS(命令类型 14)语音协议。
 - 2026.11.5 的 K70 页面视觉验收仍待完成。14 项主题迁移/启动/设置入口回归通过，覆盖安装及主题偏好迁移已有实机证据。完整 lint 的 12 个现存错误见 2026-11 日志。
-- Dayweave 手表快应用(设计 `~/Developer/dayweave/docs/design/watch.md`):前台直发与定向广播已随合并进入主线(e975dc29ae)。待 K70 空闲时覆盖安装 code273，再用 `~/Developer/S4-Vela-Probe` 1.1.0 + `tools/channel_responder.py` 复测回包×10 与下行大小。K70 另有 NFC/公交卡实验对话在用手机与 GB 进程，安装会重启 GB，须等用户确认空闲。
+- Dayweave 手表快应用(设计 `~/Developer/dayweave/docs/design/watch.md`):前台直发与定向广播已随合并进入主线(e975dc29ae)。code273 已装 K70，待用户能测试时再用 `~/Developer/S4-Vela-Probe` 1.1.0 + `tools/channel_responder.py` 复测回包×10 与下行大小。K70 另有 NFC/公交卡实验对话在用手机与 GB 进程，安装会重启 GB，须等用户确认空闲。
 - 自定义时区尚未在真机上验证。
 - 真实 S4 已进入 Gadgetbridge 认证页。旧版在 APatch 下报数据库缺失，修复后已在 K70 上复现挂载隔离并验证只读重试返回唯一有效密钥，待验收新版认证页和蓝牙握手。
 - 数据外传(2026-11-12 起):K70 上自动导出数据库每小时一次，不设导出位置，导出后上传到 `http://100.106.169.46:8789/gadgetbridge`(ROG webhook 接收端，令牌只在手机 prefs 和 ROG 私有目录里)。Syncthing 已从 ROG 删除，手机上也已没有 Syncthing-Fork。整点自动上传还没观察到。设计见 `docs/design/auto-export-upload.md`,运维记录见 `~/.agents/gadgetbridge--rog-syncthing/AGENTS.md`。
