@@ -17,6 +17,7 @@
 package nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.services;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 
 import com.google.protobuf.ByteString;
 
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.LongSupplier;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
@@ -78,6 +80,14 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     private final Map<String, Queue<byte[]>> pendingMessages = new HashMap<>();
     // Rpk ids to launch once the rpk list arrives
     private final Set<String> awaitingList = new HashSet<>();
+    // When each app last showed it is open (status request or message), monotonic millis
+    private final Map<String, Long> lastSeenOpen = new HashMap<>();
+    /**
+     * A launch sent while the app is already in the foreground gets no new status request (tested on a
+     * Xiaomi Watch S4), so messages for an app seen this recently go out directly instead.
+     */
+    static final long OPEN_WINDOW_MS = 30_000;
+    LongSupplier monotonicMillis = () -> System.nanoTime() / 1_000_000L;
 
 
     // Not null if we're installing a firmware
@@ -136,6 +146,14 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
      * @param appId rpk id as reported in the rpk list
      */
     public void sendWearAppMessage(final String appId, final byte[] payload) {
+        final Long seen = lastSeenOpen.get(appId);
+        if (seen != null && shaMap.containsKey(appId) && monotonicMillis.getAsLong() - seen < OPEN_WINDOW_MS) {
+            LOG.debug("Wear app {} is open, sending directly", appId);
+            final RpkInfoList ref = rpkRef(appId, shaMap.get(appId));
+            getSupport().sendCommand("wear app message " + appId, buildMessageCommand(ref, payload));
+            getSupport().sendCommand("wear app session end " + appId, buildSessionEndCommand(ref));
+            return;
+        }
         pendingMessages.computeIfAbsent(appId, k -> new ArrayDeque<>()).add(payload);
         if (!shaMap.containsKey(appId)) {
             // sha is only known from the rpk list, which is fetched on demand
@@ -166,6 +184,7 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     }
 
     private void onWearAppLaunched(final RpkInfoList app) {
+        lastSeenOpen.put(app.getId(), monotonicMillis.getAsLong());
         final Queue<byte[]> payloads = pendingMessages.remove(app.getId());
         final RpkInfoList ref = rpkRef(app.getId(), app.getSha());
         if (payloads == null) {
@@ -183,6 +202,7 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     private void onWearAppMessage(final RpkMessage message) {
         final String appId = message.getApp().getId();
         final String payload = message.getPayload().toStringUtf8();
+        lastSeenOpen.put(appId, monotonicMillis.getAsLong());
         LOG.info("Message from wear app {}: {} bytes", appId, message.getPayload().size());
         LOG.debug("Wear app {} message: {}", appId, payload);
 
@@ -196,7 +216,20 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
                 .putExtra("device", device.getAddress())
                 .putExtra("appId", appId)
                 .putExtra("payload", payload);
-        getSupport().getContext().sendBroadcast(intent);
+        getSupport().getContext().sendBroadcast(targetPhoneApp(intent, appId, getSupport().getContext().getPackageManager()));
+    }
+
+    /**
+     * Interconnect pairs a band app with the phone app of the same package. When that package receives the
+     * message, send only to it: manifest receivers then get it while the app is stopped, and other apps don't.
+     */
+    static Intent targetPhoneApp(final Intent intent, final String appId, final PackageManager packageManager) {
+        final Intent explicit = new Intent(intent).setPackage(appId);
+        if (packageManager.queryBroadcastReceivers(explicit, 0).isEmpty()) {
+            return intent;
+        }
+        LOG.debug("Sending wear app message only to phone app {}", appId);
+        return explicit;
     }
 
     @Override
@@ -204,6 +237,7 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
         // Otherwise messages from before the disconnect would go out with the next one, possibly much later
         pendingMessages.clear();
         awaitingList.clear();
+        lastSeenOpen.clear();
     }
 
     static RpkInfoList rpkRef(final String id, final ByteString sha) {

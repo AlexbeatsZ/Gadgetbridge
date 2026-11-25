@@ -35,6 +35,7 @@
 - S4 播放已验证收音后顺序。8 秒探针和 2026.11.14 的 Gemini 原声均确认从手表扬声器播放。测试后回到 MODE_NORMAL，S4 保持 HFP 活动，SCO 已关闭。
 - 小爱录音中途建立 SCO 的那轮只有一包 SPP 音频在 SCO 接通附近到达，随后到播放结束无新语音包；用户听到声音但无法区分声源。空闲态单独播放时 Android 路由为 S4，但用户两边没听到。尚不能据此确定两种状态差异的固件条件。手机临时探针已删除，记录位于 /tmp/.agents/gadgetbridge-card-feedback/hfp-output。
 - 2026-11-17 原生卡实验已结束。S4 的 General2（258）和 General（257）均未显示只读闹钟样卡；ToastStream（292）仅确认无序、有序列表样式。按用户要求保留 2026.11.14 的 Markdown 回答卡，探针代码及设备触发标记均已移除。
+- Dayweave 手表快应用通道(设计 `~/Developer/dayweave/docs/design/watch.md`):2026-11-25 已提交快应用前台时直发消息(30 秒窗口)和按包名定向广播，14 项相关单测通过，未改版本、未打包、未装机。用户要求先不部署；下次发版需升版本并用探针 `~/Developer/S4-Vela-Probe` 1.1.0 加 `tools/channel_responder.py` 复测回包与下行大小。K70 上 S4 的「第三方应用收发手表应用消息」已为测试打开。
 - 主工作区 docs/log/2026-11.md 有其他任务未提交内容。
 
 ## Build / Run / Test
