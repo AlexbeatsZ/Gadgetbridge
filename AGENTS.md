@@ -10,7 +10,7 @@
 - 进行中: 在小米手表 S4 上运行自定义快应用并替换语音助手。任务日志 `~/.agents/xiaomi-watch-s4--custom-apps-voice-assistant/AGENTS.md`,探测快应用项目 `/Users/meta/Developer/S4-Vela-Probe`。
 
 ## Current State
-- 分支 `feat/app-timezone`(基于上游 master 8976702fc3)。2026-11-25 已合入 `feat/xiaomi-voice-inject`(手机助手、S4 活动通话设备、Gemini 播报、公交卡研究工具与快应用前台直发)，版本 2026.11.18/code273。合并前 K70 运行的是 inject 分支的 2026.11.16/code272；新版尚未安装。`origin` 是 Codeberg 上游，个人发布仓库为 GitHub `AlexbeatsZ/Gadgetbridge`，只推送 `personal`。
+- 分支 `feat/app-timezone`(基于上游 master 8976702fc3)。2026-11-25 已合入 `feat/xiaomi-voice-inject`(手机助手、S4 活动通话设备、Gemini 播报、公交卡研究工具与快应用前台直发)，版本 2026.11.18/code273。合并后 Xiaomi、设置外观和主题迁移回归 418 项、0 失败、2 跳过；APK `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk` 已用原 debug 证书 cbde4ad4… 签名。合并前 K70 运行的是 inject 分支的 2026.11.16/code272；新版尚未安装、未发 GitHub release(等 K70 空闲)。`origin` 是 Codeberg 上游，个人发布仓库为 GitHub `AlexbeatsZ/Gadgetbridge`，只推送 `personal`。
 - mainline 名称为「手环」，使用用户提供的新图标及 Google Settings 风格原生设置行。默认动态取色，偏好迁移 73 将旧 system 一次性迁到 dynamic，保留 light/dark 与迁移后手动选择。旧 checkbox 显式布局别名复用新圆角行。设计见 `docs/design/pixel-settings.md`。
 - 2026-11-15 已提交并推送 `610827c031`，个人 fork prerelease `v2026.11.5` 已发布。APK 为 `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk`，沿用原 debug 签名，干净提交重建，项目仅保留当前 APK。
 - 2026-11-15 主聊天已在 K70 覆盖安装 2026.11.5/code261。后台进程自动启动后只读确认 `pref_key_theme=dynamic`、`shared_preferences_version=73`，旧 system 自动迁移实机成立。安装后立即读取曾仍为 system，迁移在进程启动时执行。
