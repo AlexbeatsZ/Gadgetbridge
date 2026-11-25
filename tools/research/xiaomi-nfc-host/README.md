@@ -1,8 +1,8 @@
 # 路线 B：原生 NFC Host 接口研究
 
-这是独立研究目录，**2026-11-25已实机通过固定测试AID的射频APDU往返，SPP与RF串联仍待验证**。详细地址、真实失败回调、边界和下一实验见 `docs/design/xiaomi-s4-nfc-host.md`。
+这是独立研究目录，**2026-11-25已实机通过固定测试AID的射频APDU往返，SPP与RF串联取得一次709.34ms成功、另一次TagLost，稳定性待验证**。详细地址、真实失败回调、边界和下一实验见 `docs/design/xiaomi-s4-nfc-host.md`。
 
-当前优先路线为蓝牙代理（先Classic SPP），A真实迁移暂停。**已实机取得完整旧路由、controller AID能力、测试AID-first路由增加/回读/重启保持/完整恢复，以及spare discovery slot同步add/delete。已用外部K70验证固定SELECT→S4本机S4TEST9000两次，RTT92.73/92.22ms，原路由/槽/回调恢复和模块卸载通过；SPP固定后端另行实测3/3通过，RTT122/123/146ms；RF/SPP尚未串联。**AID-last曾FAILED03并清空表，已恢复；不能重复使用错误顺序或假定失败没有副作用。详见设计和独立失败/成功证据。
+当前优先路线为蓝牙代理（先Classic SPP），A真实迁移暂停。**已实机取得完整旧路由、controller AID能力、测试AID-first路由增加/回读/重启保持/完整恢复，以及spare discovery slot同步add/delete。已用外部K70验证固定SELECT→S4本机S4TEST9000两次，RTT92.73/92.22ms，原路由/槽/回调恢复和模块卸载通过；SPP固定后端另行实测3/3通过，RTT122/123/146ms；RF/SPP串联在RF10取得一次真实成功（709.34ms，另一次TagLost），完整计数与原表/槽/回调/eSE/barrier恢复及卸载均已复核。**AID-last曾FAILED03并清空表，已恢复；不能重复使用错误顺序或假定失败没有副作用。详见设计和独立失败/成功证据。
 
 | 工具 | 用途 |
 | --- | --- |
@@ -87,8 +87,8 @@ python3 tools/research/xiaomi-nfc-host/firmware.py \
 
 - B1/B2：ROM操作表与镜像一致；CE系统注册地址与动作表实机一致；fd/IPC可实际读取。TML句柄与proc fd映射仍未完全恢复。
 - B5原入口：真实S4执行测试AID注册请求，回调event0x15/status3/handle0xFFFF，失败。注销和ISO-DEP配置为空函数。eSE flags前后0x8101，模块卸载成功。
-- B6/B7：外部K70 ReaderMode实读生效、ISO-DEP连接/Host激活通过；固定SELECT阶段TagLostException，未取得S4TEST响应，不能称完整实机RF通过。
-- B8/B9：尚未进行SPP APDU代理、延迟/WTX/恢复测量。既有wiredSE管理通道不能替代这些判据。
+- B6/B7：RF8外部K70两次收到S4主机本地S4TEST9000（92.73/92.22ms），固定测试RF往返已通过；不声称通用CE或真实公交卡。
+- B8/B9：独立SPP固定后端3/3通过；RF10串联外部reader一次收到手机经SPP返回的固定响应709.34ms，另一次TagLost。WTX、重复多轮稳定性/休眠恢复与真实卡未验证。
 
 测试AID为F0010203040506。整个目录不包含公交卡密钥、真实卡数据或任意SE APDU发送接口。
 
@@ -101,16 +101,16 @@ python3 tools/research/xiaomi-nfc-host/firmware.py \
 - `test-route-write.c`、`test-route-roundtrip.lua.in`、`verify_test_route.py`：仅原两项+F0010203040506的常量增加/恢复，状态/RF空闲/队列/能力guard。失败后也必须回读并恢复。
 - `discovery-slot-check.c/.lua.in`、`verify_discovery_slots.py`：原NFA任务内同步add/delete空闲slot1，完整40字节恢复；无RF收发。
 - `background-check.lua`：无NFC的NSH后台执行验证，避免长Lua等待导致SPP超时。
-- `host-test-session.c`、`host-test-control.c`、`verify_host_session.py`：**已实机启用/自动恢复，但固定APDU响应未通过的研究原型**；只允许测试SELECT→S4TEST9000，其余交旧sink，不记录未知payload。使用独立空闲slot、选择性ISO-DEP分发、原send路径；退出须停止本测试连接、还原原路由/回调/槽并做原队列barrier。控制ELF的SESSION_ADDRESS绑定占位必须唯一，仅能绑定实读的本session data，默认无效。
+- `host-test-session.c`、`host-test-control.c`、`verify_host_session.py`：**RF8本地固定应答、RF10一次手机SPP应答已实机通过的研究原型**；只允许测试SELECT→S4TEST9000，其余交旧sink，不记录未知payload。使用独立空闲slot、选择性ISO-DEP分发、原send路径；退出须停止本测试连接、还原原路由/回调/槽并做原队列barrier。控制ELF的SESSION_ADDRESS绑定占位必须唯一，仅能绑定实读的本session data，默认无效。
 - `S4TestReader.java`：K70 shell UID2000 app_process临时测试reader，无APK；ReaderMode实读生效、外部ISO-DEP连接通过，固定SELECT报TagLostException；错误日志区分connect/test_select阶段。固定SELECT和预期响应，不读UID/卡密钥，未知响应只记长度；退出flags0恢复ReaderMode。
 
 构建新增模块使用已有`build_stock_probe.py --probe <stem>`，choices见`--help`。`discovery-stop/start`和`test-route-append/restore`来自同一受限源码的编译宏；append在此指增加逻辑测试项，发送顺序实际AID-first。ARM离线验证器共同参数为`<vela_ap.bin> --llvm <existing-ndk-llvm-bin> --build-dir <isolated-build> --output <evidence.json>`；先构建对应stem，不能误用旧.o文件。Host三个control stem为host-test-arm/remove/stop，resident stem为host-test-session。
 
-当前Host原型已通过无人操作自动超时恢复预演，也取得外部Host激活证据；固定响应尚未通过，不称功能完成。真实card/余额/校园/配对不得操作。
+当前Host原型已通过无人操作自动超时恢复预演、RF8本地固定响应和RF10一次手机SPP响应；串联仍有超时，不称公交卡功能完成。真实card/余额/校园/配对不得操作。
 
 `render_host_session.py`渲染setup或`--collect` Lua，不安装；`--window-seconds`只接受0..300，`--run-id`限制独立实验标记。setup使用后台NSH执行原栈路由/发现/绑定动作，零窗口**省略sleep**（NSH sleep0报错且终止整段脚本）。collector先核对全部槽/回调/状态、HAL owner和在途计数，再读原表并经过原队列barrier后才卸载；失败必须保留resident继续调查，不能强卸载。
 
-结果前32 words为session header，随后40字节为原discovery两槽、16 words为RF事件/状态/长度元数据、16 words为HAL类型/长度/固定SELECT命中计数。HAL观察器转发所有报文，只计数、不保存未知payload、UID或卡内容；STOP/GET响应owner内自撤销。`verify_host_session.py`16项离线检查（新增原NCI DATA分支及接收队列/drain）不替代现场RF证据。最近实机记录为`docs/evidence/xiaomi-s4-host-session-2026-11-22.json`。
+结果前32 words为session header，随后40字节为原discovery两槽、16 words为RF事件/状态/长度元数据、16 words为HAL类型/长度/固定SELECT命中计数，随后16 words为SPP IPC状态（总360字节）。HAL观察器转发所有报文，只计数、不保存未知payload、UID或卡内容；STOP/GET响应owner内自撤销。`verify_host_session.py`16项离线检查（新增原NCI DATA分支及接收队列/drain）不替代现场RF证据。最近实机记录为`docs/evidence/xiaomi-s4-host-session-2026-11-22.json`。
 
 ```sh
 python3 tools/research/xiaomi-nfc-host/render_host_session.py \
@@ -125,4 +125,15 @@ The next test-only responder copies `S4TEST9000` into an original `0x10c` NFA qu
 
 RF7 live located a more specific condition: exact DATA arrived in state5 with own-listener inactive and handle low12=FFF (the old diagnostic truncated the upper four bits), so the queue guard submitted zero replies. The next guarded fallback tracks only complete controller Host ISO-DEP Listen-A activation notifications (61/05, interface2/protocol4/mode80), cleared by deactivation/STOP/GET. It permits handleFFFF only with that Host marker and both preserved original eSE and owned test-slot checks; handle0 and other modes remain refused. RF8 corrects `rf_meta[13]`: bits0..3 phase, 4..7 state, bit8 own-listener-active, bit9 controller Host marker, bits16..31 full handle. This fallback has offline coverage but still requires a successful external RAPDU.
 
-Independent SPP acceptance on 2026-11-25: three watch-generated fixed SELECTs reached a bounded K70 `app_process` backend; the original GB connection returned S4TEST9000 through the allowlisted JNI message/session builders; the watch acknowledged all three (122/123/146ms). No Mac per-request relay, APK or real SE. See `xiaomi-s4-spp-fixed-backend-2026-11-25.json`. `S4SppTestBackend.java` requires the current GB PID and stops after 30 seconds or 3 ACKs. The companion's explicit synthetic start mode waits for synchronous `getReadyState()` rather than sending before session connection; default diagnostic mode still exits promptly. This is separate from the RF acceptance; native/quickapp IPC and a combined RF+SPP test remain outstanding.
+Independent SPP acceptance on 2026-11-25: three watch-generated fixed SELECTs reached a bounded K70 `app_process` backend; the original GB connection returned S4TEST9000 through the allowlisted JNI message/session builders; the watch acknowledged all three (122/123/146ms). No Mac per-request relay, APK or real SE. See `xiaomi-s4-spp-fixed-backend-2026-11-25.json`. `S4SppTestBackend.java` requires the current GB PID and stops after 30 seconds or 3 ACKs. The companion's explicit synthetic start mode waits for `onopen` or documented asynchronous `getReadyState({success})` status; the earlier synchronous comparison was wrong and blocked RF9 polling; default diagnostic mode still exits promptly. This was separate from RF acceptance. Native/quickapp IPC subsequently passed, and RF10 demonstrated one combined fixed-response success; stable repetition and WTX remain unverified.
+
+
+Native/quickapp IPC and combined bridge (2026-11-25):
+
+- `native-ipc-test.c` and `verify_native_ipc.py`: fixed private-file roundtrip on S4, five compiled offline cases. Original firmware flags are read1/write-create-truncate0x26; do not substitute current NuttX header values.
+- `host-spp-session` is a separate build of `host-test-session.c` with HOST_SPP_BRIDGE=1. Exact test SELECT publishes only seq/activation epoch; no local response fallback. The independent synchronous `host-spp-pump.c` worker performs file IO outside NFC callbacks and submits copied fixed responses to original NFA action10c. `verify_host_spp.py` has twelve compiled/original-ARM offline cases; its boundary mocks do not prove RF.
+- `render_host_session.py --spp` embeds both builds. Result is 360 bytes/90 words; the original296-byte prefix is unchanged. Guarded collection additionally requires pump-in-flight and pending-stage zero. Real one-second worker dryrun and full original-table/callback recovery passed.
+- `node tools/research/xiaomi-nfc-probe/verify_companion.mjs` runs the actual UX methods with explicit interconnect/file/timer lifecycle mocks (8 cases). It reproduces the synchronous-state regression without hardware and validates fixed-only reply gating.
+- K70 `S4SppTestBackend <current-GB-pid> --rf` is bounded330sec and accepts only the probe nonce/seq1..3/epoch/fixed SELECT. It exits after2ACKs, which is **not** a proof of2RF successes. RF10 measured two phone ACKs but only one external-reader success.
+- JNI library basenames and phone DEX paths must be immutable while loaded. Stage new files separately and atomically rename; never cp over a mapped inode. For the diagnostic RPK only, explicit RF start invalidates its stale recent-open cache entry before original launch/queued message delivery. v5 is the current helper; RF10's already running backend still used v4 replies, which were unchanged.
+- Before asking for touch, require both phase4/bridge-enabled native telemetry and an actual `bridge-ready/connected=true` message. Physical actions remain bounded; completion requires guarded original table, slots, callbacks, HAL and eSE restoration followed by unload.

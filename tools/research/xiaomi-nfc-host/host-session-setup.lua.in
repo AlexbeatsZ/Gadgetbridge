@@ -21,9 +21,9 @@ if prepared and not read("modules-before.txt"):find("gb_",1,true) and query("nfc
  command("work-sleep.txt","sleep 1")
  local addr=moduleData("gb_host_test")
  if addr then
-  command("host-help.txt","xd "..addr.." 296");local h=words("host-help.txt")
+  command("host-help.txt","xd "..addr.." 360");local h=words("host-help.txt")
   result[#result+1]="SESSION_DATA="..addr..";phase="..tostring(h[2])
-  if #h==74 and h[1]==0x53483454 and h[2]==3 and h[5]==1 and h[20]==1 and rawIdle() and
+  if #h==90 and h[1]==0x53483454 and h[2]==3 and h[5]==1 and h[20]==1 and rawIdle() and
      bind("host-test-arm-bound","@ARM_HEX@",tonumber(addr)) and
      bind("host-test-remove-bound","@REMOVE_HEX@",tonumber(addr)) and
      bind("host-test-stop-bound","@STOP_OWNED_HEX@",tonumber(addr))then
@@ -36,7 +36,7 @@ if prepared and not read("modules-before.txt"):find("gb_",1,true) and query("nfc
     "insmod "..base.."/host-test-arm-bound.elf gb_host_arm",
     "rmmod gb_host_arm",
     "sleep 1",
-    "xd "..addr.." 296 > "..base.."/shell-help.txt",
+    "xd "..addr.." 360 > "..base.."/shell-help.txt",
     "xd 3c2d4754 40 > "..base.."/nfc-fds.txt",
     "echo HOST_TEST_WINDOW_@RUN_ID@ > "..base.."/version.txt",
    }
@@ -61,7 +61,7 @@ if prepared and not read("modules-before.txt"):find("gb_",1,true) and query("nfc
    script[#script+1]="insmod "..base.."/discovery-start.elf gb_host_restart"
    script[#script+1]="rmmod gb_host_restart"
    script[#script+1]="sleep 1"
-   script[#script+1]="xd "..addr.." 296 > "..base.."/fd-help.txt"
+   script[#script+1]="xd "..addr.." 360 > "..base.."/fd-help.txt"
    script[#script+1]="xd 3c2d4754 40 > "..base.."/nfc-mqueue.txt"
    script[#script+1]="xd 3c2d4746 4 > "..base.."/modules.txt"
    script[#script+1]="xd 3c2d4c30 4 > "..base.."/device-list.txt"

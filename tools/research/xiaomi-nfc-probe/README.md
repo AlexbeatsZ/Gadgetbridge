@@ -61,3 +61,14 @@ Full migration research, exact endpoints, firmware evidence, limitations and nex
 ## Android account visibility preflight
 
 `account-visibility.cpp` is a separate read-only agent that calls `AccountManager.getAccountsByType("com.xiaomi")` from the actual running app and reports only the array length. It never accesses account names/tokens or changes visibility. Compile it with the same NDK JNI include paths and **`-static-libstdc++`** as the SE agent, stage in the debug app code cache, attach once, inspect `GBAccountVisibility` logs and delete both staged files. Do not interpret `am attach-agent` exit 0 as execution: inspect the native loader/agent log. Omitting the static C++ runtime option initially caused a missing `libc++_shared.so` loader failure; after correcting linkage the actual app returned 0 visible Xiaomi accounts, while system metadata showed one Xiaomi account. Legitimate account consent/OAuth remains necessary before authenticated TSM preflight.
+
+
+## Fixed host bridge companion (2026-11-25 continuation)
+
+The same diagnostic package is now versionCode15 (no APK). RF8 passed a local S4 fixed-response roundtrip; RF10 obtained one real external-reader response through the K70 SPP backend, while another presentation timed out. This does not implement a transit card. Current details and recovery are in `../xiaomi-nfc-host/README.md` and the NFC Host design/evidence.
+
+`rf-start` is explicit and bounded330sec, uses only the fixed private request/response mailboxes, fixed nonce/AID/APDU and seq/activation epoch. Default diagnostics still exit6.5sec. `getReadyState` is an asynchronous object API, not a synchronous numeric result: rely on `onopen` or its `success({status:1})`. The initial-state mistake blocked RF9 polling. `bridge-ready` is retried at250/750ms because the first outbound message can be lost during connection setup. Only after receiving an actual ready message may an operator request touch.
+
+Run `node tools/research/xiaomi-nfc-probe/verify_companion.mjs` for eight offline cases using the actual component methods and explicit platform mocks. These cover the former API-state regression, readiness, fixed-only mailboxes and reply matching; they do not prove NFC/SPP radio behavior.
+
+Stage JNI/DEX under a new immutable filename for each changed build. Never overwrite a file already mapped by a running app or app_process. The recent-open cache in newer GB can outlive this auto-exiting RPK; the research helper invalidates only this diagnostic package's temporary cache entry before explicit RF start, leaving production code and other package state untouched.

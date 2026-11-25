@@ -1,0 +1,93 @@
+{
+  "date_mac": "2026-11-25",
+  "execution": "LIVE_S4_RF9_COMBINED_BRIDGE_ATTEMPT",
+  "reader_records": [
+    {
+      "mode": "inspection",
+      "uid": 2000,
+      "nfc_binder_alive": true,
+      "reader_signature": "token,callback,flags,extras,packageName",
+      "tag_callback_transaction": 1
+    },
+    {
+      "mode": "bounded_test_reader",
+      "request_returned": true,
+      "accepted_by_service": "requires_live_service_check",
+      "window_seconds": 300
+    },
+    {
+      "result": "test_select_error",
+      "stage": "test_select",
+      "exception_type": "TagLostException"
+    },
+    {
+      "result": "test_select_error",
+      "stage": "test_select",
+      "exception_type": "TagLostException"
+    }
+  ],
+  "backend_records": [
+    {
+      "backend": "K70_app_process_fixed_only",
+      "bounded_seconds": 330,
+      "real_SE": false
+    },
+    {
+      "backend_request_seq": 2,
+      "agent_exited": true,
+      "agent_exit": 0,
+      "submit_ns": 103994896
+    },
+    {
+      "watch_ack_seq": 2,
+      "watch_rtt_ms": 177,
+      "fixed_response_matches": true
+    }
+  ],
+  "counts": {
+    "phase": 5,
+    "hal_fixed_selects": 2,
+    "request_sequences": 2,
+    "request_files_written": 2,
+    "valid_phone_responses_while_active": 0,
+    "rf_response_queue_submissions": 0,
+    "native_io_errors": 0,
+    "pending_after_recovery": 0
+  },
+  "result": "FAIL_EXTERNAL_RF_RESPONSE",
+  "cause_observed": "RPK12 companion polled synchronous getReadyState() and never read request file during touch; fixed RPK13 later forwarded stale seq2/epoch9 with watch ACK177ms but native accepted no response and sent none",
+  "recovery": {
+    "checks": "RUN=host-rf9; guarded post-recovery collect/unload\nCHECKS:words=90,slots=true,phase=5,disc=741623449,rf=741623597,state=65537,ese=33025,raw_idle=true\nCALLBACKS_SLOTS_STATE_RESTORED=true\nnfc-proc.txt:61020c00020003c0e3000003c0e302\nFINAL_ORIGINAL_TABLE=true\nRESIDENT_UNLOADED=true",
+    "modules": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+  },
+  "fixed_private_mailboxes": {
+    "rf-spp-request.txt": "{\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":2,\"epoch\":9,\"apdu\":\"00a4040007f001020304050600\"}",
+    "rf-spp-response.txt": "S4RF1:2:9:5334544553549000"
+  },
+  "real_RF_SPP_roundtrip": false,
+  "records": {
+    "version.txt": "RECOVERY_SEQUENCE_FINISHED_host-rf9\n",
+    "module-load.txt": "",
+    "modules-before.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "modules-after.txt": "",
+    "module-unload.txt": "",
+    "modules-final.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "shell-help.txt": "Hex dump:\n0000: 54 34 48 53 04 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 31 ca 58 3d ....-G4,.F4,1.X=\n0040: 79 cb 58 3d bd cc 58 3d 02 00 00 00 01 00 00 00 y.X=..X=........\n0050: 55 cd 58 3d 2d ce 58 3d 69 cf 58 3d 00 00 00 00 U.X=-.X=i.X=....\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ................\n00f0: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 60 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 `...............\n0110: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0120: 81 d3 58 3d 01 00 00 00 49 50 50 53 01 00 00 00 ..X=....IPPS....\n0130: e1 cf 58 3d 00 00 00 00 00 00 00 00 00 00 00 00 ..X=............\n0140: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0150: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0160: 00 00 00 00 00 00 00 00                         ........\n",
+    "proc-list.txt": "Hex dump:\n0000: 01 81 00 00                                     ....\n",
+    "host-help.txt": "Hex dump:\n0000: 54 34 48 53 05 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 ................\n0020: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 31 ca 58 3d ....-G4,.F4,1.X=\n0040: 79 cb 58 3d bd cc 58 3d 03 00 00 00 01 00 00 00 y.X=..X=........\n0050: 55 cd 58 3d 2d ce 58 3d 69 cf 58 3d 00 00 00 00 U.X=-.X=i.X=....\n0060: 00 00 00 00 00 00 00 00 02 00 00 00 0d 00 00 00 ................\n0070: 00 00 00 00 05 40 00 00 04 80 02 00 00 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 01 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 02 04 00 79 cb 58 3d 54 02 ff ff ........y.X=T...\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 14 00 00 00 02 00 00 00 02 00 00 00 10 00 00 00 ................\n0100: 40 00 00 00 06 00 00 00 06 00 00 00 06 00 00 00 @...............\n0110: 04 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 81 d3 58 3d 02 00 00 00 49 50 50 53 01 00 00 00 ..X=....IPPS....\n0130: e1 cf 58 3d 00 00 00 00 00 00 00 00 0d 00 00 00 ..X=............\n0140: 02 00 00 00 09 00 00 00 02 00 00 00 00 00 00 00 ................\n0150: 00 00 00 00 21 00 00 00 00 00 00 00 00 00 00 00 ....!...........\n0160: 00 00 00 00 00 00 00 00                         ........\n",
+    "fd-help.txt": "Hex dump:\n0000: 54 34 48 53 05 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 ................\n0020: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 31 ca 58 3d ....-G4,.F4,1.X=\n0040: 79 cb 58 3d bd cc 58 3d 03 00 00 00 01 00 00 00 y.X=..X=........\n0050: 55 cd 58 3d 2d ce 58 3d 69 cf 58 3d 00 00 00 00 U.X=-.X=i.X=....\n0060: 00 00 00 00 00 00 00 00 02 00 00 00 0d 00 00 00 ................\n0070: 00 00 00 00 05 40 00 00 04 80 02 00 00 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 01 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 02 04 00 79 cb 58 3d 54 02 ff ff ........y.X=T...\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 14 00 00 00 02 00 00 00 02 00 00 00 10 00 00 00 ................\n0100: 40 00 00 00 06 00 00 00 06 00 00 00 06 00 00 00 @...............\n0110: 04 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 81 d3 58 3d 02 00 00 00 49 50 50 53 01 00 00 00 ..X=....IPPS....\n0130: e1 cf 58 3d 00 00 00 00 00 00 00 00 0d 00 00 00 ..X=............\n0140: 02 00 00 00 09 00 00 00 02 00 00 00 00 00 00 00 ................\n0150: 00 00 00 00 21 00 00 00 00 00 00 00 00 00 00 00 ....!...........\n0160: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-proc.txt": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-fds.txt": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-mqueue.txt": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "ready.txt": "ready",
+    "device-list.txt": "Hex dump:\n0000: 99 46 34 2c                                     .F4,\n",
+    "process-list.txt": "Hex dump:\n0000: 2d 47 34 2c                                     -G4,\n",
+    "modules.txt": "Hex dump:\n0000: 01 00 01 00                                     ....\n",
+    "lua-result.txt": "RUN=host-rf9; guarded post-recovery collect/unload\nCHECKS:words=90,slots=true,phase=5,disc=741623449,rf=741623597,state=65537,ese=33025,raw_idle=true\nCALLBACKS_SLOTS_STATE_RESTORED=true\nnfc-proc.txt:61020c00020003c0e3000003c0e302\nFINAL_ORIGINAL_TABLE=true\nRESIDENT_UNLOADED=true",
+    "spp-test-result.txt": "[{\"seq\":1,\"rtt_ms\":122,\"response_matches\":true},{\"seq\":2,\"rtt_ms\":123,\"response_matches\":true},{\"seq\":3,\"rtt_ms\":146,\"response_matches\":true}]",
+    "quickapp-ipc-test.txt": "S4IPC-QUICKAPP-1125",
+    "native-ipc-test.txt": "S4IPC-NATIVE-1125",
+    "rf-spp-request.txt": "{\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":2,\"epoch\":9,\"apdu\":\"00a4040007f001020304050600\"}",
+    "rf-spp-response.txt": "S4RF1:2:9:5334544553549000"
+  }
+}

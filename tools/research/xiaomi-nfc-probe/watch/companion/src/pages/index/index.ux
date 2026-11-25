@@ -7,7 +7,8 @@ export default {
  onInit() {
   this.conn = interconnect.instance()
   this.sent = ''
-  this.conn.onopen = () => {this.sppOpen=true;this.sendStatus('ready')}
+  this.conn.onopen = () => {this.sppOpen=true;this.sendStatus('ready');this.reportRfReady()}
+  this.conn.onclose = () => {this.sppOpen=false}
   this.conn.onerror = (e) => { this.status=JSON.stringify(e) }
   this.conn.onmessage = (message) => {
    let body=message && message.data !== undefined ? message.data : message
@@ -19,10 +20,28 @@ export default {
   this.beat = setInterval(()=>this.sendStatus('heartbeat-file-'+typeof file),3000)
   try {file=require('@system.file')}catch(e) {this.sendStatus('file-error-'+String(e))}
   if(file)file.writeText({uri:'internal://files/ready.txt',text:'ready',success:()=>this.sendStatus('sandbox-ready')})
+  if(file)file.writeText({uri:'internal://files/quickapp-ipc-test.txt',text:'S4IPC-QUICKAPP-1125',success:()=>this.sendStatus('ipc-seed-written')})
   this.timer = setInterval(()=>this.readAll(),1000)
  },
- onDestroy() { if(this.timer)clearInterval(this.timer);if(this.beat)clearInterval(this.beat);if(this.autoExit)clearTimeout(this.autoExit);if(this.sppTimeout)clearTimeout(this.sppTimeout) },
+ onDestroy() { this.rfRunning=false;if(this.timer)clearInterval(this.timer);if(this.beat)clearInterval(this.beat);if(this.autoExit)clearTimeout(this.autoExit);if(this.sppTimeout)clearTimeout(this.sppTimeout);if(this.rfTimer)clearInterval(this.rfTimer) },
  testMessage(body) {
+  if(body.nonce==='s4-spp-rf-20261125') {
+   if(body.op==='rf-stop'){this.rfRunning=false;if(this.rfTimer)clearInterval(this.rfTimer);require('@system.app').terminate();return}
+   if(body.op==='rf-start' && !this.rfRunning) {
+    this.rfRunning=true;this.rfSeen='';this.rfPending=null;this.rfReadySent=false
+    clearTimeout(this.autoExit);clearInterval(this.timer);clearInterval(this.beat)
+    this.autoExit=setTimeout(()=>require('@system.app').terminate(),330000)
+    this.rfTimer=setInterval(()=>this.rfRead(),40)
+    this.reportRfReady();this.refreshConnection(()=>this.reportRfReady())
+   } else if(body.op==='response' && this.rfRunning && this.rfPending &&
+     body.seq===this.rfPending.seq && body.epoch===this.rfPending.epoch && body.rapdu==='5334544553549000') {
+    const request=this.rfPending;this.rfPending=null
+    file.writeText({uri:'internal://files/rf-spp-response.txt',text:'S4RF1:'+body.seq+':'+body.epoch+':'+body.rapdu,success:()=>{
+     this.conn.send({data:{probe:'s4-spp-test',op:'ack',nonce:body.nonce,seq:body.seq,epoch:body.epoch,rtt_ms:Date.now()-request.at,response_matches:true}})
+    }})
+   }
+   return
+  }
   if(body.nonce!=='s4-spp-test-20261125')return
   if(body.op==='start' && !this.sppRunning) {
    this.sppRunning=true;this.sppSeq=0;this.sppResults=[]
@@ -40,12 +59,34 @@ export default {
   if(this.sppSeq<3)setTimeout(()=>this.testRequest(),400)
   else {this.sppRunning=false;this.status='3 fixed SPP test replies';setTimeout(()=>require('@system.app').terminate(),1000)}
  },
+ reportRfReady() {
+  if(this.rfRunning && this.sppOpen && !this.rfReadySent) {
+   this.rfReadySent=true
+   const send=()=>{if(this.rfRunning && this.sppOpen)this.conn.send({data:{probe:'s4-spp-test',op:'bridge-ready',nonce:'s4-spp-rf-20261125',connected:true}})}
+   send();setTimeout(send,250);setTimeout(send,750)
+  }
+ },
+ rfRead() {
+  if(!file || this.rfReading || this.rfPending || !this.sppOpen)return
+  this.rfReading=true
+  file.readText({uri:'internal://files/rf-spp-request.txt',success:(r)=>{
+   this.rfReading=false;let b;try{b=JSON.parse(r.text||'')}catch(e){return}
+   if(!b || b.probe!=='s4-spp-test' || b.op!=='request' || b.nonce!=='s4-spp-rf-20261125' ||
+      b.apdu!=='00a4040007f001020304050600' || b.seq<1 || b.seq>3 || b.epoch<1 || b.epoch>65535)return
+   const key=b.seq+':'+b.epoch;if(key===this.rfSeen)return
+   this.rfSeen=key;this.rfPending={seq:b.seq,epoch:b.epoch,at:Date.now()}
+   this.conn.send({data:b,fail:()=>{this.rfPending=null}})
+   setTimeout(()=>{if(this.rfPending && this.rfPending.seq===b.seq && this.rfPending.epoch===b.epoch)this.rfPending=null},1200)
+  },fail:()=>{this.rfReading=false}})
+ },
+ refreshConnection(done) {
+  this.conn.getReadyState({success:(r)=>{this.sppOpen=!!r && r.status===1;done(this.sppOpen)},fail:()=>{this.sppOpen=false;done(false)}})
+ },
  testWhenReady(left) {
   if(!this.sppPending || !this.sppRunning)return
-  const state=this.conn.getReadyState()
-  if(state===1 || this.sppOpen){this.sppPending=false;this.testRequest()}
-  else if(left>0)setTimeout(()=>this.testWhenReady(left-1),100)
-  else if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify({ready_state:state,request_sent:false})})
+  if(this.sppOpen){this.sppPending=false;this.testRequest()}
+  else if(left>0){this.refreshConnection(()=>{});setTimeout(()=>this.testWhenReady(left-1),100)}
+  else if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify({ready_state:2,request_sent:false})})
  },
  testRequest() {
   if(!this.sppRunning)return
@@ -59,7 +100,7 @@ export default {
  },
  sendStatus(s) { try { this.conn.send({data:{probe:'native-nfc-readonly',status:s},fail:(e,c)=>{this.status='Send failed '+c}}) } catch(e){} },
  readAll() {
-  const names=['version.txt','module-load.txt','modules-before.txt','modules-after.txt','module-unload.txt','modules-final.txt','shell-help.txt','proc-list.txt','host-help.txt','fd-help.txt','nfc-proc.txt','nfc-fds.txt','nfc-mqueue.txt','ready.txt','device-list.txt','process-list.txt','modules.txt','lua-result.txt','spp-test-result.txt']
+  const names=['version.txt','module-load.txt','modules-before.txt','modules-after.txt','module-unload.txt','modules-final.txt','shell-help.txt','proc-list.txt','host-help.txt','fd-help.txt','nfc-proc.txt','nfc-fds.txt','nfc-mqueue.txt','ready.txt','device-list.txt','process-list.txt','modules.txt','lua-result.txt','spp-test-result.txt','quickapp-ipc-test.txt','native-ipc-test.txt','rf-spp-request.txt','rf-spp-response.txt']
   for(let i=0;i<names.length;i++) {
    const name=names[i]
    file.readText({uri:'internal://files/'+name,success:(r)=>{

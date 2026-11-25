@@ -1,0 +1,33 @@
+{
+  "date_mac": "2026-11-25",
+  "phone_local": "2026-11-26T01:24:38+08:00",
+  "execution": "LIVE_DIAGNOSTIC_AGENT_FAILURE_AND_EXISTING_BINDING_RECONNECT",
+  "app_version_user_installed": "2026.11.18",
+  "versionCode_user_installed": 273,
+  "previous_pid": 6681,
+  "current_pid": 11449,
+  "signal": "SIGSEGV / SEGV_MAPERR",
+  "fault_address": "0x5e470",
+  "agent_frame_pc": "0x2b9f0",
+  "agent_library": "libgbwatchops-rfbridge.so",
+  "suspected_cause": "staging by cp truncated a library inode already mapped into GB; crash stack points inside that agent; causal inference, not a controlled reproduction",
+  "fix": [
+    "use immutable per-build library basename libgbwatchops-rfbridge-v4.so",
+    "stage via separate .new file and atomic rename",
+    "check the staged file before attach",
+    "request original DeviceService.connect() for the existing bound device only"
+  ],
+  "reconnection_observed": [
+    "RFCOMM socket connected",
+    "Authenticated, further communications are encrypted",
+    "all devices initialized",
+    "actual S4 firmware and original nine-face response received"
+  ],
+  "new_pairing": false,
+  "production_app_modified": false,
+  "RF9_install_before_crash": false,
+  "raw_evidence_mac": "/tmp/.agents/gadgetbridge-transit-research/routing-notify/gb-crash-6681-2026-11-25.txt",
+  "not_verified": [
+    "original voice/alarm physical acceptance after the crash"
+  ]
+}

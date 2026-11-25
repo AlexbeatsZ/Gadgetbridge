@@ -1,0 +1,23 @@
+-- Synchronous own-private-file ABI/IPC probe. No NFC commands or callbacks.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local done=io.open(base.."/native-ipc-test-done.txt","r");if done then done:close();return end
+local result={"RUN=native-ipc-test; fixed private text only"}
+@COMMON_HELPERS@
+command("modules-before.txt","lsmod")
+if not read("modules-before.txt"):find("gb_",1,true) and emit("native-ipc-test.elf","@MODULE_HEX@")then
+ command("module-load.txt","insmod "..base.."/native-ipc-test.elf gb_ipc_test")
+ local addr=moduleData("gb_ipc_test")
+ if addr then
+  command("host-help.txt","xd "..addr.." 64");local h=words("host-help.txt")
+  result[#result+1]="PRIVATE_FILE_ABI_PASSED="..tostring(#h==16 and h[1]==0x49504354 and h[2]==5 and h[5]==1 and h[12]==1 and h[15]==1 and h[16]==0)
+  -- Constructor has returned synchronously; this probe has no callbacks,
+  -- task, registration or other asynchronous reference.
+  command("module-unload.txt","rmmod gb_ipc_test")
+  result[#result+1]="PROBE_UNLOADED="..tostring(not moduleData("gb_ipc_test"))
+ else result[#result+1]="NO_PROBE_MODULE"end
+else result[#result+1]="PREFLIGHT_REFUSED"end
+command("modules-final.txt","lsmod")
+local f=io.open(base.."/lua-result.txt","w");if f then f:write(table.concat(result,"\n"));f:close()end
+f=io.open(base.."/version.txt","w");if f then f:write("NATIVE_IPC_TEST_20261125");f:close()end
+f=io.open(base.."/native-ipc-test-done.txt","w");if f then f:write("done");f:close()end

@@ -1,0 +1,68 @@
+{
+  "execution": "OFFLINE_COMPILED_HOST_SPP_AND_ORIGINAL_SEND",
+  "cases_passed": 12,
+  "cases": [
+    {
+      "case": "hal_publishes_fixed_request_without_files_sleep_or_local_response",
+      "passed": true
+    },
+    {
+      "case": "outside_nfc_worker_writes_complete_fixed_request_to_own_private_path",
+      "passed": true
+    },
+    {
+      "case": "response_refuses_wrong_seq",
+      "passed": true
+    },
+    {
+      "case": "response_refuses_old_epoch",
+      "passed": true
+    },
+    {
+      "case": "response_refuses_wrong_response",
+      "passed": true
+    },
+    {
+      "case": "matched_phone_reply_submits_original_nfa_send_and_no_module_pointer",
+      "passed": true
+    },
+    {
+      "case": "late_reply_refused_after_deactivation",
+      "passed": true
+    },
+    {
+      "case": "late_reply_refused_after_original_eSE_handle",
+      "passed": true
+    },
+    {
+      "case": "late_reply_refused_after_epoch_changed_during_read",
+      "passed": true
+    },
+    {
+      "case": "bounded_worker_tick_timeout_clears_pending_without_local_fallback",
+      "passed": true
+    },
+    {
+      "case": "worker_refuses_unbound_resident_address_before_dereference",
+      "passed": true
+    },
+    {
+      "case": "bound_synchronous_worker_returns_after_50_pumps_without_persistent_task",
+      "passed": true
+    }
+  ],
+  "boundaries": [
+    "HAL forwarding",
+    "filesystem",
+    "sleep",
+    "NFA queue",
+    "original RF send queue"
+  ],
+  "real_RF_SPP_roundtrip": false,
+  "not_verified": [
+    "live worker/quickapp concurrency",
+    "real total latency",
+    "WTX",
+    "cross-activation race after original send enqueue"
+  ]
+}

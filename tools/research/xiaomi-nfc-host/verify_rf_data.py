@@ -112,11 +112,11 @@ class OfflineMachine:
                                'bt_hdr_offset': offset})
             self._return(self.queue_status)
 
-    def call(self, offset, r0=0, r1=0, r2=0):
+    def call(self, offset, r0=0, r1=0, r2=0, *, instruction_bound=10000):
         a, b, c, sp, lr, _ = self.regs
         for reg, value in ((a, r0), (b, r1), (c, r2), (sp, 0x3D00F000), (lr, STOP | 1)):
             self.cpu.reg_write(reg, value)
-        self.cpu.emu_start(BASE + offset + 1, STOP, count=10000)
+        self.cpu.emu_start(BASE + offset + 1, STOP, count=instruction_bound)
         if self.cpu.reg_read(self.regs[-1]) != STOP:
             raise AssertionError('original code did not return within the offline instruction bound')
         if bytes(self.cpu.mem_read(CE, 0xD4)) != self.ce_before:

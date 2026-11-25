@@ -6,6 +6,15 @@
 
 用户已改为优先推进蓝牙代理，A的真实迁移暂停。本路线先验证外部读卡器↔S4主机固定APDU，再用现有Classic SPP接固定测试后端；BLE后评估。此选择不代表已经证明能代理真实公交卡或保留校园功能。
 
+2026-11-25 RF10串联实机进展：
+
+- K70外部reader→S4 NFC控制器/原生测试处理→私有信箱→同包快应用→Classic SPP→K70 app_process固定后端→原GB消息/会话builder→SPP→快应用私有响应信箱→原生校验→原NFA action10c→射频→K70，取得**一次精确5334544553549000**，实际外部RTT709,344,947ns。另一轮为TagLostException，不是2/2稳定通过。
+- native实读精确SELECT2、request文件写成2、有效手机response1、原NFA入队1、IO错误0，与reader成功1一致。HOST_SPP_BRIDGE没有本地固定应答回退；原生只在手机信箱seq/epoch/固定RAPDU匹配且Host仍活动时构造固定应答消息。未实现任意APDU转发，也没有访问真实SE/卡。
+- 手机后端2请求/2watch ACK，JNI分别105,764,219ns/102,768,073ns；watch的Date.now整段1160/559ms包括发送排队与file.writeText完成，不是纯SPP射频时延。手机日志从请求到ACK分别165/184ms。第一失败与迟到结果/去激活相符，但未测到精确FWT/WTX原因；native tick-timeout计数0，不能声称800ms超时触发。
+- 第一份collector在后台恢复末段读取到phase4/混合快照，按守卫拒绝卸载；随后后台保存的槽/回调/状态已经复原。重新采样后phase5、全部槽/回调/HAL/eSE/flags-state和完整原表均相等，原队列barrier通过，所有resident卸载。不能因RECOVERY_SEQUENCE_FINISHED文件或旧采样宣称最终清理；首次拒绝快照保留在RF10证据中。
+- 用户明确反馈多次等待准备及反复贴近令人烦扰。本轮停止请求更多实体操作；后续先完成全部编译/暂存/自动验证，合并必要实体实验，只有全链真实就绪才提示操作。先做无需用户的耗时拆分、超时/过期拒绝与恢复改进。
+- 证据xiaomi-s4-host-spp-rf10-2026-11-25.json；这是固定测试链路的实机进展，不是公交卡功能完成。WTX、稳定性、跨窗口代次和原发送队列入队后跨激活竞态仍需解决。
+
 2026-11-25 rf8决定性实机成功（K70 Asia/Shanghai 11-26）：
 
 - K70→S4 SELECT固定测试AID，S4主机原生HAL测试程序→原NFA发送队列→控制器→K70，连续两次收到精确5334544553549000；RTT92,725,573ns/92,220,156ns。不是SE管理APDU或模拟器结果，固定测试RF往返判据已通过。
@@ -19,6 +28,23 @@
 - 首轮request0/timeout1：start消息处理时发出的首包没有到达GB，后续timeout通知正常到达。连接就绪顺序是依据现象的推断；修复为延后并同步getReadyState有界确认后再发，最终3/3。不把首轮的agent调用/发送提交当成功。
 - 当前两段独立实机均通过，但**RF→native→quickapp→SPP→K70→SPP→native→RF尚未串联**。下一核心为无阻塞native/quickapp IPC、带会话/序号的过期拒绝、端到端deadline和WTX观察。研究手机端逐条attach-agent耗时约103–105ms，非生产延迟基线；SPP RTT不可直接与RF RTT相加作为已测总时延。
 - 源码S4SppTestBackend.java、watch-ops.cpp固定SPP模式和原companion扩展；证据xiaomi-s4-spp-fixed-backend-2026-11-25.json。只允许固定probe包/nonce/seq1..3/测试APDU，未知数据不应答。
+
+2026-11-25 原生/快应用私有文件IPC实机与串联原型：
+
+- 原生同步ET_REL探针读到快应用写入S4IPC-QUICKAPP-1125，原生通过原固件POSIX open/read/write/close写回S4IPC-NATIVE-1125，快应用通过system.file读回，probe phase5/卸载通过。usleep(10000)亦返回0。这是实际ABI/双向文件可见性，未连接NFC/SPP路径。
+- 原NSH cmp/cp/usleep调用点与ROM指纹确认：open2c55d839/read2c55d5e1/write2c55d61b/close2c55af95/usleep2c20dc11。读flags1、写创建截断flags0x26来自**此固件cp**；现代NuttX头值不同，不能照搬。代码只用诊断包两条固定私有路径，fd0有效，短读/短写/指纹不符拒绝。5项编译探针离线通过。
+- 用户在并行工作中于K70中国时间11-26 01:02:46更新GB至2026.11.18/code273，PID6001→6681，exit-info为PACKAGE UPDATED，code_cache临时库被清掉，attach-agent调用返回并不代表库实际执行。用户确认更新且要求不用管；本研究不回退、不重新配对，重新stage诊断库后原绑定回包恢复。此前RF/SPP结果属于PID6001/旧安装时段，后续IPC属于新PID。临时helper新增库可读性前检和仅自己包的消息过滤，避免混入并行Dayweave包内容。
+- 串联原型只在HOST_SPP_BRIDGE构建开启：HAL精确SELECT只登记seq/activation epoch，不做文件IO/等待/本地固定应答；NSH每片1秒的同步模块调用resident pump 50次/20ms，独立读写私有请求/应答文件，再复制固定RAPDU入原NFA action10c。去激活/新激活/STOP/GET清待处理，错序号/过期epoch/非固定响应/原eSE句柄拒绝，40次pump等待上限约800ms加IO，真实时延仍须实测。
+- result扩大为360字节，旧296字节前缀不变；ipc[0]=53505049，[1]=bridge enabled，[2]=同步pump指针，[3]=pump在途，[4]=pending stage0/1/2，[5]=当前activation epoch，[6]=seq1..3，[7]=request epoch，[8]=请求写成次数，[9]=有效response次数，[10]=响应入队数，[11]=等待tick，[12]=IO错误，[13]=请求拒绝，[14]=超时。collector需90words、pump在途和pending为0才允许卸载。原NFA发送消息没有module指针。
+- 同包诊断RPK11显式rf-start后读固定请求JSON，经原SPP交K70有界后端；回复只有seq1..3/epoch1..65535/固定RAPDU，写S4RF1:seq:epoch:5334544553549000供原生pump。启动时清两个信箱，默认诊断仍短时退出。12项串联状态离线通过；现实并发、RF总时延、WTX、原send enqueue后跨激活竞态仍未验证，后者为真实卡/生产实现前必须解决的条件。
+
+2026-11-25 串联RF9与诊断生命周期：
+
+- 用户更新后的GB发生一次研究JNI崩溃（K70 01:24:38，PID6681，SIGSEGV，栈在libgbwatchops-rfbridge.so）；此前暂存使用cp覆盖已加载库，怀疑截断mapped inode导致崩溃，但没有受控复现，不当作确定因果。改为不可变构建名v4、单独.new后rename、attach前可读性检查；调用原DeviceService.connect()重连原绑定，PID11449实际RFCOMM连接/认证加密/初始化及九原表盘回包通过。未开Connection API、未重配对、未改生产app。两处spp-test分发条件遗漏spp-rf模式亦已修复。
+- RF9收到两次K70测试SELECT错误TagLostException，原SPP后端在贴近期间request0。找到快应用轮询误用同步getReadyState()!==1：官方API为getReadyState({success(data)})/data.status；独立SPP原有onopen回退掩盖此误用。现改onopen/异步状态缓存，增加明确bridge-ready，仅自己包文件，不增加表盘ID。8项实际companion方法离线检查覆盖异步API、去重、错seq/epoch/响应、停止和独立模式，非实机。
+- 修复RPK13后，在RF9已去激活期间读到旧信箱seq2/epoch9，经K70临时后端收到固定响应，watch ACK177ms；这是原生信箱→SPP→手机→SPP→信箱的真实链路，不是外部RF应答，必须由native epoch/Host守卫拒绝迟到结果。RF9 collector实读HAL精确SELECT2、request文件写成2、有效手机response0、RF入队0、IOerror0；phase5、完整旧表/槽/回调/eSE/barrier和全部卸载通过。
+- RF10启动前遇到新版GB的30秒recent-open缓存误判：诊断RPK已自动退出，sendWearAppMessage仍直接发送，实机日志明确is open, sending directly，无launched或ready回包。临时JNI v5仅移除com.meta.s4nativeprobe的lastSeenOpen内存项，再调用原启动/排队流程；不改生产源码或其他包状态。RPK15的ready有250/750ms有界重发（启动初包可能丢失），随后实际收到两条bridge-ready/connected=true才提示用户贴近。RF10后端当时仍运行v4 DEX/回复库，v5仅用于启动；未覆盖正在使用的DEX/so文件。
+- K70无线ADB随后丢失，先检查本机daemon/设备清单/mDNS，再确认旧端口拒绝及Tailscale在线；用户重新启用后发现新transport（名称附(2)），PID11449和临时v4库仍在，未重启adb daemon或改代理。恢复复核完成前不启动RF10。
 
 2026-11-25 rf6实机（K70 Asia/Shanghai 11-26）：
 

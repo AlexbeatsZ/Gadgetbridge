@@ -20,9 +20,12 @@ typedef unsigned int u32;
 #define ORIGINAL_RF 0x2c34472d
 #define HAL_SLOT 0x3c2d45cc
 #define ORIGINAL_HAL 0x2c34cd85
+#ifndef HOST_SPP_BRIDGE
+#define HOST_SPP_BRIDGE 0
+#endif
 __attribute__((section(".data.result"),used)) volatile struct {
-    u32 h[32];u8 before[40];u32 rf_meta[16];u32 hal_meta[16];
-} s4_host_test={{0x53483454},{0},{0},{0}};
+    u32 h[32];u8 before[40];u32 rf_meta[16];u32 hal_meta[16];u32 ipc[16];
+} s4_host_test={{0x53483454},{0},{0},{0},{0x53505049}};
 static const u8 select_apdu[]={0,0xa4,4,0,7,0xf0,1,2,3,4,5,6};
 static const u8 fixed_response[]={'S','4','T','E','S','T',0x90,0};
 static void rf_receive(u8 conn,u16 event,void *data);
@@ -33,6 +36,18 @@ static u8 *fixed_message(void);
 static int original_entry(void);
 static int owned_entry(void);
 static volatile u32 hal_host_active;
+static void bridge_pump(void);
+static void bridge_invalidate(void) {
+    if(HOST_SPP_BRIDGE) {
+        s4_host_test.ipc[5]++;s4_host_test.ipc[4]=0;
+        __asm__ volatile("dmb" ::: "memory");
+    }
+}
+static int host_guard(void) {
+    const u16 handle=H(DM+0x52);
+    const int host=(s4_host_test.h[24] && handle==1) || (hal_host_active && handle==0xffff);
+    return s4_host_test.h[1]==4 && host && B(DM+0x4c)==5 && original_entry() && owned_entry();
+}
 static void queue_hal_test_reply(void) {
     // HAL runs outside the NFA owner: enqueue a copied, immutable test response
     // for the ORIGINAL action 0x10c. Never call RF send/drain or change the RF
@@ -44,10 +59,14 @@ static void queue_hal_test_reply(void) {
     // RF7: exact DATA can arrive in state5 with handleFFFF and no listener
     // activation. Accept that case only with a complete controller-reported
     // DH ISO-DEP Listen-A activation. Never accept an original eSE handle0.
-    const int host=(s4_host_test.h[24] && handle==1) ||
-        (hal_host_active && handle==0xffff);
-    if(s4_host_test.h[1]!=4 || !host || B(DM+0x4c)!=5 ||
-       !original_entry() || !owned_entry())return;
+    if(!host_guard())return;
+    if(HOST_SPP_BRIDGE) {
+        if(s4_host_test.ipc[4] || s4_host_test.ipc[6]>=3){s4_host_test.ipc[13]++;return;}
+        s4_host_test.ipc[6]++;s4_host_test.ipc[7]=s4_host_test.ipc[5];
+        s4_host_test.ipc[11]=0;s4_host_test.rf_meta[15]=1;
+        __asm__ volatile("dmb" ::: "memory");s4_host_test.ipc[4]=1;
+        return; // HAL only publishes metadata; no file IO or local response.
+    }
     u8 *m=fixed_message();if(!m)return;
     s4_host_test.rf_meta[15]=1; // Suppress a second reply if RF delivery recovers.
     ((void (*)(void *))0x2c34de2d)(m);
@@ -73,11 +92,12 @@ static void hal_receive(u16 length,u8 *packet) {
             }
         } else if(packet[0]==0x61 && packet[1]==5) {
             s4_host_test.hal_meta[8]++;
+            bridge_invalidate();
             hal_host_active=length>=7 && packet[2]==length-3 &&
                 packet[4]==2 && packet[5]==4 && packet[6]==0x80;
             s4_host_test.rf_meta[15]=0;
         } else if(packet[0]==0x61 && packet[1]==6) {
-            s4_host_test.hal_meta[9]++;hal_host_active=0;
+            s4_host_test.hal_meta[9]++;hal_host_active=0;bridge_invalidate();
         }
         else if(packet[0]==0x61 && packet[1]==7) {
             s4_host_test.hal_meta[10]++;
@@ -87,6 +107,7 @@ static void hal_receive(u16 length,u8 *packet) {
         // recovery also sends GET_ROUTING after STOP to guarantee this path.
         if(packet[0]==0x41 && (packet[1]==2 || packet[1]==6) && W(HAL_SLOT)==(u32)hal_receive) {
             hal_host_active=0;
+            bridge_invalidate();
             RW(HAL_SLOT)=ORIGINAL_HAL;__asm__ volatile("dmb" ::: "memory");
             s4_host_test.hal_meta[1]=packet[1]==2?2:3;
         }
@@ -133,6 +154,55 @@ static void send_fixed(void) {
     if(release)free_buffer(m);
     else s4_host_test.h[10]++; // Submission only, not proof of RF transmission.
 }
+static char *put_text(char *p,const char *s){while(*s)*p++=*s++;return p;}
+static char *put_number(char *p,u32 value) {
+    char rev[10];u32 n=0;do{rev[n++]=(char)('0'+value%10);value/=10;}while(value);
+    while(n)*p++=rev[--n];return p;
+}
+static int read_number(const char **p,const char *end,u32 *v) {
+    u32 n=0,count=0;while(*p<end && **p>='0' && **p<='9') {
+        if(++count>5)return 0;n=n*10+(u32)(*(*p)++-'0');
+    }
+    if(!count || *p>=end || *(*p)++!=':')return 0;*v=n;return 1;
+}
+static int ipc_open(const char *path,int flags){return ((int (*)(const char *,int,int))0x2c55d839)(path,flags,0600);}
+static void ipc_close(int fd){((int (*)(int))0x2c55af95)(fd);}
+static void bridge_pump(void) {
+    if(!HOST_SPP_BRIDGE)return;
+    s4_host_test.ipc[3]++;
+    const u32 seq=s4_host_test.ipc[6],epoch=s4_host_test.ipc[7],stage=s4_host_test.ipc[4];
+    if(!stage)goto done;
+    if(epoch!=s4_host_test.ipc[5] || !host_guard()){s4_host_test.ipc[4]=0;goto done;}
+    if(stage==1) {
+        char text[160],*p=text;
+        p=put_text(p,"{\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":");
+        p=put_number(p,seq);p=put_text(p,",\"epoch\":");p=put_number(p,epoch);
+        p=put_text(p,",\"apdu\":\"00a4040007f001020304050600\"}");
+        int fd=ipc_open("/data/quickapp/files/com.meta.s4nativeprobe/rf-spp-request.txt",0x26);
+        if(fd<0){s4_host_test.ipc[12]++;goto done;}
+        int n=((int (*)(int,const void *,int))0x2c55d61b)(fd,text,(int)(p-text));ipc_close(fd);
+        if(n!=p-text){s4_host_test.ipc[12]++;goto done;}
+        s4_host_test.ipc[8]++;
+        if(epoch==s4_host_test.ipc[5] && s4_host_test.ipc[6]==seq)s4_host_test.ipc[4]=2;
+    } else if(stage==2) {
+        if(++s4_host_test.ipc[11]>40){s4_host_test.ipc[14]++;s4_host_test.ipc[4]=0;goto done;}
+        char text[64];int fd=ipc_open("/data/quickapp/files/com.meta.s4nativeprobe/rf-spp-response.txt",1);
+        if(fd<0)goto done;
+        int n=((int (*)(int,void *,int))0x2c55d5e1)(fd,text,sizeof(text));ipc_close(fd);
+        if(n<0 || n>63)goto done;
+        const char *p=text,*end=text+n;u32 got_seq=0,got_epoch=0;
+        const char *prefix="S4RF1:";while(*prefix && p<end && *p==*prefix){p++;prefix++;}
+        if(*prefix || !read_number(&p,end,&got_seq) || !read_number(&p,end,&got_epoch) ||
+           got_seq!=seq || got_epoch!=epoch || end-p!=16)goto done;
+        const char *response="5334544553549000";while(p<end && *p==*response){p++;response++;}
+        if(p!=end || epoch!=s4_host_test.ipc[5] || s4_host_test.ipc[6]!=seq || !host_guard())goto done;
+        u8 *m=fixed_message();if(!m)goto done;
+        s4_host_test.ipc[9]++;
+        ((void (*)(void *))0x2c34de2d)(m);s4_host_test.ipc[10]++;
+        s4_host_test.ipc[4]=0;
+    }
+done:s4_host_test.ipc[3]--;
+}
 static void rf_receive(u8 conn,u16 event,void *data) {
     s4_host_test.h[6]++;
     s4_host_test.rf_meta[0]++;
@@ -161,7 +231,7 @@ static void rf_receive(u8 conn,u16 event,void *data) {
                 s4_host_test.h[9]++;
                 free_buffer(m); // Original RF BT_HDR has one owner.
                 if(s4_host_test.rf_meta[15])s4_host_test.rf_meta[15]=0;
-                else send_fixed();
+                else if(!HOST_SPP_BRIDGE)send_fixed();
             }
         }
     }
@@ -228,6 +298,7 @@ static void remove_reply(u8 event,u16 length,const u8 *p) {
     if(!query_ok(event,length,p) || (s4_host_test.h[1]!=3 && s4_host_test.h[1]!=4) ||
        !original_entry() || !owned_entry() || H(DM+0x4a) || B(DM+0x4c) ||
        s4_host_test.h[5] || s4_host_test.h[6] || s4_host_test.hal_meta[0] || W(HAL_SLOT)!=ORIGINAL_HAL ||
+       s4_host_test.ipc[3] || s4_host_test.ipc[4] ||
        (W(DISC)!=ORIGINAL_DISC && W(DISC)!=(u32)discovery) ||
        (W(RF)!=ORIGINAL_RF && W(RF)!=0 && W(RF)!=(u32)rf_receive)) {
         s4_host_test.h[2]=3;return;
@@ -250,6 +321,10 @@ __attribute__((constructor,used)) int module_initialize(void) {
     s4_host_test.h[13]=W(RF);s4_host_test.h[14]=W(DISC);
     s4_host_test.h[15]=(u32)discovery;s4_host_test.h[16]=(u32)rf_receive;s4_host_test.h[17]=(u32)discovered;
     s4_host_test.h[20]=(u32)arm_reply;s4_host_test.h[21]=(u32)remove_reply;s4_host_test.h[22]=(u32)register_reply;
+    s4_host_test.ipc[1]=HOST_SPP_BRIDGE;s4_host_test.ipc[2]=(u32)bridge_pump;
+    if(HOST_SPP_BRIDGE && (W(0x2c55d838)!=0xb590b40e || W(0x2c55d5e0)!=0xb085b530 ||
+       H(0x2c55d61a)!=0xb530 || H(0x2c55d61c)!=0xb085 || W(0x2c55af94)!=0xaf00b598 ||
+       W(0x2c20dc10)!=0xb084b580)){s4_host_test.h[1]=10;return 0;}
     if(W(0x2c344754)!=0x4b0db5f0 || W(0x2c341310)!=0x2801b580 ||
        W(0x2c344698)!=0xf5a0b5f8 || W(0x2c34dff0)!=0x4b04b580 ||
        W(0x2c3420d0)!=0x4b19b5b0 || H(0x2c34319e)!=0xf246 || H(0x2c3431a0)!=0x0303 ||
