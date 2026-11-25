@@ -1,8 +1,8 @@
 # 路线 B：原生 NFC Host 接口研究
 
-这是独立研究目录，**没有实现射频APDU往返**。详细地址、真实失败回调、边界和下一实验见 `docs/design/xiaomi-s4-nfc-host.md`。
+这是独立研究目录，**2026-11-25已实机通过固定测试AID的射频APDU往返，SPP与RF串联仍待验证**。详细地址、真实失败回调、边界和下一实验见 `docs/design/xiaomi-s4-nfc-host.md`。
 
-当前优先路线为蓝牙代理（先Classic SPP），A真实迁移暂停。**已实机取得完整旧路由、controller AID能力、测试AID-first路由增加/回读/重启保持/完整恢复，以及spare discovery slot同步add/delete。已用外部K70验证Host ISO-DEP激活，但固定SELECT仍TagLostException、DATA回调尚无交付；SPP APDU未做。**AID-last曾FAILED03并清空表，已恢复；不能重复使用错误顺序或假定失败没有副作用。详见设计和独立失败/成功证据。
+当前优先路线为蓝牙代理（先Classic SPP），A真实迁移暂停。**已实机取得完整旧路由、controller AID能力、测试AID-first路由增加/回读/重启保持/完整恢复，以及spare discovery slot同步add/delete。已用外部K70验证固定SELECT→S4本机S4TEST9000两次，RTT92.73/92.22ms，原路由/槽/回调恢复和模块卸载通过；SPP固定后端另行实测3/3通过，RTT122/123/146ms；RF/SPP尚未串联。**AID-last曾FAILED03并清空表，已恢复；不能重复使用错误顺序或假定失败没有副作用。详见设计和独立失败/成功证据。
 
 | 工具 | 用途 |
 | --- | --- |
@@ -118,3 +118,11 @@ python3 tools/research/xiaomi-nfc-host/render_host_session.py \
   --run-id host-example --window-seconds 0 \
   --output /tmp/.agents/gadgetbridge-transit-research/routing-notify/host-example.lua
 ```
+
+2026-11-25 rf6 live: HAL received 3 exact synthetic SELECT NCI DATA frames (16 bytes); RF6003 remained 0 with the stock sink owner, and the reader got no response. Guarded recovery restored the original table/entries/callbacks and unloaded all modules. See the independent live evidence in `docs/evidence/xiaomi-s4-host-rf6-2026-11-25.json`.
+
+The next test-only responder copies `S4TEST9000` into an original `0x10c` NFA queue message from HAL only for the exact complete synthetic SELECT, conn0 and its own active slot1. It forwards all input unchanged, keeps asynchronous messages free of module pointers, and avoids a second reply if the RF callback receives the same frame. `rf_meta[13]` records phase/state/own-active/handle at the attempt, `[14]` counts queue submissions, and `[15]` marks same-frame suppression. Submission is not RF acceptance. The 33-case offline verifier covers the original send action after a stock-sink overwrite, duplicate suppression, inactive rejection, allocation failure and non-test/eSE guards. Live validation is still required.
+
+RF7 live located a more specific condition: exact DATA arrived in state5 with own-listener inactive and handle low12=FFF (the old diagnostic truncated the upper four bits), so the queue guard submitted zero replies. The next guarded fallback tracks only complete controller Host ISO-DEP Listen-A activation notifications (61/05, interface2/protocol4/mode80), cleared by deactivation/STOP/GET. It permits handleFFFF only with that Host marker and both preserved original eSE and owned test-slot checks; handle0 and other modes remain refused. RF8 corrects `rf_meta[13]`: bits0..3 phase, 4..7 state, bit8 own-listener-active, bit9 controller Host marker, bits16..31 full handle. This fallback has offline coverage but still requires a successful external RAPDU.
+
+Independent SPP acceptance on 2026-11-25: three watch-generated fixed SELECTs reached a bounded K70 `app_process` backend; the original GB connection returned S4TEST9000 through the allowlisted JNI message/session builders; the watch acknowledged all three (122/123/146ms). No Mac per-request relay, APK or real SE. See `xiaomi-s4-spp-fixed-backend-2026-11-25.json`. `S4SppTestBackend.java` requires the current GB PID and stops after 30 seconds or 3 ACKs. The companion's explicit synthetic start mode waits for synchronous `getReadyState()` rather than sending before session connection; default diagnostic mode still exits promptly. This is separate from the RF acceptance; native/quickapp IPC and a combined RF+SPP test remain outstanding.

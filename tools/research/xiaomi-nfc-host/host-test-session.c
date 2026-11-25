@@ -29,7 +29,32 @@ static void rf_receive(u8 conn,u16 event,void *data);
 static void discovered(u8 event,void *data);
 static void arm_reply(u8 event,u16 length,const u8 *packet);
 static void remove_reply(u8 event,u16 length,const u8 *packet);
+static u8 *fixed_message(void);
+static int original_entry(void);
+static int owned_entry(void);
+static volatile u32 hal_host_active;
+static void queue_hal_test_reply(void) {
+    // HAL runs outside the NFA owner: enqueue a copied, immutable test response
+    // for the ORIGINAL action 0x10c. Never call RF send/drain or change the RF
+    // callback here. This message contains no resident-module pointer.
+    const u16 handle=H(DM+0x52);
+    // Preserve ALL handle bits; RF7's old <<20 diagnostic retained only 12.
+    s4_host_test.rf_meta[13]=(s4_host_test.h[1]&15) | ((u32)B(DM+0x4c)<<4) |
+        (s4_host_test.h[24]<<8) | (hal_host_active<<9) | ((u32)handle<<16);
+    // RF7: exact DATA can arrive in state5 with handleFFFF and no listener
+    // activation. Accept that case only with a complete controller-reported
+    // DH ISO-DEP Listen-A activation. Never accept an original eSE handle0.
+    const int host=(s4_host_test.h[24] && handle==1) ||
+        (hal_host_active && handle==0xffff);
+    if(s4_host_test.h[1]!=4 || !host || B(DM+0x4c)!=5 ||
+       !original_entry() || !owned_entry())return;
+    u8 *m=fixed_message();if(!m)return;
+    s4_host_test.rf_meta[15]=1; // Suppress a second reply if RF delivery recovers.
+    ((void (*)(void *))0x2c34de2d)(m);
+    s4_host_test.rf_meta[14]++; // Queue submission, not RF acceptance.
+}
 static void hal_receive(u16 length,u8 *packet) {
+    int test_reply=0;
     s4_host_test.hal_meta[0]++;s4_host_test.hal_meta[2]++;
     if(packet && length>=3) {
         const u32 mt=packet[0]&0xe0;
@@ -41,10 +66,19 @@ static void hal_receive(u16 length,u8 *packet) {
                 int match=1;
                 for(u32 i=0;i<12;++i)if(packet[3+i]!=select_apdu[i])match=0;
                 if(length==16 && packet[15])match=0;
-                if(match)s4_host_test.hal_meta[4]++;
+                if(match) {
+                    s4_host_test.hal_meta[4]++;
+                    test_reply=packet[0]==0 && packet[1]==0;
+                }
             }
-        } else if(packet[0]==0x61 && packet[1]==5)s4_host_test.hal_meta[8]++;
-        else if(packet[0]==0x61 && packet[1]==6)s4_host_test.hal_meta[9]++;
+        } else if(packet[0]==0x61 && packet[1]==5) {
+            s4_host_test.hal_meta[8]++;
+            hal_host_active=length>=7 && packet[2]==length-3 &&
+                packet[4]==2 && packet[5]==4 && packet[6]==0x80;
+            s4_host_test.rf_meta[15]=0;
+        } else if(packet[0]==0x61 && packet[1]==6) {
+            s4_host_test.hal_meta[9]++;hal_host_active=0;
+        }
         else if(packet[0]==0x61 && packet[1]==7) {
             s4_host_test.hal_meta[10]++;
             if(length>=4)s4_host_test.hal_meta[11]=packet[3];
@@ -52,10 +86,14 @@ static void hal_receive(u16 length,u8 *packet) {
         // Detach in the callback owner, then forward unmodified. The bounded
         // recovery also sends GET_ROUTING after STOP to guarantee this path.
         if(packet[0]==0x41 && (packet[1]==2 || packet[1]==6) && W(HAL_SLOT)==(u32)hal_receive) {
+            hal_host_active=0;
             RW(HAL_SLOT)=ORIGINAL_HAL;__asm__ volatile("dmb" ::: "memory");
             s4_host_test.hal_meta[1]=packet[1]==2?2:3;
         }
     }
+    // Mark the copied reply before forwarding: original HAL may immediately
+    // schedule the RF consumer, which must not submit a duplicate response.
+    if(test_reply)queue_hal_test_reply();
     ((void (*)(u16,u8 *))ORIGINAL_HAL)(length,packet);
     s4_host_test.hal_meta[0]--;
 }
@@ -81,12 +119,16 @@ static void retain_discovery(void) {
 }
 static void set_rf(u32 target) {((void (*)(void *))0x2c34dff1)((void *)target);}
 static void free_buffer(void *p) {((void (*)(void *))0x2c34311d)(p);}
-static void send_fixed(void) {
+static u8 *fixed_message(void) {
     u8 *m=((u8 *(*)(u16))0x2c342e85)(20);
-    if(!m){s4_host_test.h[12]++;return;}
+    if(!m){s4_host_test.h[12]++;return (u8 *)0;}
     for(u32 i=0;i<20;++i)m[i]=0;
     *(u16 *)m=0x10c;*(u16 *)(m+2)=8;*(u16 *)(m+4)=4;
     for(u32 i=0;i<8;++i)m[12+i]=fixed_response[i];
+    return m;
+}
+static void send_fixed(void) {
+    u8 *m=fixed_message();if(!m)return;
     int release=((int (*)(void *))0x2c3420d1)(m);
     if(release)free_buffer(m);
     else s4_host_test.h[10]++; // Submission only, not proof of RF transmission.
@@ -118,7 +160,8 @@ static void rf_receive(u8 conn,u16 event,void *data) {
             if(matched) {
                 s4_host_test.h[9]++;
                 free_buffer(m); // Original RF BT_HDR has one owner.
-                send_fixed();
+                if(s4_host_test.rf_meta[15])s4_host_test.rf_meta[15]=0;
+                else send_fixed();
             }
         }
     }
@@ -130,11 +173,11 @@ static void rf_receive(u8 conn,u16 event,void *data) {
 }
 static void discovered(u8 event,void *data) {
     if(event==1 && data && B((u8 *)data+1)==4 && B((u8 *)data+2)==0x80 && B((u8 *)data+0x27)==2 && s4_host_test.h[1]==4) {
-        s4_host_test.h[7]++;s4_host_test.h[24]=1;
+        s4_host_test.h[7]++;s4_host_test.h[24]=1;s4_host_test.rf_meta[15]=0;
         if(W(RF)==ORIGINAL_RF || W(RF)==0)set_rf((u32)rf_receive);
         else s4_host_test.h[28]++;
     } else if(event==2) {
-        s4_host_test.h[8]++;s4_host_test.h[24]=0;
+        s4_host_test.h[8]++;s4_host_test.h[24]=0;s4_host_test.rf_meta[15]=0;
         if(W(RF)==(u32)rf_receive){set_rf(ORIGINAL_RF);s4_host_test.h[26]++;}
     }
 }

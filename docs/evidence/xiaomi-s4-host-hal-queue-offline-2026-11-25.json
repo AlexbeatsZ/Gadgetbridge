@@ -1,0 +1,157 @@
+{
+  "execution": "OFFLINE_COMPILED_HOST_SESSION_AND_ORIGINAL_FULL_DISCOVERY_AND_RF_SEND",
+  "cases_passed": 33,
+  "cases": [
+    {
+      "case": "registration_and_removal_without_arming_restore_all_original_entry_bytes",
+      "passed": true
+    },
+    {
+      "case": "original_full_discovery_callback_selects_extra_host_and_restores_technology_map",
+      "passed": true
+    },
+    {
+      "case": "test_select_submits_fixed_response_through_original_send_path_and_frees_once",
+      "passed": true
+    },
+    {
+      "case": "test_select_without_le_is_also_exact_match",
+      "passed": true
+    },
+    {
+      "case": "non_test_aid_forwarded_to_original_sink_without_response_or_payload_log",
+      "passed": true
+    },
+    {
+      "case": "own_listener_deactivation_restores_original_rf_callback",
+      "passed": true
+    },
+    {
+      "case": "stop_completion_then_remove_clears_all_module_references",
+      "passed": true
+    },
+    {
+      "case": "direct_eSE_activation_uses_original_registration_and_unchanged_map",
+      "passed": true
+    },
+    {
+      "case": "unexpected_rf_callback_owner_not_overwritten",
+      "passed": true
+    },
+    {
+      "case": "live_observed_activation_tail_sink_reinstall_repaired_before_test_select",
+      "passed": true
+    },
+    {
+      "case": "passive_hal_counts_only_test_match_and_forwards_all_packets_then_self_detaches_on_stop",
+      "passed": true
+    },
+    {
+      "case": "passive_hal_get_routing_barrier_detaches_without_any_rf_activation",
+      "passed": true
+    },
+    {
+      "case": "hal_exact_test_with_stock_sink_queues_pointer_free_copy_for_original_nfa_send_action",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_suppresses_duplicate_if_same_frame_reaches_rf_callback_and_frees_input_once",
+      "passed": true
+    },
+    {
+      "case": "original_send_action_rejects_queued_reply_after_listen_deactivation",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_allocation_failure_preserves_input_forwarding_and_rf_owner",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_other_aid",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_other_connection",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_fragmented",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_reserved_header",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_original_ese_handle",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_not_listen_active",
+      "passed": true
+    },
+    {
+      "case": "hal_reply_refuses_no_own_activation",
+      "passed": true
+    },
+    {
+      "case": "controller_host_activation_and_unassigned_handle_allow_exact_test_queue_without_nfa_listener",
+      "passed": true
+    },
+    {
+      "case": "controller_host_fallback_refuses_direct_ese",
+      "passed": true
+    },
+    {
+      "case": "controller_host_fallback_refuses_poll_mode",
+      "passed": true
+    },
+    {
+      "case": "controller_host_fallback_refuses_malformed_length",
+      "passed": true
+    },
+    {
+      "case": "controller_host_fallback_refuses_deactivated",
+      "passed": true
+    },
+    {
+      "case": "controller_host_fallback_cannot_override_original_ese_handle",
+      "passed": true
+    },
+    {
+      "case": "original_nci_data_parser_and_real_queue_drain_deliver_test_select_and_free_once",
+      "passed": true
+    },
+    {
+      "case": "original_deactivation_and_discovery_restart_keep_session_wrapper_owned",
+      "passed": true
+    },
+    {
+      "case": "bounded_stop_owned_test_listen_allowed",
+      "passed": true
+    },
+    {
+      "case": "bounded_stop_original_eSE_listen_refused",
+      "passed": true
+    }
+  ],
+  "real_host_rf_apdu": false,
+  "boundaries": [
+    "HAL output",
+    "GKI/timers",
+    "NFA queue",
+    "selected discovery mask",
+    "RF stop completion",
+    "RF send queue",
+    "original eSE listener",
+    "ingress critical sections/pool validation/client-task loop"
+  ],
+  "not_verified": [
+    "live activation payload ABI",
+    "live callback ownership during RF",
+    "automatic timeout restoration",
+    "external reader RAPDU",
+    "SPP",
+    "WTX"
+  ]
+}

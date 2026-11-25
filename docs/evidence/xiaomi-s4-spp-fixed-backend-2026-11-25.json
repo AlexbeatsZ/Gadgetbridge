@@ -1,0 +1,104 @@
+{
+  "execution": "LIVE_S4_CLASSIC_SPP_FIXED_APDU_K70_LOCAL_BACKEND",
+  "date_mac": "2026-11-25",
+  "date_phone": "2026-11-26",
+  "transport": "existing Gadgetbridge Classic Bluetooth SPP interconnect",
+  "test_select_hex": "00a4040007f001020304050600",
+  "response_hex": "5334544553549000",
+  "phone_backend": "temporary bounded app_process; reads only own RPK log messages and invokes allowlisted JNI message/session response modes",
+  "mac_in_per_request_reply_path": false,
+  "production_app_modified": false,
+  "apk_installed": false,
+  "backend_records": [
+    {
+      "backend": "K70_app_process_fixed_only",
+      "bounded_seconds": 30,
+      "real_SE": false
+    },
+    {
+      "backend_request_seq": 1,
+      "agent_exited": true,
+      "agent_exit": 0,
+      "submit_ns": 105179427
+    },
+    {
+      "watch_ack_seq": 1,
+      "watch_rtt_ms": 122,
+      "fixed_response_matches": true
+    },
+    {
+      "backend_request_seq": 2,
+      "agent_exited": true,
+      "agent_exit": 0,
+      "submit_ns": 102606093
+    },
+    {
+      "watch_ack_seq": 2,
+      "watch_rtt_ms": 123,
+      "fixed_response_matches": true
+    },
+    {
+      "backend_request_seq": 3,
+      "agent_exited": true,
+      "agent_exit": 0,
+      "submit_ns": 104045000
+    },
+    {
+      "watch_ack_seq": 3,
+      "watch_rtt_ms": 146,
+      "fixed_response_matches": true
+    },
+    {
+      "backend_complete": true,
+      "requests": 3,
+      "watch_acks": 3
+    }
+  ],
+  "watch_phone_probe_logs": [
+    "11-26 00:57:56.002 I/GBWatchProbe( 6001): Agent attached; starting allowlisted probe",
+    "11-26 00:57:56.003 I/GBWatchProbe( 6001): Cached watch firmware=3.201.79",
+    "11-26 00:57:56.009 I/GBWatchProbe( 6001): Synthetic SPP operation=spp-test-start; submission only",
+    "11-26 00:57:56.940 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService( 6001): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":1,\"apdu\":\"00a4040007f001020304050600\"}",
+    "11-26 00:57:56.987 I/GBWatchProbe( 6001): Agent attached; starting allowlisted probe",
+    "11-26 00:57:56.987 I/GBWatchProbe( 6001): Cached watch firmware=3.201.79",
+    "11-26 00:57:56.997 I/GBWatchProbe( 6001): Synthetic SPP operation=spp-test-reply-1; submission only",
+    "11-26 00:57:57.054 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService( 6001): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"ack\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":1,\"rtt_ms\":122,\"response_matches\":true}",
+    "11-26 00:57:57.465 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService( 6001): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":2,\"apdu\":\"00a4040007f001020304050600\"}",
+    "11-26 00:57:57.507 I/GBWatchProbe( 6001): Agent attached; starting allowlisted probe",
+    "11-26 00:57:57.508 I/GBWatchProbe( 6001): Cached watch firmware=3.201.79",
+    "11-26 00:57:57.522 I/GBWatchProbe( 6001): Synthetic SPP operation=spp-test-reply-2; submission only",
+    "11-26 00:57:57.568 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService( 6001): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"ack\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":2,\"rtt_ms\":123,\"response_matches\":true}",
+    "11-26 00:57:58.000 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService( 6001): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":3,\"apdu\":\"00a4040007f001020304050600\"}",
+    "11-26 00:57:58.048 I/GBWatchProbe( 6001): Agent attached; starting allowlisted probe",
+    "11-26 00:57:58.050 I/GBWatchProbe( 6001): Cached watch firmware=3.201.79",
+    "11-26 00:57:58.066 I/GBWatchProbe( 6001): Synthetic SPP operation=spp-test-reply-3; submission only",
+    "11-26 00:57:58.102 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService( 6001): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"ack\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":3,\"rtt_ms\":146,\"response_matches\":true}"
+  ],
+  "first_attempt": {
+    "records": [
+      {
+        "backend": "K70_app_process_fixed_only",
+        "bounded_seconds": 30,
+        "real_SE": false
+      },
+      {
+        "watch_timeout_seq": 1
+      },
+      {
+        "backend_complete": true,
+        "requests": 0,
+        "watch_acks": 0
+      }
+    ],
+    "result": "first request absent, later timeout delivered; start was processed before connection-ready barrier, fixed by synchronous getReadyState plus bounded wait. The absence is observed; exact framework ordering is an inference."
+  },
+  "passed": true,
+  "RF_connected_to_SPP": false,
+  "real_SE_access": false,
+  "not_verified": [
+    "native NFC host to quickapp IPC",
+    "RF plus SPP end-to-end response",
+    "WTX",
+    "RF-to-phone-backend timeout recovery"
+  ]
+}

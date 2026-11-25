@@ -7,19 +7,59 @@ export default {
  onInit() {
   this.conn = interconnect.instance()
   this.sent = ''
-  this.conn.onopen = () => this.sendStatus('ready')
+  this.conn.onopen = () => {this.sppOpen=true;this.sendStatus('ready')}
   this.conn.onerror = (e) => { this.status=JSON.stringify(e) }
-  this.conn.onmessage = () => { this.sendStatus('received-ping'); this.readAll() }
-  setTimeout(()=>require('@system.app').terminate(),6500)
+  this.conn.onmessage = (message) => {
+   let body=message && message.data !== undefined ? message.data : message
+   try {if(typeof body==='string')body=JSON.parse(body)}catch(e){return}
+   if(body && body.probe==='s4-spp-test')this.testMessage(body)
+   else {this.sendStatus('received-ping');this.readAll()}
+  }
+  this.autoExit=setTimeout(()=>require('@system.app').terminate(),6500)
   this.beat = setInterval(()=>this.sendStatus('heartbeat-file-'+typeof file),3000)
   try {file=require('@system.file')}catch(e) {this.sendStatus('file-error-'+String(e))}
   if(file)file.writeText({uri:'internal://files/ready.txt',text:'ready',success:()=>this.sendStatus('sandbox-ready')})
   this.timer = setInterval(()=>this.readAll(),1000)
  },
- onDestroy() { if(this.timer)clearInterval(this.timer);if(this.beat)clearInterval(this.beat) },
+ onDestroy() { if(this.timer)clearInterval(this.timer);if(this.beat)clearInterval(this.beat);if(this.autoExit)clearTimeout(this.autoExit);if(this.sppTimeout)clearTimeout(this.sppTimeout) },
+ testMessage(body) {
+  if(body.nonce!=='s4-spp-test-20261125')return
+  if(body.op==='start' && !this.sppRunning) {
+   this.sppRunning=true;this.sppSeq=0;this.sppResults=[]
+   clearTimeout(this.autoExit);this.autoExit=setTimeout(()=>require('@system.app').terminate(),20000)
+   clearInterval(this.timer);clearInterval(this.beat)
+   this.sppPending=true;setTimeout(()=>this.testWhenReady(20),200)
+   return
+  }
+  if(body.op!=='response' || !this.sppRunning || body.seq!==this.sppSeq || body.rapdu!=='5334544553549000')return
+  clearTimeout(this.sppTimeout)
+  const result={seq:this.sppSeq,rtt_ms:Date.now()-this.sppAt,response_matches:true}
+  this.sppResults.push(result)
+  this.conn.send({data:{probe:'s4-spp-test',op:'ack',nonce:body.nonce,seq:result.seq,rtt_ms:result.rtt_ms,response_matches:true}})
+  if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify(this.sppResults)})
+  if(this.sppSeq<3)setTimeout(()=>this.testRequest(),400)
+  else {this.sppRunning=false;this.status='3 fixed SPP test replies';setTimeout(()=>require('@system.app').terminate(),1000)}
+ },
+ testWhenReady(left) {
+  if(!this.sppPending || !this.sppRunning)return
+  const state=this.conn.getReadyState()
+  if(state===1 || this.sppOpen){this.sppPending=false;this.testRequest()}
+  else if(left>0)setTimeout(()=>this.testWhenReady(left-1),100)
+  else if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify({ready_state:state,request_sent:false})})
+ },
+ testRequest() {
+  if(!this.sppRunning)return
+  this.sppSeq++;this.sppAt=Date.now()
+  this.conn.send({data:{probe:'s4-spp-test',op:'request',nonce:'s4-spp-test-20261125',seq:this.sppSeq,apdu:'00a4040007f001020304050600'},fail:(e,c)=>{
+   if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify({send_failed_seq:this.sppSeq,code:c})})
+  }})
+  this.sppTimeout=setTimeout(()=>{
+   this.sppRunning=false;this.conn.send({data:{probe:'s4-spp-test',op:'timeout',nonce:'s4-spp-test-20261125',seq:this.sppSeq}})
+  },5000)
+ },
  sendStatus(s) { try { this.conn.send({data:{probe:'native-nfc-readonly',status:s},fail:(e,c)=>{this.status='Send failed '+c}}) } catch(e){} },
  readAll() {
-  const names=['version.txt','module-load.txt','modules-before.txt','modules-after.txt','module-unload.txt','modules-final.txt','shell-help.txt','proc-list.txt','ready.txt','device-list.txt','process-list.txt','modules.txt','lua-result.txt']
+  const names=['version.txt','module-load.txt','modules-before.txt','modules-after.txt','module-unload.txt','modules-final.txt','shell-help.txt','proc-list.txt','host-help.txt','fd-help.txt','nfc-proc.txt','nfc-fds.txt','nfc-mqueue.txt','ready.txt','device-list.txt','process-list.txt','modules.txt','lua-result.txt','spp-test-result.txt']
   for(let i=0;i<names.length;i++) {
    const name=names[i]
    file.readText({uri:'internal://files/'+name,success:(r)=>{

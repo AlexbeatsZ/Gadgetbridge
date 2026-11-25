@@ -6,6 +6,34 @@
 
 用户已改为优先推进蓝牙代理，A的真实迁移暂停。本路线先验证外部读卡器↔S4主机固定APDU，再用现有Classic SPP接固定测试后端；BLE后评估。此选择不代表已经证明能代理真实公交卡或保留校园功能。
 
+2026-11-25 rf8决定性实机成功（K70 Asia/Shanghai 11-26）：
+
+- K70→S4 SELECT固定测试AID，S4主机原生HAL测试程序→原NFA发送队列→控制器→K70，连续两次收到精确5334544553549000；RTT92,725,573ns/92,220,156ns。不是SE管理APDU或模拟器结果，固定测试RF往返判据已通过。
+- DATA时控制器Host标记1、DMstate5、own-listener0、完整handleFFFF已实读；HAL固定SELECT2/原NFA队列提交2与reader成功2相符。NFA RF6003仍0，不声称已恢复通用NFA CE服务。原eSE表/槽保持，模块按有界后台自动恢复，collector最终全部守卫/原表/队列barrier与卸载通过。
+- 本轮只返回手表本地固定响应，没有经过SPP手机后端；WTX数量/链路串联/跨休眠稳定性/真实卡仍未通过。新证据xiaomi-s4-host-rf8-success-2026-11-25.json。原表盘/唯一测试face清理随后完成，唯一诊断RPK保留继续SPP。
+- 后续独立SPP实验：现有com.meta.s4nativeprobe诊断RPK versionCode9只加入明确启动的3次固定SELECT请求/固定响应校验；K70临时app_process后端仅解析自己RPK的固定nonce/SELECT，调用临时JNI原message/session builders返回固定响应，规避已定位的旧版前台RPK反复launch问题，不修改生产app或安装APK。该实验不把Mac/ADB放进逐条应答路径，不连接SE，仍与RF串联验证分开记录。
+
+2026-11-25 独立Classic SPP固定后端成功：
+
+- 同一个诊断RPK（最终versionCode9）发3次固定SELECT，由K70的30秒app_process后端识别并经临时JNI调用**已安装GB的原message/session builders**发送固定RAPDU。手表ACK3/3，RTT122/123/146ms；Mac/ADB仅启动和取证，不在逐条应答路径。无APK、无生产app修改、无SE访问。
+- 首轮request0/timeout1：start消息处理时发出的首包没有到达GB，后续timeout通知正常到达。连接就绪顺序是依据现象的推断；修复为延后并同步getReadyState有界确认后再发，最终3/3。不把首轮的agent调用/发送提交当成功。
+- 当前两段独立实机均通过，但**RF→native→quickapp→SPP→K70→SPP→native→RF尚未串联**。下一核心为无阻塞native/quickapp IPC、带会话/序号的过期拒绝、端到端deadline和WTX观察。研究手机端逐条attach-agent耗时约103–105ms，非生产延迟基线；SPP RTT不可直接与RF RTT相加作为已测总时延。
+- 源码S4SppTestBackend.java、watch-ops.cpp固定SPP模式和原companion扩展；证据xiaomi-s4-spp-fixed-backend-2026-11-25.json。只允许固定probe包/nonce/seq1..3/测试APDU，未知数据不应答。
+
+2026-11-25 rf6实机（K70 Asia/Shanghai 11-26）：
+
+- 用户确认两次贴近。HAL实际收到3个conn0/NCI DATA，长度16，全部精确匹配13字节固定SELECT；自身Host activation/deactivation各4次。射频→控制器→主机HAL已真实通过，RF DATA6003仍0，K70 SELECT阶段3次TagLostException，没有外部固定响应。
+- 激活尾部曾实读自身RF callback，但HAL收到DATA时owner再次为stock sink2c34472d；覆盖发生点仍需进一步定位，不能把原NXP相似分支当成已确认的实机调用者。
+- 自动恢复后collector确认phase5、原槽40字节、RF/DISC/HAL、eSE8101、flags/state01000100和完整原表均恢复，原队列barrier后模块为空。GB本轮PID6001；这是11-23之后的新进程，不沿用旧PID10882作连续性证明。原表盘已恢复，测试face已删。
+- 新研究原型仅在完整固定SELECT、conn0且当前自身slot1/Host/listen-active时，将复制的S4TEST9000消息放入原nfa_sys_sendmsg→action10c，HAL不直接调用RF send/drain、不改RF指针，所有入帧仍原样交原HAL。队列消息无resident指针；原发送处理器在实际执行时拒绝非active状态。RF收到同帧时抑制重复应答。rf7的rf_meta[13]为提交时phase/state/own-active/handle低12位位域，[14]为队列提交数，[15]为待消费的同帧抑制标志；提交不等于RF发送成功。
+- 27项原ARM/编译探针离线检查通过，包含stock sink覆盖后新队列路径、原send处理器、同帧去重、分离后拒绝和分配失败/非测试帧/原eSE handle保护。实际新应答路径尚待实机验证。证据分别为xiaomi-s4-host-rf6-2026-11-25.json和xiaomi-s4-host-hal-queue-offline-2026-11-25.json。
+
+2026-11-25 rf7实机与后续原型：
+
+- 新队列应答原型的无贴近dry4实机自动恢复、原表/槽/回调复核及卸载通过。rf7用户两次贴近，HAL精确测试SELECT=2；新诊断在DATA到达时记录phase4/state5/own-active0/handle低12位FFF（旧打包截断，完整FFFF仅为候选），提交数0。不是已发送但丢失，明确为自身listener不活动、非handle1而被保护条件拒绝；RF/DISC回调覆盖的完整调用者仍未确定。
+- 下一原型额外识别完整NCI 61/05激活通知中的interface2/protocol4/mode80（不读UID/激活参数），61/06去激活或STOP/GET撤销时清除标记。只有控制器Host Listen-A标记有效、DMstate5、handleFFFF、原eSE槽未改、测试slot1仍归自己时，才允许同一固定SELECT复制应答入原NFA队列；handle0/其他handle、direct-eSE/interface0、Poll、畸形激活、过期会话均拒绝。已有自身listener/handle1路径保留。结构ABI/恢复过程不改；rf8改正诊断打包：rf_meta[13]的bits0..3为phase，4..7为state，bit8为own-active，bit9为控制器Host标记，16..31为完整handle。
+- 新33项离线检查全部通过；这项Host通知回退仍须真实SELECT应答验证，不能将允许入队当成RF成功。
+
 2026-11-22 后续实机（手机Asia/Shanghai 11-23中午）：
 
 - 常驻Host测试会话、slot1注册、原栈STOP/START、固定测试AID增加、超时恢复、完整旧表复核、原队列barrier及卸载已实机通过。零窗口曾因NSH拒绝`sleep 0`中断脚本，受保护collector拒绝卸载；补完恢复后修复为省略延时命令，后续自动恢复预演通过。不能把`os.execute`返回成功当作后台脚本完成。
