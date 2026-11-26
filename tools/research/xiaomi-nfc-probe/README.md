@@ -65,10 +65,10 @@ Full migration research, exact endpoints, firmware evidence, limitations and nex
 
 ## Fixed host bridge companion (2026-11-25 continuation)
 
-The same diagnostic package is now versionCode15 (no APK). RF8 passed a local S4 fixed-response roundtrip; RF10 obtained one real external-reader response through the K70 SPP backend, while another presentation timed out. This does not implement a transit card. Current details and recovery are in `../xiaomi-nfc-host/README.md` and the NFC Host design/evidence.
+RF8 passed a local S4 fixed-response roundtrip. RF10 used the diagnostic RPK at versionCode 15 and obtained one external-reader response through the K70 SPP backend. The other presentation ended in `TagLostException`. The current RPK at versionCode 16 updates the fixed diagnostic's connection lifecycle. Experiment details and recovery are in `../xiaomi-nfc-host/README.md` and the NFC Host design and evidence.
 
 `rf-start` is explicit and bounded330sec, uses only the fixed private request/response mailboxes, fixed nonce/AID/APDU and seq/activation epoch. Default diagnostics still exit6.5sec. `getReadyState` is an asynchronous object API, not a synchronous numeric result: rely on `onopen` or its `success({status:1})`. The initial-state mistake blocked RF9 polling. `bridge-ready` is retried at250/750ms because the first outbound message can be lost during connection setup. Only after receiving an actual ready message may an operator request touch.
 
-Run `node tools/research/xiaomi-nfc-probe/verify_companion.mjs` for eight offline cases using the actual component methods and explicit platform mocks. These cover the former API-state regression, readiness, fixed-only mailboxes and reply matching; they do not prove NFC/SPP radio behavior.
+Run `node tools/research/xiaomi-nfc-probe/verify_companion.mjs` for 14 offline cases using the actual component methods and explicit platform mocks. The cases cover asynchronous readiness, the fixed-only mailboxes and replies, and delayed callbacks across disconnect, reconnect and destruction. Physical NFC/SPP timing requires a separate device run.
 
 Stage JNI/DEX under a new immutable filename for each changed build. Never overwrite a file already mapped by a running app or app_process. The recent-open cache in newer GB can outlive this auto-exiting RPK; the research helper invalidates only this diagnostic package's temporary cache entry before explicit RF start, leaving production code and other package state untouched.

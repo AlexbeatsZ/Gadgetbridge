@@ -7,10 +7,27 @@ export default {
  onInit() {
   this.conn = interconnect.instance()
   this.sent = ''
-  this.conn.onopen = () => {this.sppOpen=true;this.sendStatus('ready');this.reportRfReady()}
-  this.conn.onclose = () => {this.sppOpen=false}
+  this.sppOpen = false
+  this.destroyed = false
+  this.rfRunning = false
+  this.rfStopped = false
+  this.rfGeneration = 0
+  this.rfSeen = new Set()
+  this.resetRfConnection()
+  this.conn.onopen = () => {
+   if(this.destroyed)return
+   if(!this.sppOpen)this.resetRfConnection()
+   this.sppOpen=true
+   this.sendStatus('ready')
+   this.reportRfReady()
+  }
+  this.conn.onclose = () => {
+   this.sppOpen=false
+   this.resetRfConnection()
+  }
   this.conn.onerror = (e) => { this.status=JSON.stringify(e) }
   this.conn.onmessage = (message) => {
+   if(this.destroyed)return
    let body=message && message.data !== undefined ? message.data : message
    try {if(typeof body==='string')body=JSON.parse(body)}catch(e){return}
    if(body && body.probe==='s4-spp-test')this.testMessage(body)
@@ -23,22 +40,48 @@ export default {
   if(file)file.writeText({uri:'internal://files/quickapp-ipc-test.txt',text:'S4IPC-QUICKAPP-1125',success:()=>this.sendStatus('ipc-seed-written')})
   this.timer = setInterval(()=>this.readAll(),1000)
  },
- onDestroy() { this.rfRunning=false;if(this.timer)clearInterval(this.timer);if(this.beat)clearInterval(this.beat);if(this.autoExit)clearTimeout(this.autoExit);if(this.sppTimeout)clearTimeout(this.sppTimeout);if(this.rfTimer)clearInterval(this.rfTimer) },
+ onDestroy() {
+  this.destroyed=true
+  this.rfRunning=false
+  this.sppOpen=false
+  this.resetRfConnection()
+  clearInterval(this.timer)
+  clearInterval(this.beat)
+  clearTimeout(this.autoExit)
+  if(this.sppTimeout)clearTimeout(this.sppTimeout)
+  if(this.rfTimer)clearInterval(this.rfTimer)
+ },
+ resetRfConnection() {
+  this.rfGeneration++
+  this.rfReadySent=false
+  this.rfReading=false
+  this.rfPending=null
+ },
+ rfIsCurrent(generation) {
+  return this.rfRunning && this.sppOpen && this.rfGeneration===generation
+ },
+ stopRf() {
+  this.rfRunning=false
+  this.rfStopped=true
+  this.resetRfConnection()
+  if(this.rfTimer)clearInterval(this.rfTimer)
+  clearTimeout(this.autoExit)
+  require('@system.app').terminate()
+ },
  testMessage(body) {
   if(body.nonce==='s4-spp-rf-20261125') {
-   if(body.op==='rf-stop'){this.rfRunning=false;if(this.rfTimer)clearInterval(this.rfTimer);require('@system.app').terminate();return}
-   if(body.op==='rf-start' && !this.rfRunning) {
-    this.rfRunning=true;this.rfSeen='';this.rfPending=null;this.rfReadySent=false
+   if(body.op==='rf-stop'){this.stopRf();return}
+   if(body.op==='rf-start' && !this.rfRunning && !this.rfStopped && !this.destroyed) {
+    this.rfRunning=true
+    this.resetRfConnection()
     clearTimeout(this.autoExit);clearInterval(this.timer);clearInterval(this.beat)
-    this.autoExit=setTimeout(()=>require('@system.app').terminate(),330000)
+    this.autoExit=setTimeout(()=>this.stopRf(),330000)
     this.rfTimer=setInterval(()=>this.rfRead(),40)
-    this.reportRfReady();this.refreshConnection(()=>this.reportRfReady())
-   } else if(body.op==='response' && this.rfRunning && this.rfPending &&
+    if(this.sppOpen)this.reportRfReady()
+    else this.refreshConnection(()=>this.reportRfReady())
+   } else if(body.op==='response' && this.rfRunning && this.sppOpen && this.rfPending &&
      body.seq===this.rfPending.seq && body.epoch===this.rfPending.epoch && body.rapdu==='5334544553549000') {
-    const request=this.rfPending;this.rfPending=null
-    file.writeText({uri:'internal://files/rf-spp-response.txt',text:'S4RF1:'+body.seq+':'+body.epoch+':'+body.rapdu,success:()=>{
-     this.conn.send({data:{probe:'s4-spp-test',op:'ack',nonce:body.nonce,seq:body.seq,epoch:body.epoch,rtt_ms:Date.now()-request.at,response_matches:true}})
-    }})
+    this.writeRfResponse(body)
    }
    return
   }
@@ -60,27 +103,58 @@ export default {
   else {this.sppRunning=false;this.status='3 fixed SPP test replies';setTimeout(()=>require('@system.app').terminate(),1000)}
  },
  reportRfReady() {
-  if(this.rfRunning && this.sppOpen && !this.rfReadySent) {
+  if(this.rfRunning && this.sppOpen && !this.rfReadySent && !this.rfWriting) {
    this.rfReadySent=true
-   const send=()=>{if(this.rfRunning && this.sppOpen)this.conn.send({data:{probe:'s4-spp-test',op:'bridge-ready',nonce:'s4-spp-rf-20261125',connected:true}})}
+   const generation=this.rfGeneration
+   const send=()=>{if(this.rfIsCurrent(generation))this.conn.send({data:{probe:'s4-spp-test',op:'bridge-ready',nonce:'s4-spp-rf-20261125',connected:true}})}
    send();setTimeout(send,250);setTimeout(send,750)
   }
  },
  rfRead() {
-  if(!file || this.rfReading || this.rfPending || !this.sppOpen)return
+  const generation=this.rfGeneration
+  if(!file || !this.rfIsCurrent(generation) || this.rfReading || this.rfPending || this.rfWriting)return
   this.rfReading=true
   file.readText({uri:'internal://files/rf-spp-request.txt',success:(r)=>{
+   if(!this.rfIsCurrent(generation))return
    this.rfReading=false;let b;try{b=JSON.parse(r.text||'')}catch(e){return}
    if(!b || b.probe!=='s4-spp-test' || b.op!=='request' || b.nonce!=='s4-spp-rf-20261125' ||
       b.apdu!=='00a4040007f001020304050600' || b.seq<1 || b.seq>3 || b.epoch<1 || b.epoch>65535)return
-   const key=b.seq+':'+b.epoch;if(key===this.rfSeen)return
-   this.rfSeen=key;this.rfPending={seq:b.seq,epoch:b.epoch,at:Date.now()}
-   this.conn.send({data:b,fail:()=>{this.rfPending=null}})
-   setTimeout(()=>{if(this.rfPending && this.rfPending.seq===b.seq && this.rfPending.epoch===b.epoch)this.rfPending=null},1200)
-  },fail:()=>{this.rfReading=false}})
+   const key=b.seq+':'+b.epoch
+   if(this.rfSeen.has(key))return
+   this.rfSeen.add(key)
+   const pending={seq:b.seq,epoch:b.epoch,at:Date.now()}
+   this.rfPending=pending
+   const clearPending=()=>{if(this.rfIsCurrent(generation) && this.rfPending===pending)this.rfPending=null}
+   this.conn.send({data:b,fail:clearPending})
+   setTimeout(clearPending,1200)
+  },fail:()=>{if(this.rfIsCurrent(generation))this.rfReading=false}})
+ },
+ writeRfResponse(body) {
+  const request=this.rfPending
+  const generation=this.rfGeneration
+  this.rfPending=null
+  // The platform cannot cancel a submitted write. Let it finish before reusing the mailbox.
+  this.rfWriting=request
+  const finish=(written)=>{
+   if(this.rfWriting!==request)return
+   this.rfWriting=null
+   if(written && this.rfIsCurrent(generation)) {
+    this.conn.send({data:{probe:'s4-spp-test',op:'ack',nonce:body.nonce,seq:body.seq,epoch:body.epoch,rtt_ms:Date.now()-request.at,response_matches:true}})
+   }
+   this.reportRfReady()
+  }
+  file.writeText({uri:'internal://files/rf-spp-response.txt',text:'S4RF1:'+body.seq+':'+body.epoch+':'+body.rapdu,
+   success:()=>finish(true),fail:()=>finish(false)})
  },
  refreshConnection(done) {
-  this.conn.getReadyState({success:(r)=>{this.sppOpen=!!r && r.status===1;done(this.sppOpen)},fail:()=>{this.sppOpen=false;done(false)}})
+  const generation=this.rfGeneration
+  const accept=(open)=>{
+   if(this.destroyed || generation!==this.rfGeneration)return
+   if(open!==this.sppOpen)this.resetRfConnection()
+   this.sppOpen=open
+   done(open)
+  }
+  this.conn.getReadyState({success:(r)=>accept(!!r && r.status===1),fail:()=>accept(false)})
  },
  testWhenReady(left) {
   if(!this.sppPending || !this.sppRunning)return
