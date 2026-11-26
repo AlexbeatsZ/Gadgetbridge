@@ -2,9 +2,14 @@
 
 ## 范围与当前结论
 
-本路线只研究「S4 主机能否处理外部 NFC 读卡器的 ISO-DEP APDU」。手机SE管理、真实公交卡迁移、生产Gadgetbridge功能不属于本阶段实现。代码在 `tools/research/xiaomi-nfc-host`，继续复用已有 `xiaomi-nfc-probe/watch` companion 和单一表盘 ID `362991121`，没有创建多个表盘ID。
+本路线研究并实现了「S4 NFC Host 蓝牙扩展手机 eSE 刷卡」链路：外部读卡器 ↔ S4 主机前端（`host-relay-session.c` + `host-relay-pump.c`，AID-first 路由交通联合 `A000000632010105` / 上海 `A0000000032005464D53484D4F43` / PPSE `2PAY.SYS.DDF01` 至 DH `0x00`）↔ 伴侣快应用（`com.meta.s4nativeprobe` 1.1.0/code17「NFC 刷卡」）↔ Classic SPP ↔ 手机 Gadgetbridge `XiaomiNfcRelayBridge` ↔ `local.meta.esenfc/.ApduRelayService`（0.6.0/code7，OMAPI `eSE1` 持久会话）。继续复用单表盘 ID `362991121` 与伴侣包名，按需开启并在退出/超时后自动恢复原表盘与原路由。
 
-用户已改为优先推进蓝牙代理，A的真实迁移暂停。本路线先验证外部读卡器↔S4主机固定APDU，再用现有Classic SPP接固定测试后端；BLE后评估。此选择不代表已经证明能代理真实公交卡或保留校园功能。
+2026-11-26 蓝牙刷卡接入（经用户明确授权）：
+- K70 `local.meta.esenfc` 新增签名+包名证书双校验的 `ApduRelayService`（仅放行同签名及 `nodomain.freeyourgadget.gadgetbridge`），将 `00 A4 04` SELECT AID 映射为 OMAPI `openBasicChannel(aid, p2)` 并复用持久化 `eSE1` 会话，按 `epoch` 隔离开卡状态。
+- Gadgetbridge 新增 `XiaomiNfcRelayBridge` 进程内转发（省去 `logcat` + `attach-agent` 开销），收到「NFC 刷卡」的 `relay-open` 后预热 `eSE1`、切换至表盘 `362991121` 并在等待切换确认及 Lua 初始化后拉回伴侣前台；退出/断连自动关闭 `eSE1` 会话并恢复原表盘。
+- 手表 `host-relay-session.c` / `host-relay-pump.c` 解除固定测试 APDU 及 `seq<=3` 限制，支持最长 261/260 字节任意 ISO-DEP C-APDU/R-APDU、`5 ms` 轮询与 `relay-stop.txt` 提前退出，退出时自动恢复原两项技术路由并卸载常驻模块。`verify_host_relay.py` 5 项离线 ARM 校验、伴侣 `verify_companion.mjs` 16 项及 Gadgetbridge 单测均通过。真实刷卡器贴卡交易、WTX 与有线交易兼容性待用户实机验收。
+
+用户已改为优先推进蓝牙代理，A的真实迁移暂停。以下保留此前固定测试阶段记录：
 
 2026-11-26 固定诊断伴侣生命周期修复：SPP 断开时撤销就绪状态和待收回复，复连后重新发送就绪。异步连接状态、文件读、重试及发送失败只在发起操作的连接代次生效，同一伴侣实例不重发曾发出的固定请求。已提交的文件写入等待平台完成，旧写入完成后不发送 ACK，复连后的就绪和下一笔固定请求也等到此时。现有手机及原生协议保持原格式，进程重启后重用相同 seq/epoch 的跨窗口情况以及原生发送队列仍需独立验证。14 项伴侣离线测试及 RPK code16 构建通过，未部署或重跑 RF。
 
@@ -268,3 +273,19 @@ Lua表盘本轮观察到首次加载时ready目录未就绪会直接return，点
 - 路由通知、控制器能力、discovery stop/start、AID-last失败、AID-first成功/恢复、RF slots读数/同步add-delete、NSH后台分别保存在`docs/evidence/xiaomi-s4-{routing-notification,controller-capabilities,discovery-roundtrip,aid-last-rejected,test-aid-routing,discovery-slots,discovery-slot-roundtrip,background-execution}-2026-11-22.json`。
 - 本轮新离线定向检查：capture14、discovery12、constant writers12、routing parser6、discovery slots9均通过。现有GET状态7例仍通过。所有离线数据明确标模拟边界。
 - 最近实读：原路由恢复、flags/state01000100、eSE8101、HAL2c34cd85、lsmod空；原表盘已多次切回昼与夜。研究仍在进行，唯一测试face/RPK及手机/ROG暂存未最终撤下，不能沿用此前“已清理”作为本轮结束结论。实际最终清理另记。
+
+## 生产蓝牙刷卡转发架构（2026-11-26）
+
+在固定测试链路验证完成后，正式接入端到端按需蓝牙 APDU 转发：
+
+1. **三端组件**：
+   - **K70 eSE 适配器**（`local.meta.esenfc` `0.6.0/code7`）：`ApduRelayService` + `EseApduRelay` 提供绑定 `Messenger` 会话，通过 `EseCardReader.SE_LOCK` 串行复用 `eSE1` OMAPI `Session`，将 `00 A4 04` SELECT AID 映射为 `openBasicChannel(aid, p2)` 并按 `epoch` 复位通道；严格校验调用方为 Gadgetbridge 签名证书且仅放行交通联合 `A000000632010105`、上海 `A0000000032005464D53484D4F43`、PPSE `2PAY.SYS.DDF01`、PSE `1PAY.SYS.DDF01`。
+   - **Gadgetbridge 进程内转发桥**（`2026.11.19/code274`）：`XiaomiRpkService` 直接截获 `com.meta.s4nativeprobe` 的 `relay=s4` 消息交由 `XiaomiNfcRelayBridge` 处理，不经过 `logcat`/`attach-agent`。
+   - **Watch S4 转发端**：表盘 `362991121`（`relay-session.lua.in` + `host-relay-session.c` + `host-relay-pump.c` + `relay-route-write.c`）与快应用「NFC 刷卡」（`com.meta.s4nativeprobe` `1.1.1/code18`）。
+2. **启动与生命周期时序**：
+   - S4 上 `CMD_WATCHFACE_SET` 不会关闭前台快应用，因此 `XiaomiNfcRelayBridge` 先实时刷新活动表盘（`refreshAndGetActiveWatchface`），需要触发 `362991121` 时先发 `yield-for-face` 让快应用 `terminate()`（不写 `relay-stop.txt` 也不发 `relay-close`），等待 600 ms 后切至 `362991121`（若已停留在 `362991121` 且状态非 `active`/`bg-launched` 则先回弹到其他表盘再切回），等 `CMD_WATCHFACE_SET` ACK 及 6.5 s 后台路由/Hook 就绪后再 `CMD_RPK_LAUNCH` 重开快应用并下发 `relay-open-ack`。
+   - 原生模块在 NSH 后台以 10 ms × 100（精准 1 s）切片运行 180 s，写 `relay-stop.txt` 或窗口到期后退出；所有含异步 NFA 回调的模块（`gb_route_append`、`gb_host_hal_barrier`、`gb_route_restore`、`gb_host_barrier2`、`gb_host_test`）均在 `sleep 1` 与原队列屏障完成后再 `rmmod`，避免回调 UAF。
+   - 退出「NFC 刷卡」时写 `relay-stop.txt` 并发送 `relay-close`，手机端关闭 `eSE1` 会话并恢复原活动表盘。
+3. **验证边界**：
+   - 已通过：K70 `local.meta.esenfc` 22 项单测与 `ApduRelayService` 实机建连；GB 定向单测、`verify_companion.mjs` 17 项、`verify_host_relay.py` 5 项 Unicorn 离线执行；K70 + S4 真机冷启动至 `S4 watch relay status=active`。
+   - 待用户实机验收：真实地铁/公交/校园读卡器贴近时的整段射频时延、WTX 行为以及 `80 50`/`80 54` 在 OMAPI 有线通道的兼容性。

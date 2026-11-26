@@ -156,7 +156,7 @@ check('stale_file_read_callbacks_cannot_submit_or_unlock_a_new_read',()=>{
 check('late_reply_and_send_callbacks_do_not_write_or_clear_a_new_pending_request',()=>{
   const f=fixture();f.conn.onopen();start(f);poll(f);
   const staleSendFailure=f.sendFailures.at(-1);
-  const staleTimeout=[...f.timeouts.values()].find(x=>x.ms===1200);
+  const staleTimeout=[...f.timeouts.values()].find(x=>x.ms===1600);
   f.conn.onclose();f.conn.onopen();
   const next={...request,seq:2,epoch:8};poll(f,next);
   reply(f);staleSendFailure();staleTimeout.fn();
@@ -186,6 +186,34 @@ check('destroy_ignores_stale_read_and_connection_callbacks',()=>{
   const before=f.sent.length;
   f.app.onDestroy();f.reads[0].success({text:JSON.stringify(request)});f.conn.onopen();
   assert.equal(f.sent.length,before);
+});
+check('relay_mode_forwards_arbitrary_apdu_and_writes_S4R1_response',()=>{
+  const f=fixture();f.conn.onopen();
+  assert.equal(messages(f,'relay-open').length,1);
+  f.app.relayMessage({relay:'s4',op:'relay-open-ack',ok:true});
+  assert.equal(f.app.relayActive,true);
+  const apduReq={relay:'s4',op:'apdu',seq:1,epoch:4,apdu:'00a4040008a00000063201010500'};
+  f.writes.set('internal://files/rf-spp-request.txt',JSON.stringify(apduReq));
+  f.app.rfRead();
+  assert.equal(messages(f,'apdu').length,1);
+  f.app.relayMessage({relay:'s4',op:'response',seq:1,epoch:4,rapdu:'6f0c8408a0000006320101059000'});
+  assert.equal(f.writes.get('internal://files/rf-spp-response.txt'),'S4R1:1:4:6f0c8408a0000006320101059000');
+  assert.equal(f.app.relayCount,1);
+});
+check('relay_stop_writes_stop_file_and_sends_relay_close',()=>{
+  const f=fixture();f.conn.onopen();
+  f.app.relayMessage({relay:'s4',op:'relay-open-ack',ok:true});
+  f.app.stopRelay();
+  assert.equal(f.writes.get('internal://files/relay-stop.txt'),'stop');
+  assert.equal(messages(f,'relay-close').length,1);
+});
+check('relay_yield_for_face_terminates_without_writing_stop_or_closing',()=>{
+  const f=fixture();f.conn.onopen();
+  f.app.relayMessage({relay:'s4',op:'yield-for-face'});
+  f.app.onDestroy();
+  assert.equal(f.terminated(),true);
+  assert.equal(f.writes.has('internal://files/relay-stop.txt'),false);
+  assert.equal(messages(f,'relay-close').length,0);
 });
 console.log(JSON.stringify({execution:'OFFLINE_ACTUAL_COMPANION_WITH_MOCK_PLATFORM',cases_passed:results.length,cases:results,
   boundaries:['interconnect','private file API','timers','app lifecycle'],real_RF_SPP_roundtrip:false},null,2));

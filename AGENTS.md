@@ -3,7 +3,7 @@
 ## Goal
 
 - 在小米手表 S4 上使用手机默认助手，并将助手文字与功能卡片反馈到手表。
-- 让 K70 上的复旦大学联名交通卡通过 S4 使用：用户最新决定优先蓝牙代理（S4 NFC主机前端→Classic SPP→手机），A真实迁移暂停。先测试AID/APDU，核心链路未验证前不发布APK；保护原卡、余额、校园绑定和配对，不修改生产app。
+- 让 K70 上的复旦大学联名交通卡通过 S4 使用：用户最新决定优先蓝牙代理（S4 NFC主机前端→Classic SPP→手机），A真实迁移暂停。2026-11-26 已在 `feat/xiaomi-voice-inject` 接入完整蓝牙刷卡链路（`local.meta.esenfc` `ApduRelayService` 0.6.0/code7 + Gadgetbridge `XiaomiNfcRelayBridge` 2026.11.19/code274 + S4 `host-relay-session`/`host-relay-pump` 表盘 `362991121` + 「NFC 刷卡」伴侣 RPK 1.1.1/code18），冷启动端到端实测到达 `S4 watch relay status=active`；真机刷卡门禁/闸机射频验收待用户实测。保护原卡、余额、校园绑定和配对，白名单限制交通联合/上海/PPSE/PSE AID 与 Gadgetbridge 证书。
 
 ## Current State
 
@@ -60,6 +60,8 @@
 - 不使用 `uiautomator dump` 抓 K70 界面，它会使已启用的 Switch Access 服务重连并弹出设置向导。UI 验收使用截图或现有 hook。
 - 卡片后代经常没有资源 ID，读取响应容器整体才能覆盖只有功能卡片的结果。
 - 3.201.79 Lua表盘可执行shell；首次装入ready未就绪会return，不能靠点亮保证重跑；同ID直接覆盖可能code5，先准备companion目录再恢复原表盘/删除旧测试项/重装同ID。快应用私有目录是`/data/quickapp/files/<package>/`。此固件shell不接受`2>&1`。表盘上传完成后的即时列表可能早于安装；必须等type4/subtype5结果并重新查询，code3表示已安装启用，不能当错误码。
+- S4 上 `CMD_WATCHFACE_SET` 切表盘不会关闭前台快应用，且 `main.lua` 在切表盘响应前同步执行；从快应用触发 Lua 表盘必须先由快应用 `terminate()`（`yield-for-face`）让出前台，切表盘并等待后台脚本启动后再 `CMD_RPK_LAUNCH` 重开。
+- 含异步 NFA 回调的模块（`get-routing-status.elf`、`relay-route-*.elf`）必须 `sleep 1` 后再 `rmmod`，过早卸载会引发回调 UAF 重启；NuttX 系统 tick 为 10 ms，1 秒切片需按 `100 x 10 ms` 计。
 
 ## Docs Index
 

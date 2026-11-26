@@ -92,6 +92,7 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
 
     // Not null if we're installing a firmware
     private XiaomiFWHelper fwHelper = null;
+    private XiaomiNfcRelayBridge nfcRelayBridge = null;
 
     public XiaomiRpkService(final XiaomiSupport support) {
         super(support);
@@ -199,10 +200,91 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
         getSupport().sendCommand("wear app session end " + app.getId(), buildSessionEndCommand(ref));
     }
 
+    private synchronized XiaomiNfcRelayBridge getNfcRelayBridge() {
+        if (nfcRelayBridge == null && getSupport().getContext() != null) {
+            nfcRelayBridge = new XiaomiNfcRelayBridge(getSupport().getContext(), new XiaomiNfcRelayBridge.RelayTransport() {
+                @Override
+                public void sendMessage(final String appId, final byte[] payload) {
+                    sendRelayMessage(appId, payload);
+                }
+
+                @Override
+                public void relaunchApp(final String appId) {
+                    relaunchRelayApp(appId);
+                }
+
+                @Override
+                public UUID getActiveWatchface() {
+                    return getSupport().getWatchfaceService().refreshAndGetActiveWatchface(3000);
+                }
+
+                @Override
+                public boolean hasWatchface(final String watchfaceId) {
+                    return getSupport().getWatchfaceService().hasWatchface(watchfaceId);
+                }
+
+                @Override
+                public UUID getFallbackWatchface(final String excludedWatchfaceId) {
+                    return getSupport().getWatchfaceService().getFallbackWatchface(excludedWatchfaceId);
+                }
+
+                @Override
+                public boolean setWatchfaceAndWait(final String watchfaceId, final long timeoutMs) {
+                    return getSupport().getWatchfaceService().setWatchfaceAndWait(watchfaceId, timeoutMs);
+                }
+
+                @Override
+                public void setWatchface(final UUID watchfaceUuid) {
+                    getSupport().getWatchfaceService().setWatchface(watchfaceUuid);
+                }
+            });
+        }
+        return nfcRelayBridge;
+    }
+
+    private void sendRelayMessage(final String appId, final byte[] payload) {
+        final ByteString sha;
+        synchronized (this) {
+            sha = shaMap.get(appId);
+        }
+        if (sha == null) {
+            LOG.warn("Dropping relay message for {} before sha is known", appId);
+            return;
+        }
+        final RpkInfoList ref = rpkRef(appId, sha);
+        getSupport().sendCommand("wear app message " + appId, buildMessageCommand(ref, payload));
+        getSupport().sendCommand("wear app session end " + appId, buildSessionEndCommand(ref));
+    }
+
+    private void relaunchRelayApp(final String appId) {
+        synchronized (this) {
+            pendingMessages.remove(appId);
+            lastSeenOpen.remove(appId);
+            if (shaMap.containsKey(appId)) {
+                launchWearApp(appId);
+                return;
+            }
+            awaitingList.add(appId);
+        }
+        requestRpkList();
+    }
+
     private void onWearAppMessage(final RpkMessage message) {
         final String appId = message.getApp().getId();
         final String payload = message.getPayload().toStringUtf8();
-        lastSeenOpen.put(appId, monotonicMillis.getAsLong());
+        synchronized (this) {
+            if (!shaMap.containsKey(appId) && !message.getApp().getSha().isEmpty()) {
+                shaMap.put(appId, message.getApp().getSha());
+            }
+            lastSeenOpen.put(appId, monotonicMillis.getAsLong());
+        }
+        if (XiaomiNfcRelayBridge.isRelayMessage(appId, payload)) {
+            final XiaomiNfcRelayBridge bridge = getNfcRelayBridge();
+            if (bridge != null) {
+                bridge.handleWatchMessage(appId, payload);
+                return;
+            }
+        }
         LOG.info("Message from wear app {}: {} bytes", appId, message.getPayload().size());
         LOG.debug("Wear app {} message: {}", appId, payload);
 
@@ -235,9 +317,23 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     @Override
     public void onDisconnect() {
         // Otherwise messages from before the disconnect would go out with the next one, possibly much later
-        pendingMessages.clear();
-        awaitingList.clear();
-        lastSeenOpen.clear();
+        synchronized (this) {
+            pendingMessages.clear();
+            awaitingList.clear();
+            lastSeenOpen.clear();
+        }
+        if (nfcRelayBridge != null) {
+            nfcRelayBridge.onDisconnect();
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (nfcRelayBridge != null) {
+            nfcRelayBridge.dispose();
+            nfcRelayBridge = null;
+        }
+        super.dispose();
     }
 
     static RpkInfoList rpkRef(final String id, final ByteString sha) {

@@ -1,9 +1,16 @@
-<template><div class="page"><text>{{status}}</text></div></template>
+<template>
+  <div class="page">
+    <text class="title">NFC 蓝牙刷卡</text>
+    <text class="status">{{status}}</text>
+    <text class="detail">{{detail}}</text>
+    <input class="btn" type="button" value="退出刷卡" onclick="stopRelay" />
+  </div>
+</template>
 <script>
 let file = null
 const interconnect = require('@system.interconnect')
 export default {
- private: { status: 'Read-only native diagnostic' },
+ private: { status: '正在连接手机...', detail: '请保持手机蓝牙连接' },
  onInit() {
   this.conn = interconnect.instance()
   this.sent = ''
@@ -11,180 +18,329 @@ export default {
   this.destroyed = false
   this.rfRunning = false
   this.rfStopped = false
+  this.relayActive = false
+  this.relayAcked = false
+  this.relayTimer = null
+  this.watchStatusTimer = null
+  this.lastWatchStatus = ''
+  this.bootWatchStatus = ''
+  this.relayCount = 0
   this.rfGeneration = 0
   this.rfSeen = new Set()
   this.resetRfConnection()
+  try { file = require('@system.file') } catch (e) { this.status = '文件接口不可用' }
+  if (file) {
+   file.writeText({ uri: 'internal://files/ready.txt', text: 'ready' })
+   if (file.delete) file.delete({ uri: 'internal://files/relay-stop.txt' })
+   file.readText({
+    uri: 'internal://files/relay-status.txt',
+    success: (r) => { this.bootWatchStatus = (r.text || '').trim() }
+   })
+  }
   this.conn.onopen = () => {
-   if(this.destroyed)return
-   if(!this.sppOpen)this.resetRfConnection()
-   this.sppOpen=true
-   this.sendStatus('ready')
+   if (this.destroyed) return
+   if (!this.sppOpen) this.resetRfConnection()
+   this.sppOpen = true
    this.reportRfReady()
+   this.requestRelayOpen()
   }
   this.conn.onclose = () => {
-   this.sppOpen=false
+   this.sppOpen = false
+   this.relayAcked = false
+   if (this.relayTimer) { clearInterval(this.relayTimer); this.relayTimer = null }
    this.resetRfConnection()
+   if (this.relayActive) this.status = '蓝牙已断开，重连中...'
   }
-  this.conn.onerror = (e) => { this.status=JSON.stringify(e) }
+  this.conn.onerror = (e) => { this.status = '连接异常'; this.detail = JSON.stringify(e) }
   this.conn.onmessage = (message) => {
-   if(this.destroyed)return
-   let body=message && message.data !== undefined ? message.data : message
-   try {if(typeof body==='string')body=JSON.parse(body)}catch(e){return}
-   if(body && body.probe==='s4-spp-test')this.testMessage(body)
-   else {this.sendStatus('received-ping');this.readAll()}
+   if (this.destroyed) return
+   let body = message && message.data !== undefined ? message.data : message
+   try { if (typeof body === 'string') body = JSON.parse(body) } catch (e) { return }
+   if (body && body.probe === 's4-spp-test') this.testMessage(body)
+   else if (body && body.relay === 's4') this.relayMessage(body)
   }
-  this.autoExit=setTimeout(()=>require('@system.app').terminate(),6500)
-  this.beat = setInterval(()=>this.sendStatus('heartbeat-file-'+typeof file),3000)
-  try {file=require('@system.file')}catch(e) {this.sendStatus('file-error-'+String(e))}
-  if(file)file.writeText({uri:'internal://files/ready.txt',text:'ready',success:()=>this.sendStatus('sandbox-ready')})
-  if(file)file.writeText({uri:'internal://files/quickapp-ipc-test.txt',text:'S4IPC-QUICKAPP-1125',success:()=>this.sendStatus('ipc-seed-written')})
-  this.timer = setInterval(()=>this.readAll(),1000)
+  this.autoExit = setTimeout(() => this.stopRelay(), 180000)
+  this.conn.getReadyState({
+   success: (r) => {
+    if (this.destroyed) return
+    if (r && r.status === 1) {
+     this.sppOpen = true
+     this.requestRelayOpen()
+    }
+   }
+  })
  },
  onDestroy() {
-  this.destroyed=true
-  this.rfRunning=false
-  this.sppOpen=false
+  const wasRelayActive = this.relayActive
+  this.destroyed = true
+  this.rfRunning = false
+  this.relayActive = false
+  this.sppOpen = false
   this.resetRfConnection()
   clearInterval(this.timer)
   clearInterval(this.beat)
   clearTimeout(this.autoExit)
-  if(this.sppTimeout)clearTimeout(this.sppTimeout)
-  if(this.rfTimer)clearInterval(this.rfTimer)
+  if (this.sppTimeout) clearTimeout(this.sppTimeout)
+  if (this.rfTimer) clearInterval(this.rfTimer)
+  if (this.relayTimer) clearInterval(this.relayTimer)
+  if (this.watchStatusTimer) clearInterval(this.watchStatusTimer)
+  if (wasRelayActive) {
+   if (file) file.writeText({ uri: 'internal://files/relay-stop.txt', text: 'stop' })
+   try { this.conn.send({ data: { relay: 's4', op: 'relay-close' } }) } catch (e) {}
+  }
  },
  resetRfConnection() {
   this.rfGeneration++
-  this.rfReadySent=false
-  this.rfReading=false
-  this.rfPending=null
+  this.rfReadySent = false
+  this.rfReading = false
+  this.rfPending = null
  },
  rfIsCurrent(generation) {
-  return this.rfRunning && this.sppOpen && this.rfGeneration===generation
+  return (this.rfRunning || this.relayActive) && this.sppOpen && this.rfGeneration === generation
+ },
+ requestRelayOpen() {
+  if (this.destroyed || this.rfRunning || this.sppRunning || !this.sppOpen || this.relayAcked || this.relayTimer) return
+  this.status = '正在准备手机安全芯片...'
+  let attempts = 0
+  const sendOpen = () => {
+   if (this.destroyed || this.rfRunning || this.sppRunning || !this.sppOpen || this.relayAcked) {
+    if (this.relayTimer) { clearInterval(this.relayTimer); this.relayTimer = null }
+    return
+   }
+   attempts++
+   this.conn.send({
+    data: { relay: 's4', op: 'relay-open', switch_face: true, watch_status: this.bootWatchStatus },
+    fail: () => { if (!this.destroyed && !this.relayAcked) this.status = '等待重连发送握手...' }
+   })
+   if (attempts >= 6 && this.relayTimer) {
+    clearInterval(this.relayTimer); this.relayTimer = null
+   }
+  }
+  sendOpen()
+  if (!this.relayAcked) this.relayTimer = setInterval(sendOpen, 400)
+ },
+ relayMessage(body) {
+  if (body.op === 'yield-for-face') {
+   this.relayAcked = true
+   this.relayActive = false
+   if (this.relayTimer) { clearInterval(this.relayTimer); this.relayTimer = null }
+   clearTimeout(this.autoExit)
+   this.status = '正在激活手表 NFC 路由...'
+   this.detail = '稍后自动返回此页'
+   require('@system.app').terminate()
+   return
+  }
+  if (body.op === 'relay-open-ack') {
+   this.relayAcked = true
+   if (this.relayTimer) { clearInterval(this.relayTimer); this.relayTimer = null }
+   if (body.ok) {
+    this.relayActive = true
+    this.status = '正在初始化 NFC...'
+    this.detail = '等待手表路由就绪'
+    if (file) {
+     file.writeText({ uri: 'internal://files/rf-spp-request.txt', text: '' })
+     file.writeText({ uri: 'internal://files/rf-spp-response.txt', text: '' })
+    }
+    if (!this.rfTimer) this.rfTimer = setInterval(() => this.rfRead(), 15)
+    if (!this.watchStatusTimer) {
+     this.pollWatchStatus()
+     this.watchStatusTimer = setInterval(() => this.pollWatchStatus(), 400)
+    }
+   } else {
+    this.relayActive = false
+    this.status = '手机安全芯片未就绪'
+    this.detail = body.error || '请检查手机端 NFC 适配'
+   }
+   return
+  }
+  if (body.op === 'response' && this.relayActive && this.sppOpen && this.rfPending &&
+      body.seq === this.rfPending.seq && body.epoch === this.rfPending.epoch &&
+      typeof body.rapdu === 'string' && body.rapdu.length >= 4 && body.rapdu.length <= 520) {
+   this.writeRfResponse(body, true)
+  }
+ },
+ pollWatchStatus() {
+  if (!file || this.destroyed || !this.relayActive) return
+  file.readText({
+   uri: 'internal://files/relay-status.txt',
+   success: (r) => {
+    const s = (r.text || '').trim()
+    if (!s || s === this.lastWatchStatus) return
+    this.lastWatchStatus = s
+    if (this.sppOpen) {
+     try { this.conn.send({ data: { relay: 's4', op: 'watch-status', status: s } }) } catch (e) {}
+    }
+    if (s === 'active') {
+     this.status = '就绪 · 请靠近读卡器'
+     this.detail = '保持此页在前台刷卡'
+     if (this.watchStatusTimer) { clearInterval(this.watchStatusTimer); this.watchStatusTimer = null }
+    } else if (s === 'setup-failed') {
+     this.status = '手表 NFC 初始化失败'
+     this.detail = '请退出后重试'
+    }
+   }
+  })
+ },
+ stopRelay() {
+  this.rfRunning = false
+  this.relayActive = false
+  this.relayAcked = true
+  this.rfStopped = true
+  this.resetRfConnection()
+  if (this.relayTimer) { clearInterval(this.relayTimer); this.relayTimer = null }
+  if (this.watchStatusTimer) { clearInterval(this.watchStatusTimer); this.watchStatusTimer = null }
+  if (this.rfTimer) { clearInterval(this.rfTimer); this.rfTimer = null }
+  clearTimeout(this.autoExit)
+  this.status = '正在退出并恢复...'
+  if (file) file.writeText({ uri: 'internal://files/relay-stop.txt', text: 'stop' })
+  try { this.conn.send({ data: { relay: 's4', op: 'relay-close' } }) } catch (e) {}
+  setTimeout(() => require('@system.app').terminate(), 250)
  },
  stopRf() {
-  this.rfRunning=false
-  this.rfStopped=true
+  this.rfRunning = false
+  this.rfStopped = true
   this.resetRfConnection()
-  if(this.rfTimer)clearInterval(this.rfTimer)
+  if (this.rfTimer) clearInterval(this.rfTimer)
   clearTimeout(this.autoExit)
   require('@system.app').terminate()
  },
  testMessage(body) {
-  if(body.nonce==='s4-spp-rf-20261125') {
-   if(body.op==='rf-stop'){this.stopRf();return}
-   if(body.op==='rf-start' && !this.rfRunning && !this.rfStopped && !this.destroyed) {
-    this.rfRunning=true
+  if (body.nonce === 's4-spp-rf-20261125') {
+   if (body.op === 'rf-stop') { this.stopRf(); return }
+   if (body.op === 'rf-start' && !this.rfRunning && !this.rfStopped && !this.destroyed) {
+    this.rfRunning = true
+    this.relayActive = false
     this.resetRfConnection()
-    clearTimeout(this.autoExit);clearInterval(this.timer);clearInterval(this.beat)
-    this.autoExit=setTimeout(()=>this.stopRf(),330000)
-    this.rfTimer=setInterval(()=>this.rfRead(),40)
-    if(this.sppOpen)this.reportRfReady()
-    else this.refreshConnection(()=>this.reportRfReady())
-   } else if(body.op==='response' && this.rfRunning && this.sppOpen && this.rfPending &&
-     body.seq===this.rfPending.seq && body.epoch===this.rfPending.epoch && body.rapdu==='5334544553549000') {
-    this.writeRfResponse(body)
+    clearTimeout(this.autoExit); clearInterval(this.timer); clearInterval(this.beat)
+    this.autoExit = setTimeout(() => this.stopRf(), 330000)
+    if (this.rfTimer) clearInterval(this.rfTimer)
+    this.rfTimer = setInterval(() => this.rfRead(), 40)
+    if (this.sppOpen) this.reportRfReady()
+    else this.refreshConnection(() => this.reportRfReady())
+   } else if (body.op === 'response' && this.rfRunning && this.sppOpen && this.rfPending &&
+     body.seq === this.rfPending.seq && body.epoch === this.rfPending.epoch && body.rapdu === '5334544553549000') {
+    this.writeRfResponse(body, false)
    }
    return
   }
-  if(body.nonce!=='s4-spp-test-20261125')return
-  if(body.op==='start' && !this.sppRunning) {
-   this.sppRunning=true;this.sppSeq=0;this.sppResults=[]
-   clearTimeout(this.autoExit);this.autoExit=setTimeout(()=>require('@system.app').terminate(),20000)
-   clearInterval(this.timer);clearInterval(this.beat)
-   this.sppPending=true;setTimeout(()=>this.testWhenReady(20),200)
+  if (body.nonce !== 's4-spp-test-20261125') return
+  if (body.op === 'start' && !this.sppRunning) {
+   this.sppRunning = true; this.sppSeq = 0; this.sppResults = []
+   clearTimeout(this.autoExit); this.autoExit = setTimeout(() => require('@system.app').terminate(), 20000)
+   clearInterval(this.timer); clearInterval(this.beat)
+   this.sppPending = true; setTimeout(() => this.testWhenReady(20), 200)
    return
   }
-  if(body.op!=='response' || !this.sppRunning || body.seq!==this.sppSeq || body.rapdu!=='5334544553549000')return
+  if (body.op !== 'response' || !this.sppRunning || body.seq !== this.sppSeq || body.rapdu !== '5334544553549000') return
   clearTimeout(this.sppTimeout)
-  const result={seq:this.sppSeq,rtt_ms:Date.now()-this.sppAt,response_matches:true}
+  const result = { seq: this.sppSeq, rtt_ms: Date.now() - this.sppAt, response_matches: true }
   this.sppResults.push(result)
-  this.conn.send({data:{probe:'s4-spp-test',op:'ack',nonce:body.nonce,seq:result.seq,rtt_ms:result.rtt_ms,response_matches:true}})
-  if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify(this.sppResults)})
-  if(this.sppSeq<3)setTimeout(()=>this.testRequest(),400)
-  else {this.sppRunning=false;this.status='3 fixed SPP test replies';setTimeout(()=>require('@system.app').terminate(),1000)}
+  this.conn.send({ data: { probe: 's4-spp-test', op: 'ack', nonce: body.nonce, seq: result.seq, rtt_ms: result.rtt_ms, response_matches: true } })
+  if (file) file.writeText({ uri: 'internal://files/spp-test-result.txt', text: JSON.stringify(this.sppResults) })
+  if (this.sppSeq < 3) setTimeout(() => this.testRequest(), 400)
+  else { this.sppRunning = false; this.status = '3 fixed SPP test replies'; setTimeout(() => require('@system.app').terminate(), 1000) }
  },
  reportRfReady() {
-  if(this.rfRunning && this.sppOpen && !this.rfReadySent && !this.rfWriting) {
-   this.rfReadySent=true
-   const generation=this.rfGeneration
-   const send=()=>{if(this.rfIsCurrent(generation))this.conn.send({data:{probe:'s4-spp-test',op:'bridge-ready',nonce:'s4-spp-rf-20261125',connected:true}})}
-   send();setTimeout(send,250);setTimeout(send,750)
+  if (this.rfRunning && this.sppOpen && !this.rfReadySent && !this.rfWriting) {
+   this.rfReadySent = true
+   const generation = this.rfGeneration
+   const send = () => { if (this.rfRunning && this.sppOpen && this.rfGeneration === generation) this.conn.send({ data: { probe: 's4-spp-test', op: 'bridge-ready', nonce: 's4-spp-rf-20261125', connected: true } }) }
+   send(); setTimeout(send, 250); setTimeout(send, 750)
   }
  },
  rfRead() {
-  const generation=this.rfGeneration
-  if(!file || !this.rfIsCurrent(generation) || this.rfReading || this.rfPending || this.rfWriting)return
-  this.rfReading=true
-  file.readText({uri:'internal://files/rf-spp-request.txt',success:(r)=>{
-   if(!this.rfIsCurrent(generation))return
-   this.rfReading=false;let b;try{b=JSON.parse(r.text||'')}catch(e){return}
-   if(!b || b.probe!=='s4-spp-test' || b.op!=='request' || b.nonce!=='s4-spp-rf-20261125' ||
-      b.apdu!=='00a4040007f001020304050600' || b.seq<1 || b.seq>3 || b.epoch<1 || b.epoch>65535)return
-   const key=b.seq+':'+b.epoch
-   if(this.rfSeen.has(key))return
-   this.rfSeen.add(key)
-   const pending={seq:b.seq,epoch:b.epoch,at:Date.now()}
-   this.rfPending=pending
-   const clearPending=()=>{if(this.rfIsCurrent(generation) && this.rfPending===pending)this.rfPending=null}
-   this.conn.send({data:b,fail:clearPending})
-   setTimeout(clearPending,1200)
-  },fail:()=>{if(this.rfIsCurrent(generation))this.rfReading=false}})
+  const generation = this.rfGeneration
+  if (!file || !this.rfIsCurrent(generation) || this.rfReading || this.rfPending || this.rfWriting) return
+  this.rfReading = true
+  file.readText({
+   uri: 'internal://files/rf-spp-request.txt',
+   success: (r) => {
+    if (!this.rfIsCurrent(generation)) return
+    this.rfReading = false
+    let b; try { b = JSON.parse(r.text || '') } catch (e) { return }
+    if (!b) return
+    const isRelay = this.relayActive && b.relay === 's4' && b.op === 'apdu' &&
+     typeof b.apdu === 'string' && b.apdu.length >= 8 && b.apdu.length <= 522 &&
+     b.seq >= 1 && b.epoch >= 1 && b.epoch <= 65535
+    const isProbe = this.rfRunning && b.probe === 's4-spp-test' && b.op === 'request' &&
+     b.nonce === 's4-spp-rf-20261125' && b.apdu === '00a4040007f001020304050600' &&
+     b.seq >= 1 && b.seq <= 3 && b.epoch >= 1 && b.epoch <= 65535
+    if (!isRelay && !isProbe) return
+    const key = (isRelay ? 'R:' : 'P:') + b.seq + ':' + b.epoch
+    if (this.rfSeen.has(key)) return
+    this.rfSeen.add(key)
+    const pending = { seq: b.seq, epoch: b.epoch, at: Date.now() }
+    this.rfPending = pending
+    const clearPending = () => { if (this.rfIsCurrent(generation) && this.rfPending === pending) this.rfPending = null }
+    this.conn.send({ data: b, fail: clearPending })
+    setTimeout(clearPending, 1600)
+   },
+   fail: () => { if (this.rfIsCurrent(generation)) this.rfReading = false }
+  })
  },
- writeRfResponse(body) {
-  const request=this.rfPending
-  const generation=this.rfGeneration
-  this.rfPending=null
-  // The platform cannot cancel a submitted write. Let it finish before reusing the mailbox.
-  this.rfWriting=request
-  const finish=(written)=>{
-   if(this.rfWriting!==request)return
-   this.rfWriting=null
-   if(written && this.rfIsCurrent(generation)) {
-    this.conn.send({data:{probe:'s4-spp-test',op:'ack',nonce:body.nonce,seq:body.seq,epoch:body.epoch,rtt_ms:Date.now()-request.at,response_matches:true}})
+ writeRfResponse(body, isRelay) {
+  const request = this.rfPending
+  const generation = this.rfGeneration
+  this.rfPending = null
+  this.rfWriting = request
+  const finish = (written) => {
+   if (this.rfWriting !== request) return
+   this.rfWriting = null
+   const rtt = Date.now() - request.at
+   if (written && this.rfIsCurrent(generation)) {
+    if (isRelay) {
+     this.relayCount++
+     this.status = '转发 #' + this.relayCount + ' (' + rtt + 'ms)'
+     this.detail = 'SW ' + body.rapdu.slice(-4).toUpperCase()
+    } else {
+     this.conn.send({ data: { probe: 's4-spp-test', op: 'ack', nonce: body.nonce, seq: body.seq, epoch: body.epoch, rtt_ms: rtt, response_matches: true } })
+    }
    }
    this.reportRfReady()
   }
-  file.writeText({uri:'internal://files/rf-spp-response.txt',text:'S4RF1:'+body.seq+':'+body.epoch+':'+body.rapdu,
-   success:()=>finish(true),fail:()=>finish(false)})
+  const line = (isRelay ? 'S4R1:' : 'S4RF1:') + body.seq + ':' + body.epoch + ':' + body.rapdu
+  file.writeText({
+   uri: 'internal://files/rf-spp-response.txt',
+   text: line,
+   success: () => finish(true),
+   fail: () => finish(false)
+  })
  },
  refreshConnection(done) {
-  const generation=this.rfGeneration
-  const accept=(open)=>{
-   if(this.destroyed || generation!==this.rfGeneration)return
-   if(open!==this.sppOpen)this.resetRfConnection()
-   this.sppOpen=open
+  const generation = this.rfGeneration
+  const accept = (open) => {
+   if (this.destroyed || generation !== this.rfGeneration) return
+   if (open !== this.sppOpen) this.resetRfConnection()
+   this.sppOpen = open
    done(open)
   }
-  this.conn.getReadyState({success:(r)=>accept(!!r && r.status===1),fail:()=>accept(false)})
+  this.conn.getReadyState({ success: (r) => accept(!!r && r.status === 1), fail: () => accept(false) })
  },
  testWhenReady(left) {
-  if(!this.sppPending || !this.sppRunning)return
-  if(this.sppOpen){this.sppPending=false;this.testRequest()}
-  else if(left>0){this.refreshConnection(()=>{});setTimeout(()=>this.testWhenReady(left-1),100)}
-  else if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify({ready_state:2,request_sent:false})})
+  if (!this.sppPending || !this.sppRunning) return
+  if (this.sppOpen) { this.sppPending = false; this.testRequest() }
+  else if (left > 0) { this.refreshConnection(() => {}); setTimeout(() => this.testWhenReady(left - 1), 100) }
+  else if (file) file.writeText({ uri: 'internal://files/spp-test-result.txt', text: JSON.stringify({ ready_state: 2, request_sent: false }) })
  },
  testRequest() {
-  if(!this.sppRunning)return
-  this.sppSeq++;this.sppAt=Date.now()
-  this.conn.send({data:{probe:'s4-spp-test',op:'request',nonce:'s4-spp-test-20261125',seq:this.sppSeq,apdu:'00a4040007f001020304050600'},fail:(e,c)=>{
-   if(file)file.writeText({uri:'internal://files/spp-test-result.txt',text:JSON.stringify({send_failed_seq:this.sppSeq,code:c})})
-  }})
-  this.sppTimeout=setTimeout(()=>{
-   this.sppRunning=false;this.conn.send({data:{probe:'s4-spp-test',op:'timeout',nonce:'s4-spp-test-20261125',seq:this.sppSeq}})
-  },5000)
- },
- sendStatus(s) { try { this.conn.send({data:{probe:'native-nfc-readonly',status:s},fail:(e,c)=>{this.status='Send failed '+c}}) } catch(e){} },
- readAll() {
-  const names=['version.txt','module-load.txt','modules-before.txt','modules-after.txt','module-unload.txt','modules-final.txt','shell-help.txt','proc-list.txt','host-help.txt','fd-help.txt','nfc-proc.txt','nfc-fds.txt','nfc-mqueue.txt','ready.txt','device-list.txt','process-list.txt','modules.txt','lua-result.txt','spp-test-result.txt','quickapp-ipc-test.txt','native-ipc-test.txt','rf-spp-request.txt','rf-spp-response.txt']
-  for(let i=0;i<names.length;i++) {
-   const name=names[i]
-   file.readText({uri:'internal://files/'+name,success:(r)=>{
-    const text=r.text||''
-    if(this[name]===text)return
-    this[name]=text
-    this.status='Read '+name
-    try {this.conn.send({data:{probe:'native-nfc-readonly',file:name,text:text.slice(0,3000)}})}catch(e){}
-   }})
-  }
+  if (!this.sppRunning) return
+  this.sppSeq++; this.sppAt = Date.now()
+  this.conn.send({
+   data: { probe: 's4-spp-test', op: 'request', nonce: 's4-spp-test-20261125', seq: this.sppSeq, apdu: '00a4040007f001020304050600' },
+   fail: (e, c) => {
+    if (file) file.writeText({ uri: 'internal://files/spp-test-result.txt', text: JSON.stringify({ send_failed_seq: this.sppSeq, code: c }) })
+   }
+  })
+  this.sppTimeout = setTimeout(() => {
+   this.sppRunning = false; this.conn.send({ data: { probe: 's4-spp-test', op: 'timeout', nonce: 's4-spp-test-20261125', seq: this.sppSeq } })
+  }, 5000)
  }
 }
-</script><style>.page{width:466px;height:466px;background-color:#000000;justify-content:center;align-items:center;padding:80px;}text{color:#ffffff;font-size:24px;}</style>
+</script>
+<style>
+.page { width: 466px; height: 466px; flex-direction: column; justify-content: center; align-items: center; background-color: #000000; padding: 72px 54px; }
+.title { color: #1fd19a; font-size: 30px; font-weight: bold; text-align: center; }
+.status { color: #ffffff; font-size: 26px; text-align: center; margin-top: 18px; }
+.detail { color: #8e8e93; font-size: 20px; text-align: center; margin-top: 10px; }
+.btn { width: 220px; height: 60px; border-radius: 30px; background-color: #2c2c2e; color: #ffffff; font-size: 24px; margin-top: 28px; }
+</style>
