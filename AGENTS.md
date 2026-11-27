@@ -11,7 +11,7 @@
 - 进行中: 在小米手表 S4 上运行自定义快应用并替换语音助手。任务日志 `~/.agents/xiaomi-watch-s4--custom-apps-voice-assistant/AGENTS.md`,探测快应用项目 `/Users/meta/Developer/S4-Vela-Probe`。
 
 ## Current State
-- 2026-11-26 已合入inject分支v2026.11.19/code274的NFC转发与最新快应用/表盘逻辑，2026.11.20/code275保持清醒测试版已构建、原debug证书cbde4ad4…校验通过并发布GitHub personal预发布；本轮不安装手机或手表，真实睡眠/振动/响铃仍待用户验收。K70安装274的事实来自inject分支部署记录，本轮未重新读取设备。
+- 2026-11-26 用户授权部署：K70已原位更新2026.11.21/code276（Pixel保持清醒），沿用原debug证书cbde4ad4…，首次安装时间2026-11-10、dynamic主题、设备消息偏好保留，S4恢复连接。已包含inject分支v2026.11.19/code274的NFC转发。Dayweave手表0.2.1/code3圆形图标已装S4并收到安装完成通知，GitHub watch-v0.2.1预发布附RPK；真实睡眠/振动/响铃和手表图标肉眼效果仍待验收。
 - 分支 `feat/app-timezone`(基于上游 master 8976702fc3)。2026-11-25 已合入 `feat/xiaomi-voice-inject`(手机助手、S4 活动通话设备、Gemini 播报、公交卡研究工具与快应用前台直发)，版本 2026.11.18/code273。合并后 Xiaomi、设置外观和主题迁移回归 418 项、0 失败、2 跳过；APK `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk` 已用原 debug 证书 cbde4ad4… 签名。合并前 K70 运行的是 inject 分支的 2026.11.16/code272；2026-11-26 01:02(K70 时间)已覆盖安装 K70(`adb install -r --user current`，首次安装时间 2026-11-10 保留)，S4 原绑定重新认证、手表通话设备恢复 ACTIVE、手表消息开关仍为 true；GitHub 预发布 v2026.11.18 已附 APK。快应用前台回包尚未实机复测(用户暂时不能测试)。`origin` 是 Codeberg 上游，个人发布仓库为 GitHub `AlexbeatsZ/Gadgetbridge`，只推送 `personal`。
 - mainline 名称为「手环」，使用用户提供的新图标及 Google Settings 风格原生设置行。默认动态取色，偏好迁移 73 将旧 system 一次性迁到 dynamic，保留 light/dark 与迁移后手动选择。旧 checkbox 显式布局别名复用新圆角行。设计见 `docs/design/pixel-settings.md`。
 - 2026-11-15 已提交并推送 `610827c031`，个人 fork prerelease `v2026.11.5` 已发布。APK 为 `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk`，沿用原 debug 签名，干净提交重建，项目仅保留当前 APK。
@@ -22,14 +22,14 @@
   - 时区选择对话框抽成 `activities/TimeZonePickerDialog.java`,世界时钟页也改用它.
 
 ## Active Work
-- 2026-11-26 已实现 S4「保持清醒」原生设置与每周规则：多时段/跨午夜/振动或寻找手表响铃、连续固件睡眠状态确认、数据过期与佩戴/充电门控；默认关闭。22项新测试、合并后共91项定向回归通过。全量lint仍有21处原有错误，本功能无新错误。设计 `docs/design/xiaomi-wake-guard.md`，2026-11-26用户授权部署并要求Pixel统一主题：列表/编辑已改用共用设置Activity/Fragment、Material对话框与时间选择器，删除旧网页示意；准备2026.11.21/code276。Dayweave圆形图标0.2.1/code3已装S4并收到安装完成。已合入inject分支v2026.11.19/code274的NFC转发功能。
+- 2026-11-26 已实现 S4「保持清醒」原生设置与每周规则：多时段/跨午夜/振动或寻找手表响铃、连续固件睡眠状态确认、数据过期与佩戴/充电门控；默认关闭。22项新测试、合并后共91项定向回归通过。全量lint仍有21处原有错误，本功能无新错误。设计 `docs/design/xiaomi-wake-guard.md`，2026-11-26用户授权部署并要求Pixel统一主题：列表/编辑已改用共用设置Activity/Fragment、Material对话框与时间选择器，删除旧网页示意；2026.11.21/code276已装K70，真机列表/编辑/时间选择器截图在app/build/reports/wake-guard-*-device.png；新建规则默认星期摘要问题已复现并修复，需最终重装核对。Dayweave圆形图标0.2.1/code3已装S4并收到安装完成。已合入inject分支v2026.11.19/code274的NFC转发功能。
 - 手机助手分支 `Gadgetbridge-inject` / `feat/xiaomi-voice-inject` 的 2026.11.14/code270 已安装 K70 并在 personal 预发布。用户已验收 S4 播放 Gemini 原声，以及停留在助手界面黑屏后点亮退出时同步关闭手机 Gemini。K70 已开启播报。两种原生闹钟样卡均未出现，按用户决定保留现有 Markdown；样卡探针已撤下。
-- 手机闹钟联动已补充 Xiaomi 原生 type17/subtype16 与 Google 时钟正在响铃通知入口。用户明确只需手机响铃时手表提醒，实机测试因用户上课而暂停。临时测试闹钟已取消并确认无遗留。K70 当前为2026.11.13/code269，真实响铃/停止/稍后提醒验收继续待课后完成。
+- 手机闹钟联动已补充 Xiaomi 原生 type17/subtype16 与 Google 时钟正在响铃通知入口。用户明确只需手机响铃时手表提醒，实机测试因用户上课而暂停。临时测试闹钟已取消并确认无遗留。当时K70为2026.11.13/code269；真实响铃/停止/稍后提醒验收仍未完成。
 - S4 天气闹钟与手机语音助手两个分支已合并，2026.11.8/code264 已发布 personal prerelease 并覆盖安装 K70，merge 提交 956f07c668。S4 已用原密钥认证并初始化，启动无致命异常。合并后 295 项回归中 293 通过、2 跳过。用户已要求部署，覆盖此前保留手机语音实验构建的阶段性选择。Google 天气开关默认关闭，K70 已有手机助手交接开关为 true。
 - S4 官方 App 音频静态研究已完成。com.mi.health 3.59.2 的蓝牙语音为 channel3/type103，AIVS START/DATA/END/QUIT，80字节 Opus 帧、16kHz 单声道；停止收音和回答走 type14/subtype0，TTS PCM 走 HFP/SCO。真实帧解码与设备应答待验证，详见 `docs/design/xiaomi-s4-official-audio.md`。用户要求先静态分析并保留绑定，仅必要时考虑重绑。
 - 2026.11.6: 手表快应用 interconnect 已在 S4 实测双向中的手表→手机方向；手机→手表和广播开关路径未实测。下一步是 AIVS(命令类型 14)语音协议。
 - 2026.11.5 的 K70 页面视觉验收仍待完成。14 项主题迁移/启动/设置入口回归通过，覆盖安装及主题偏好迁移已有实机证据。完整 lint 的 12 个现存错误见 2026-11 日志。
-- Dayweave 手表快应用(设计 `~/Developer/dayweave/docs/design/watch.md`):前台直发与定向广播已随合并进入主线(e975dc29ae)。code273 已装 K70，待用户能测试时再用 `~/Developer/S4-Vela-Probe` 1.1.0 + `tools/channel_responder.py` 复测回包×10 与下行大小。K70 另有 NFC/公交卡实验对话在用手机与 GB 进程，安装会重启 GB，须等用户确认空闲。
+- Dayweave 手表快应用(设计 `~/Developer/dayweave/docs/design/watch.md`):前台直发与定向广播已随合并进入主线(e975dc29ae)。code273 已装 K70，待用户能测试时再用 `~/Developer/S4-Vela-Probe` 1.1.0 + `tools/channel_responder.py` 复测回包×10 与下行大小。2026-11-26本次用户已授权部署，K70已更新code276；未来安装仍需注意与NFC实验共用GB进程。
 - 自定义时区尚未在真机上验证。
 - 真实 S4 已进入 Gadgetbridge 认证页。旧版在 APatch 下报数据库缺失，修复后已在 K70 上复现挂载隔离并验证只读重试返回唯一有效密钥，待验收新版认证页和蓝牙握手。
 - 数据外传(2026-11-12 起):K70 上自动导出数据库每小时一次，不设导出位置，导出后上传到 `http://100.106.169.46:8789/gadgetbridge`(ROG webhook 接收端，令牌只在手机 prefs 和 ROG 私有目录里)。Syncthing 已从 ROG 删除，手机上也已没有 Syncthing-Fork。整点自动上传还没观察到。设计见 `docs/design/auto-export-upload.md`,运维记录见 `~/.agents/gadgetbridge--rog-syncthing/AGENTS.md`。

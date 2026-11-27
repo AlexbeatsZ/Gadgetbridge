@@ -80,6 +80,8 @@ public class XiaomiWakeGuardActivityTest extends TestBase {
             assertTrue(dialog instanceof nodomain.freeyourgadget.gadgetbridge.util.dialogs.MaterialEditTextPreferenceDialogFragment);
             ((androidx.fragment.app.DialogFragment) dialog).dismissNow();
             androidx.preference.MultiSelectListPreference days = editor.findPreference("wake_guard_draft_days");
+            assertEquals(new java.util.HashSet<>(java.util.Arrays.asList("0", "1", "2", "3", "4")), days.getValues());
+            assertTrue(days.getSummary().toString().contains(activity.getResources().getStringArray(R.array.wake_guard_weekdays)[0]));
             assertFalse(days.callChangeListener(Collections.emptySet()));
             activity.getSupportFragmentManager().popBackStackImmediate();
             assertEquals("[]", GBApplication.getDeviceSpecificSharedPrefs(device.getAddress()).getString(PREF_RULES, "[]"));

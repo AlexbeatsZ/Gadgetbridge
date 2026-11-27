@@ -317,7 +317,7 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragmentCompa
                 return;
             }
 
-            if (preference.getPreferenceDataStore() != null) {
+            if (!preference.isPersistent() || preference.getPreferenceDataStore() != null) {
                 LOG.trace("Preference {} is not stored in these shared preferences, ignoring", key);
                 return;
             }
