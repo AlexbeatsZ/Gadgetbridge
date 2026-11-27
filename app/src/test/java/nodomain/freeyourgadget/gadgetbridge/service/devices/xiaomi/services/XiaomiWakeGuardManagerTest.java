@@ -41,6 +41,7 @@ public class XiaomiWakeGuardManagerTest extends TestBase {
         device = createDummyGDevice("00:11:22:33:44:59");
         device.setState(GBDevice.State.INITIALIZED);
         when(support.getDevice()).thenReturn(device);
+        when(support.getRpkService()).thenReturn(mock(XiaomiRpkService.class));
         now = ZonedDateTime.parse("2026-11-23T09:00:00+08:00[Asia/Shanghai]");
         manager = new XiaomiWakeGuardManager(support, system, () -> now);
         prefs = GBApplication.getDeviceSpecificSharedPrefs(device.getAddress());
@@ -75,14 +76,13 @@ public class XiaomiWakeGuardManagerTest extends TestBase {
         manager.dispose();
     }
 
-    @Test public void vibrationUsesTransientPatternWithoutFindWatchOrStoredAlarms() throws Exception {
+    @Test public void vibrationUsesVelaWithoutFindWatchOrUnsupportedSystemCommand() throws Exception {
         enable(Mode.VIBRATE); confirmSleep();
-        ArgumentCaptor<XiaomiProto.Command> command = ArgumentCaptor.forClass(XiaomiProto.Command.class);
-        verify(support).sendCommand(eq("wake guard vibration"), command.capture());
-        assertEquals(2, command.getValue().getType());
-        assertEquals(59, command.getValue().getSubtype());
-        assertEquals(6, command.getValue().getSystem().getVibrationTestCustom().getVibrationCount());
+        verify(support.getRpkService()).requestWakeGuardVibration();
         verify(system, never()).sendWakeGuardFindWatch(anyBoolean());
+        verify(support, never()).sendCommand(anyString(), any(XiaomiProto.Command.class));
+        manager.observe(false, true, false);
+        verify(support.getRpkService(), atLeastOnce()).cancelWakeGuardVibration();
         manager.dispose();
     }
 

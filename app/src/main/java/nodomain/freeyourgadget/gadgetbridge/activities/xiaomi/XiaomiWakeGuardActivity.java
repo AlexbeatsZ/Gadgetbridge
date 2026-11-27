@@ -64,6 +64,7 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
             if (XiaomiWakeGuardConfig.PREF_STATUS.equals(key) || XiaomiWakeGuardConfig.PREF_SAMPLE_AT.equals(key)) {
                 updateStatus();
             }
+            if (XiaomiWakeGuardConfig.PREF_VIBRATION_STATUS.equals(key)) updateVibrationStatus();
         };
 
         @Override
@@ -78,6 +79,7 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
             super.onResume();
             prefs.registerOnSharedPreferenceChangeListener(listener);
             updateStatus();
+            updateVibrationStatus();
         }
 
         @Override public void onPause() {
@@ -167,11 +169,25 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
 
         private void addTest(androidx.preference.PreferenceGroup screen, int label, String action) {
             Preference test = row(label, null);
+            test.setKey(action);
+            test.setPersistent(false);
             test.setOnPreferenceClickListener(preference -> {
                 GBApplication.deviceService(device).onSendConfiguration(action);
                 return true;
             });
             screen.addPreference(test);
+            if (XiaomiWakeGuardConfig.TEST_VIBRATE.equals(action)) updateVibrationStatus();
+        }
+
+        private void updateVibrationStatus() {
+            Preference test = findPreference(XiaomiWakeGuardConfig.TEST_VIBRATE);
+            if (test == null) return;
+            switch (prefs.getString(XiaomiWakeGuardConfig.PREF_VIBRATION_STATUS, "")) {
+                case "pending": test.setSummary(R.string.wake_guard_vibration_pending); break;
+                case "ok": test.setSummary(R.string.wake_guard_vibration_ok); break;
+                case "failed": test.setSummary(R.string.wake_guard_vibration_failed); break;
+                default: test.setSummary(R.string.wake_guard_vibration_note);
+            }
         }
 
         private void updateStatus() {

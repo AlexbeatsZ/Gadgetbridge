@@ -18,6 +18,7 @@ public final class XiaomiWakeGuardConfig {
     public static final String PREF_RULES = "xiaomi_wake_guard_rules";
     public static final String PREF_STATUS = "xiaomi_wake_guard_status";
     public static final String PREF_SAMPLE_AT = "xiaomi_wake_guard_sample_at";
+    public static final String PREF_VIBRATION_STATUS = "xiaomi_wake_guard_vibration_status";
     public static final String TEST_VIBRATE = "xiaomi_wake_guard_test_vibrate";
     public static final String TEST_RING = "xiaomi_wake_guard_test_ring";
     public static final String STOP_RING = "xiaomi_wake_guard_stop_ring";

@@ -16,7 +16,7 @@
 
 ## 提醒与所有权
 
-- 振动：复用仓库已有 type2/subtype59 `VibrationTest`，3次600毫秒振动，间隔400毫秒、强度80；不写入振动预设，不改通知分类或手表声音设置。S4固件是否接受该瞬时命令，待用户试振。
+- 振动（2026-11-26修正）：S4固件3.201.79对type2/subtype46查询及type2/subtype59试振均回status=1（分别为0802102EA00601、0802103BA00601），旧接口不能执行。改用已安装Dayweave Watch 0.2.2/code4的`@system.vibrator.vibrate({mode: long})`，共3次、间隔1秒；会短暂拉起Dayweave，不写预设、不改通知/声音/静音/勿扰，不转用寻找手表。
 - 响铃：复用寻找手表 type2/subtype18，10秒后发送停止；实际声音遵循手表声音设置，S4是否发声及静音/勿扰表现待实测。连接丢失时手机无法把停止命令送到手表，用户仍可从手表端结束寻找。
 - 清醒、摘表、充电、规则结束、停用、重配或dispose时停止本功能拥有的响铃。其他调用方接管寻找手表时取消本功能的停止计时，不会在10秒后停止别人的寻找。已有手动寻找或 Sleep as Android 闹钟运行时，本功能不发新提醒。
 - 不占用/覆盖闹钟槽，不改配对、手机闹钟或全局静音/勿扰。
@@ -34,3 +34,11 @@
 ## Dayweave 图标
 
 原192×192透明图案没有圆形底板。Dayweave的`scripts/make-watch-icon.mjs`复用已有SVG图案，渲染白色圆板、浅色边缘与透明四角，图案缩入安全区。仅修改手表PNG；包名、桌面/Android图标不变。用户已于2026-11-26审阅圆形图标并授权部署；新版为0.2.1/code3，手表已返回安装完成。
+
+## 纯振动桥（2026-11-26）
+
+- 命令经原RPK连接，限定`org.dayweave.mobile`和`protocol=gadgetbridge.wake_guard.v1`；GB先发`prepare(id)`，表端只回`ready(id)`，手机在当前10秒有效窗口内才直接发送`vibrate(id)`。实际motor命令不排队，不因后续启动/重连延后振动。表端prepare的本地有效期3秒，防止提交在传输里延误；重复id只能执行一次。
+- 2秒没有ready时显式重拉一次，解决RPK最近前台缓存尚未过期但应用已关闭的情况。断连/停用/修改规则/离开时段/清醒/摘表/充电取消自动提醒；停止测试、销毁与新测试清理等待队列和未执行脉冲。
+- 表端3次API调用后回`executed`，手机试振行显示已调用；无确认10秒后显示检查连接和Dayweave版本。确认仅证明API调用，不证明马达实际运动，效果由用户手腕确认。
+- 旧版/未安装Dayweave不会回ready，不偷偷降级为响铃。监测规则仍归GB，退出Dayweave不停止监测；只有纯振动执行需要临时打开快应用。
+- 协议参考：AstroBox-NG-Module-Pb的`protos/xiaomi/wear_system.proto`中TEST_VIBRATOR=59、VibratorEffect；实机响应优先于通用协议定义。复用现有Dayweave Vela振动接口与Gadgetbridge的前台直发/启动握手，未改中心API或业务状态。

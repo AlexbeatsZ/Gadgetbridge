@@ -17,8 +17,6 @@ import java.util.function.Supplier;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
-import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
-import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiSystem;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiSupport;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGuardConfig;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGuardEngine;
@@ -34,7 +32,7 @@ public final class XiaomiWakeGuardManager {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final XiaomiWakeGuardEngine engine = new XiaomiWakeGuardEngine();
     private XiaomiWakeGuardConfig config = new XiaomiWakeGuardConfig(false, Collections.emptyList());
-    private boolean running, ringing;
+    private boolean running, ringing, vibratingFromRule;
     private final Runnable poll = this::tick;
     private final Runnable stopRing = this::stopRinging;
 
@@ -59,6 +57,7 @@ public final class XiaomiWakeGuardManager {
 
     public synchronized void configure() {
         stopRinging();
+        support.getRpkService().cancelWakeGuardVibration();
         engine.reset();
         try {
             config = new XiaomiWakeGuardConfig(prefs().getBoolean(XiaomiWakeGuardConfig.PREF_ENABLED, false),
@@ -115,12 +114,14 @@ public final class XiaomiWakeGuardManager {
         if (rule != null && connected()) {
             LOG.info("Wake guard reminder: rule={}, mode={}", rule.id, rule.mode);
             alert(rule.mode);
+            vibratingFromRule = rule.mode == XiaomiWakeGuardConfig.Mode.VIBRATE;
         }
     }
 
     /** Only invoked by an explicit action on the device settings screen. */
     public synchronized void test(String action) {
         stopRinging();
+        support.getRpkService().cancelWakeGuardVibration();
         if (!connected() || XiaomiWakeGuardConfig.STOP_RING.equals(action)) return;
         alert(XiaomiWakeGuardConfig.TEST_RING.equals(action)
                 ? XiaomiWakeGuardConfig.Mode.RING : XiaomiWakeGuardConfig.Mode.VIBRATE);
@@ -134,15 +135,7 @@ public final class XiaomiWakeGuardManager {
             handler.removeCallbacks(stopRing);
             handler.postDelayed(stopRing, RING_MS);
         } else {
-            // Transient vibration: no stored pattern or notification category is changed.
-            XiaomiSystem.VibrationTest.Builder vibration = XiaomiSystem.VibrationTest.newBuilder();
-            for (int i = 0; i < 3; i++) {
-                vibration.addVibration(XiaomiSystem.Vibration.newBuilder().setVibrate(1).setMs(600).setStrength(80));
-                vibration.addVibration(XiaomiSystem.Vibration.newBuilder().setVibrate(0).setMs(400).setStrength(0));
-            }
-            support.sendCommand("wake guard vibration", XiaomiProto.Command.newBuilder()
-                    .setType(XiaomiSystemService.COMMAND_TYPE).setSubtype(59)
-                    .setSystem(XiaomiSystem.System.newBuilder().setVibrationTestCustom(vibration)).build());
+            support.getRpkService().requestWakeGuardVibration();
         }
     }
 
@@ -153,6 +146,10 @@ public final class XiaomiWakeGuardManager {
     }
 
     private synchronized void stopRinging() {
+        if (vibratingFromRule) {
+            vibratingFromRule = false;
+            support.getRpkService().cancelWakeGuardVibration();
+        }
         handler.removeCallbacks(stopRing);
         if (ringing) {
             ringing = false;
@@ -164,6 +161,7 @@ public final class XiaomiWakeGuardManager {
         running = false;
         handler.removeCallbacks(poll);
         stopRinging();
+        support.getRpkService().cancelWakeGuardVibration();
         engine.reset();
         if (config.enabled) setStatus("disconnected");
     }

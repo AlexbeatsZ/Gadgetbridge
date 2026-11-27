@@ -7,7 +7,7 @@
     <string name="wake_guard_title">Stay awake</string>
     <string name="wake_guard_test_vibrate">Test vibration now</string>
     <string name="wake_guard_test_ring">Test ringing for 10 seconds</string>
-    <string name="wake_guard_stop_ring">Stop test / reminder ringing</string>
+    <string name="wake_guard_stop_ring">Stop test / reminder</string>
     <string name="wake_guard_entry_summary">Weekly awake periods and watch sleep reminders</string>
     <string name="wake_guard_enabled">Enable sleep reminders</string>
     <string name="wake_guard_about">Uses the watch’s live sleep detection while worn and not charging. Two or more fresh reports must confirm sleep for the selected duration. Keep the phone connected; unknown or stale data never triggers a reminder. Detection may be delayed by the watch.</string>
@@ -24,7 +24,11 @@
     <string name="wake_guard_mode">Watch reminder</string>
     <string name="wake_guard_vibrate">Vibrate</string>
     <string name="wake_guard_ring">Ring for 10 seconds</string>
-    <string name="wake_guard_sound_note">Ringing uses Find watch and follows the watch’s sound settings. Vibration sends a temporary vibration pattern. Both need a test on your watch. Ringing periods take priority when periods overlap.</string>
+    <string name="wake_guard_sound_note">Ringing uses Find watch and follows the watch’s sound settings. Silent vibration briefly opens Dayweave Watch 0.2.2 or newer and uses its local motor, without changing sound settings. Ringing periods take priority when periods overlap.</string>
+    <string name="wake_guard_vibration_note">Requires Dayweave Watch 0.2.2 or newer. Briefly opens Dayweave for three silent vibrations.</string>
+    <string name="wake_guard_vibration_pending">Waiting for the watch to execute vibration…</string>
+    <string name="wake_guard_vibration_ok">The watch called its vibration motor three times. Check the vibration on your wrist.</string>
+    <string name="wake_guard_vibration_failed">No execution confirmation. Check the connection and install Dayweave Watch 0.2.2 or newer, then retry.</string>
     <string name="wake_guard_confirm">Confirm suspected sleep (1–30 minutes)</string>
     <string name="wake_guard_repeat">Repeat reminder (1–60 minutes)</string>
     <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · confirm %6$d min · repeat %7$d min</string>

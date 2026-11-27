@@ -93,6 +93,37 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     // Not null if we're installing a firmware
     private XiaomiFWHelper fwHelper = null;
     private XiaomiNfcRelayBridge nfcRelayBridge = null;
+    private XiaomiWakeGuardVibration wakeGuardVibration;
+
+    public void requestWakeGuardVibration() {
+        if (wakeGuardVibration == null) {
+            wakeGuardVibration = new XiaomiWakeGuardVibration(new XiaomiWakeGuardVibration.Transport() {
+                @Override public void prepare(byte[] payload, boolean forceLaunch) {
+                    clearPending();
+                    if (forceLaunch) lastSeenOpen.remove(XiaomiWakeGuardVibration.APP);
+                    sendWearAppMessage(XiaomiWakeGuardVibration.APP, payload);
+                }
+                @Override public void direct(byte[] payload) {
+                    sendRelayMessage(XiaomiWakeGuardVibration.APP, payload);
+                }
+                @Override public void clearPending() {
+                    Queue<byte[]> queue = pendingMessages.get(XiaomiWakeGuardVibration.APP);
+                    if (queue != null) queue.removeIf(bytes -> XiaomiWakeGuardVibration.isMessage(
+                            XiaomiWakeGuardVibration.APP, new String(bytes, java.nio.charset.StandardCharsets.UTF_8)));
+                    if (queue != null && queue.isEmpty()) {
+                        pendingMessages.remove(XiaomiWakeGuardVibration.APP);
+                        awaitingList.remove(XiaomiWakeGuardVibration.APP);
+                    }
+                }
+            }, value -> GBApplication.getDeviceSpecificSharedPrefs(getSupport().getDevice().getAddress()).edit()
+                    .putString(XiaomiWakeGuardVibration.PREF_STATUS, value).apply());
+        }
+        wakeGuardVibration.request();
+    }
+
+    public void cancelWakeGuardVibration() {
+        if (wakeGuardVibration != null) wakeGuardVibration.cancel();
+    }
 
     public XiaomiRpkService(final XiaomiSupport support) {
         super(support);
@@ -285,6 +316,11 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
                 return;
             }
         }
+        if (XiaomiWakeGuardVibration.isMessage(appId, payload)) {
+            LOG.info("Wake guard Vela reply: {}", payload);
+            if (wakeGuardVibration != null) wakeGuardVibration.receive(payload);
+            return;
+        }
         LOG.info("Message from wear app {}: {} bytes", appId, message.getPayload().size());
         LOG.debug("Wear app {} message: {}", appId, payload);
 
@@ -316,6 +352,7 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
 
     @Override
     public void onDisconnect() {
+        cancelWakeGuardVibration();
         // Otherwise messages from before the disconnect would go out with the next one, possibly much later
         synchronized (this) {
             pendingMessages.clear();
@@ -329,6 +366,7 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
 
     @Override
     public void dispose() {
+        cancelWakeGuardVibration();
         if (nfcRelayBridge != null) {
             nfcRelayBridge.dispose();
             nfcRelayBridge = null;
