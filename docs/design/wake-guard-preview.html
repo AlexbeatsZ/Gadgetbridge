@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>保持清醒 · 界面预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#e7ece9;color:#17241d;font:15px/1.5 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif}header{max-width:1120px;margin:28px auto 18px;padding:0 24px}h1{font-size:26px;margin:0}header p{margin:6px 0;color:#536258}.frames{display:flex;justify-content:center;gap:26px;align-items:flex-start;padding:4px 24px 36px}.phone{width:368px;background:#f7faf7;border:7px solid #253a2d;border-radius:36px;overflow:hidden;box-shadow:0 12px 40px #182c1820;flex:none}.bar{padding:10px 20px 0;font-size:12px;font-weight:600;display:flex;justify-content:space-between}.title{font-size:26px;font-weight:600;padding:22px 22px 12px}.title small{font-weight:400;color:#506557;margin-right:18px}.scroll{padding:0 12px 18px}.row{background:#eaf0e9;padding:16px 18px;border-radius:19px;margin-bottom:4px}.row strong{font-size:16px;font-weight:500;display:block}.row p{font-size:12px;color:#53645a;margin:5px 0 0;line-height:1.6}.switchrow{display:flex;align-items:center;justify-content:space-between}.toggle{appearance:none;background:#39774e;width:49px;height:29px;border-radius:20px;margin:0;flex:none;position:relative}.toggle:after{content:'✓';position:absolute;right:4px;top:4px;background:#d6efda;width:21px;height:21px;text-align:center;font-size:14px;line-height:21px;border-radius:50%;color:#174326}.toggle:not(:checked){background:#7e8c81}.toggle:not(:checked):after{content:'';right:24px;background:white}h2{font-size:13px;color:#326b46;margin:20px 16px 10px;font-weight:600}.state{color:#326b46}.add{color:#326b46;cursor:pointer}.hint{font-size:12px;color:#526657;margin:14px 16px;line-height:1.7}.btns{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}button{border:0;font:inherit;cursor:pointer}.test{color:#326b46;border:1px solid #a1b8a6;border-radius:24px;padding:8px 14px;font-size:12px;background:transparent}.editor{padding:4px 24px 22px}.editor h3{font-size:22px;margin:12px 0 18px;font-weight:500}.field{display:block;font-size:12px;color:#526657;margin:16px 0 5px}input[type=text],input[type=number],input[type=time],select{width:100%;border:1px solid #829b89;border-radius:5px;background:#f7faf7;padding:11px 12px;color:#203a28;font:inherit;min-height:45px}.days{display:flex;flex-wrap:wrap;gap:7px}.chip{font-size:12px;border:1px solid #94af9b;border-radius:9px;padding:8px 10px;background:transparent;color:#326b46}.chip.on{background:#d7e9d9;border-color:#d7e9d9}.inline{display:flex;gap:12px}.inline>div{flex:1}.actions{display:flex;justify-content:flex-end;gap:14px;margin-top:22px;color:#326b46}.save{background:#39774e;color:white;border-radius:24px;padding:9px 22px}.cancel{background:transparent;color:#326b46}.logo{width:220px;text-align:center;padding-top:10px}.plate{width:190px;height:190px;border-radius:50%;background:#050a07;display:grid;place-items:center;margin:10px auto 18px}.plate img{width:136px;height:136px}.logo h2{font-size:18px;color:#263f2f;margin:0}.logo p{font-size:13px;color:#53645a;line-height:1.8}.caption{padding:14px 16px;font-size:11px;background:#eaf0e9;color:#526557;text-align:center}.note{display:none;color:#326b46;font-size:12px}.note.show{display:block}@media(max-width:1000px){.frames{flex-wrap:wrap}.logo{width:100%;max-width:600px}.phone{max-width:calc(100vw - 32px)}}
+</style>
+<header><h1>保持清醒</h1><p>手机「手环」→ S4 设备设置。以下为布局预览；示例时段不会写入你的设备。</p></header>
+<main class="frames">
+<section class="phone"><div class="bar"><span>9:41</span><span>● ▰ 100%</span></div><div class="title"><small>‹</small>保持清醒</div><div class="scroll">
+<div class="row switchrow"><strong>开启防睡懒觉提醒</strong><input class="toggle" type="checkbox" checked aria-label="开启提醒"></div>
+<div class="row"><strong>监测状态</strong><p class="state">手表报告当前清醒</p></div>
+<div class="hint">使用手表实时上报的睡眠判断，仅在佩戴且未充电时工作。需要手机保持连接；未知或过期数据不会触发提醒。<br>规则时区：Asia/Shanghai（示例）</div>
+<h2>每周非睡眠时段</h2>
+<div class="row"><strong>上午学习</strong><p>周一 周二 周三 周四 周五 · 08:00–12:00<br>振动 · 确认 1 分钟 · 每 5 分钟提醒</p></div>
+<div class="row"><strong>周末起床</strong><p>周六 周日 · 09:00–11:00<br>响铃 10 秒 · 确认 1 分钟 · 每 3 分钟提醒</p></div>
+<div class="row add" onclick="document.querySelector('#name').focus()"><strong>＋ 添加非睡眠时段</strong></div>
+<div class="hint">响铃使用“寻找手表”，遵循手表的声音设置；时段重叠时，响铃规则优先。</div>
+<div class="btns"><button class="test" onclick="preview('试振')">立即试振</button><button class="test" onclick="preview('试听')">试听响铃 10 秒</button><button class="test" onclick="preview('停止')">停止试听／提醒响铃</button></div><div class="note" id="note"></div>
+</div><div class="caption">示例规则 · 默认不开启，不自动添加作息</div></section>
+<section class="phone"><div class="bar"><span>9:41</span><span>● ▰ 100%</span></div><div class="title"><small>‹</small>编辑时段</div><div class="editor">
+<label class="field" for="name">时段名称</label><input id="name" type="text" value="上午学习">
+<div class="switchrow" style="margin-top:14px">启用此时段<input class="toggle" type="checkbox" checked aria-label="启用此时段"></div>
+<span class="field">重复日期</span><div class="days"><button class="chip on">周一</button><button class="chip on">周二</button><button class="chip on">周三</button><button class="chip on">周四</button><button class="chip on">周五</button><button class="chip">周六</button><button class="chip">周日</button></div>
+<div class="inline"><div><label class="field" for="start">开始时间</label><input id="start" type="time" value="08:00"></div><div><label class="field" for="end">结束时间</label><input id="end" type="time" value="12:00"></div></div>
+<label class="field" for="mode">手表提醒方式</label><select id="mode"><option>振动</option><option>响铃 10 秒</option></select>
+<label class="field" for="confirm">疑似睡眠确认时长（1–30 分钟）</label><input id="confirm" type="number" min="1" max="30" value="1">
+<label class="field" for="repeat">重复提醒间隔（1–60 分钟）</label><input id="repeat" type="number" min="1" max="60" value="5">
+<div class="actions"><button class="cancel">取消</button><button class="save" onclick="preview('保存示例')">保存</button></div>
+</div><div class="caption">原生应用中使用系统时间选择器与 Material 编辑对话框</div></section>
+<aside class="logo"><div class="plate"><img alt="Dayweave圆形图标" src="../../../dayweave/watch/vela/src/common/logo.png"></div><h2>Dayweave 手表图标</h2><p>原图案 + 白色圆形底板<br>细边缘，四角透明<br>绿色图案缩入圆形安全区</p><p>监测在手机「手环」中运行，<br>退出 Dayweave 不影响已启用规则。</p></aside>
+</main>
+<script>document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>b.classList.toggle('on'));function preview(action){let n=document.querySelector('#note');n.textContent=action+'：仅演示界面，没有连接设备。';n.classList.add('show')}</script>
+</html>

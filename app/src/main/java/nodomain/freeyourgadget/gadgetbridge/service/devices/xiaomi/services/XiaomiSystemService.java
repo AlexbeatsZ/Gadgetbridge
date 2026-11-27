@@ -59,6 +59,7 @@ import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto;
 import nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiSystem;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiPreferences;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiSupport;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGuardConfig;
 import nodomain.freeyourgadget.gadgetbridge.util.CheckSums;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
@@ -113,12 +114,15 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
     private WearingState currentWearingState = WearingState.UNKNOWN;
     private BatteryState currentBatteryState = BatteryState.UNKNOWN;
     private SleepState currentSleepDetectionState = SleepState.UNKNOWN;
+    private boolean externalFindWatchActive;
 
     private final XiaomiVibrationManager vibrationManager;
+    private final XiaomiWakeGuardManager wakeGuard;
 
     public XiaomiSystemService(final XiaomiSupport support) {
         super(support);
         this.vibrationManager = new XiaomiVibrationManager(support);
+        this.wakeGuard = new XiaomiWakeGuardManager(support, this);
     }
 
     @Override
@@ -128,6 +132,7 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
         currentWearingState = WearingState.UNKNOWN;
         currentBatteryState = BatteryState.UNKNOWN;
         currentSleepDetectionState = SleepState.UNKNOWN;
+        externalFindWatchActive = false;
 
         // Request device info and configs
         getSupport().sendCommand("get device info", COMMAND_TYPE, CMD_DEVICE_INFO);
@@ -143,10 +148,12 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
         getSupport().sendCommand("get workout types", COMMAND_TYPE, CMD_WORKOUT_TYPES_GET);
 
         rearmBatteryStateRequestTimer();
+        wakeGuard.initialize();
     }
 
     @Override
     public void dispose() {
+        wakeGuard.dispose();
         handler.removeCallbacksAndMessages(null);
     }
 
@@ -201,6 +208,10 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
             case CMD_FIND_WATCH:
                 if (cmd.hasSystem()) {
                     LOG.debug("Got find device: {}", cmd.getSystem().getFindDevice());
+                    if (cmd.getSystem().getFindDevice() != 0) {
+                        externalFindWatchActive = false;
+                        wakeGuard.onFindWatchStopped();
+                    }
                     // TODO mark device as found
                 }
                 return;
@@ -250,6 +261,15 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
 
     @Override
     public boolean onSendConfiguration(final String config, final Prefs prefs) {
+        if (XiaomiWakeGuardConfig.PREF_ENABLED.equals(config) || XiaomiWakeGuardConfig.PREF_RULES.equals(config)) {
+            wakeGuard.configure();
+            return true;
+        }
+        if (XiaomiWakeGuardConfig.TEST_VIBRATE.equals(config) || XiaomiWakeGuardConfig.TEST_RING.equals(config)
+                || XiaomiWakeGuardConfig.STOP_RING.equals(config)) {
+            wakeGuard.test(config);
+            return true;
+        }
         switch (config) {
             case DeviceSettingsPreferenceConst.PREF_BATTERY_POLLING_ENABLE:
             case DeviceSettingsPreferenceConst.PREF_BATTERY_POLLING_INTERVAL:
@@ -828,6 +848,7 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
         // TODO: handle activity state
 
         // reset battery level refresh timer
+        wakeGuard.observe(deviceState.getIsUserAsleep(), deviceState.getIsWorn(), deviceState.getIsCharging());
         rearmBatteryStateRequestTimer();
     }
 
@@ -862,6 +883,13 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
         }
 
         // TODO process warning (unknown possible values) and activity information
+        wakeGuard.observe(
+                deviceState.hasSleepState() && (deviceState.getSleepState() == 1 || deviceState.getSleepState() == 2)
+                        ? deviceState.getSleepState() == 1 : null,
+                deviceState.hasWearingState() && (deviceState.getWearingState() == 1 || deviceState.getWearingState() == 2)
+                        ? deviceState.getWearingState() == 1 : null,
+                deviceState.hasChargingState() && (deviceState.getChargingState() == 1 || deviceState.getChargingState() == 2)
+                        ? deviceState.getChargingState() == 1 : null);
 
         // request battery state to request battery level and charger state on supported models
         getSupport().sendCommand("request battery state", COMMAND_TYPE, CMD_BATTERY);
@@ -939,6 +967,17 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
     }
 
     public void onFindWatch(final boolean start) {
+        // External find-watch / Sleep as Android owns its own stop schedule.
+        wakeGuard.onFindWatchStopped();
+        externalFindWatchActive = start;
+        sendWakeGuardFindWatch(start);
+    }
+
+    boolean canWakeGuardAlert() {
+        return !externalFindWatchActive && !getSupport().isSleepAsAndroidAlarmRunning();
+    }
+
+    void sendWakeGuardFindWatch(final boolean start) {
         LOG.debug("Find watch: {}", start);
 
         getSupport().sendCommand(
@@ -1029,6 +1068,7 @@ public class XiaomiSystemService extends AbstractXiaomiService implements Xiaomi
 
     @Override
     public void onDisconnect() {
+        wakeGuard.dispose();
         this.handler.removeCallbacks(this.batteryStateRequestRunnable);
     }
 }

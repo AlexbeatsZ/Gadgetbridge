@@ -987,6 +987,11 @@
             android:label="@string/pref_xiaomi_vibration_patterns_title"
             android:parentActivityName=".activities.ControlCenterv2" />
         <activity
+            android:name=".activities.xiaomi.XiaomiWakeGuardActivity"
+            android:exported="false"
+            android:label="@string/wake_guard_title"
+            android:parentActivityName=".activities.ControlCenterv2" />
+        <activity
             android:name=".activities.casio.CasioIntervalTimerActivity"
             android:label="@string/pref_casio_interval_timer_title"
             android:parentActivityName=".activities.ControlCenterv2" />

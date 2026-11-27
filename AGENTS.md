@@ -20,6 +20,7 @@
   - 时区选择对话框抽成 `activities/TimeZonePickerDialog.java`,世界时钟页也改用它.
 
 ## Active Work
+- 2026-11-26 已实现 S4「保持清醒」原生设置与每周规则：多时段/跨午夜/振动或寻找手表响铃、连续固件睡眠状态确认、数据过期与佩戴/充电门控；默认关闭。22项新测试加44项现有回归通过（共66）。设计 `docs/design/xiaomi-wake-guard.md`，可交互布局预览 `docs/design/wake-guard-preview.html`（非真机截图）。Dayweave圆形图标源码在其仓库；遵循Dayweave先预览后构建规则，未部署，等待界面审阅与手机空闲。发布前须保留inject分支v2026.11.19/code274的NFC转发功能。
 - 手机助手分支 `Gadgetbridge-inject` / `feat/xiaomi-voice-inject` 的 2026.11.14/code270 已安装 K70 并在 personal 预发布。用户已验收 S4 播放 Gemini 原声，以及停留在助手界面黑屏后点亮退出时同步关闭手机 Gemini。K70 已开启播报。两种原生闹钟样卡均未出现，按用户决定保留现有 Markdown；样卡探针已撤下。
 - 手机闹钟联动已补充 Xiaomi 原生 type17/subtype16 与 Google 时钟正在响铃通知入口。用户明确只需手机响铃时手表提醒，实机测试因用户上课而暂停。临时测试闹钟已取消并确认无遗留。K70 当前为2026.11.13/code269，真实响铃/停止/稍后提醒验收继续待课后完成。
 - S4 天气闹钟与手机语音助手两个分支已合并，2026.11.8/code264 已发布 personal prerelease 并覆盖安装 K70，merge 提交 956f07c668。S4 已用原密钥认证并初始化，启动无致命异常。合并后 295 项回归中 293 通过、2 跳过。用户已要求部署，覆盖此前保留手机语音实验构建的阶段性选择。Google 天气开关默认关闭，K70 已有手机助手交接开关为 true。
@@ -47,6 +48,7 @@
 - Android 在系统时区变化时会对 app 进程调用 `TimeZone.setDefault(null)` 重置覆盖,因此必须在时区变更广播和每次同步时间前重新 `AppTimeZone.apply()`.
 
 ## Docs Index
+- `docs/design/xiaomi-wake-guard.md`。S4非睡眠时段、实时睡眠确认与振动/响铃所有权。
 - `docs/design/xiaomi-assistant-feedback.md`。手机助手回答与功能卡片反馈到 S4。
 - `docs/design/xiaomi-s4-nfc-host.md`。公交卡路线 B:S4 NFC 主机前端经蓝牙代理到手机 SE 的研究。
 - `docs/design/xiaomi-transit-migration.md`。公交卡路线 A:官方迁移状态机与身份连续性。

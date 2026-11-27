@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wake_guard_title">保持清醒</string>
+    <string name="wake_guard_test_vibrate">立即试振</string>
+    <string name="wake_guard_test_ring">试听响铃 10 秒</string>
+    <string name="wake_guard_stop_ring">停止试听／提醒响铃</string>
+    <string name="wake_guard_entry_summary">每周非睡眠时段与手表睡眠提醒</string>
+    <string name="wake_guard_enabled">开启防睡懒觉提醒</string>
+    <string name="wake_guard_about">使用手表实时上报的睡眠判断，仅在佩戴且未充电时工作。至少两次新鲜上报、持续达到确认时长后才提醒。需要手机保持连接；未知或过期数据不会触发提醒。手表识别睡眠可能有延迟。</string>
+    <string name="wake_guard_status">监测状态</string>
+    <string name="wake_guard_timezone">规则时区：%1$s</string>
+    <string name="wake_guard_rules">每周非睡眠时段</string>
+    <string name="wake_guard_add">添加非睡眠时段</string>
+    <string name="wake_guard_empty">还没有时段。添加你希望保持清醒的时间。</string>
+    <string name="wake_guard_name">时段名称</string>
+    <string name="wake_guard_days">重复日期</string>
+    <string name="wake_guard_start">开始时间</string>
+    <string name="wake_guard_end">结束时间</string>
+    <string name="wake_guard_rule_enabled">启用此时段</string>
+    <string name="wake_guard_mode">手表提醒方式</string>
+    <string name="wake_guard_vibrate">振动</string>
+    <string name="wake_guard_ring">响铃 10 秒</string>
+    <string name="wake_guard_sound_note">响铃使用“寻找手表”，遵循手表的声音设置；振动发送临时振动节奏。两种方式都需要在你的手表上试听／试振。时段重叠时，响铃规则优先。</string>
+    <string name="wake_guard_confirm">疑似睡眠确认时长（1–30 分钟）</string>
+    <string name="wake_guard_repeat">重复提醒间隔（1–60 分钟）</string>
+    <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · 确认 %6$d 分钟 · 每 %7$d 分钟提醒</string>
+    <string name="wake_guard_next_day"> 次日</string>
+    <string name="wake_guard_paused">已停用 · </string>
+    <string name="wake_guard_validation">请填写名称、至少选择一天，起止时间不能相同，分钟数须在标注范围内。</string>
+    <string name="wake_guard_invalid">保存的规则无法读取，监测已暂停；原规则已保留。</string>
+    <string name="wake_guard_limit">最多支持 32 个时段。</string>
+    <string name="wake_guard_delete">删除这个非睡眠时段？</string>
+    <string name="wake_guard_state_disabled">已关闭</string>
+    <string name="wake_guard_state_outside">当前不在非睡眠时段</string>
+    <string name="wake_guard_state_stale">等待新的睡眠与佩戴数据</string>
+    <string name="wake_guard_state_not_worn">未佩戴，已暂停</string>
+    <string name="wake_guard_state_charging">正在充电，已暂停</string>
+    <string name="wake_guard_state_suspected">疑似睡眠，正在确认／提醒</string>
+    <string name="wake_guard_state_awake">手表报告当前清醒</string>
+    <string name="wake_guard_state_disconnected">手表已断开或正忙，已暂停</string>
+    <string-array name="wake_guard_weekdays"><item>周一</item><item>周二</item><item>周三</item><item>周四</item><item>周五</item><item>周六</item><item>周日</item></string-array>
+</resources>

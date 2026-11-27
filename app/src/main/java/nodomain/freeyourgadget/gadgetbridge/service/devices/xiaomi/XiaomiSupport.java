@@ -588,6 +588,10 @@ public class XiaomiSupport extends AbstractBluetoothDeviceSupport {
                 && sleepAsAndroidSender.isFeatureEnabled(SleepAsAndroidFeature.ALARMS);
     }
 
+    public boolean isSleepAsAndroidAlarmRunning() {
+        return saaAlarms.isAlarmRunning();
+    }
+
     /**
      * A vibration runs on its own schedule for as long as Sleep as Android keeps its alarm up, and
      * the band is reachable for only part of that, so the link is re-checked at every pulse rather

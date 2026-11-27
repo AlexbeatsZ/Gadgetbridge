@@ -68,6 +68,17 @@ public class XiaomiSettingsCustomizer implements DeviceSpecificSettingsCustomize
 
     @Override
     public void customizeSettings(final DeviceSpecificSettingsHandler handler, final Prefs prefs, final String rootKey) {
+        final Preference wakeGuardPref = handler.findPreference(
+                nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGuardConfig.PREF_SCREEN);
+        if (wakeGuardPref != null) {
+            wakeGuardPref.setOnPreferenceClickListener(preference -> {
+                Intent intent = new Intent(handler.getContext(),
+                        nodomain.freeyourgadget.gadgetbridge.activities.xiaomi.XiaomiWakeGuardActivity.class);
+                intent.putExtra(GBDevice.EXTRA_DEVICE, handler.getDevice());
+                handler.getContext().startActivity(intent);
+                return true;
+            });
+        }
         final Preference reprocessActivityPref = handler.findPreference("reprocess_activity_files");
         if (reprocessActivityPref != null) {
             reprocessActivityPref.setOnPreferenceClickListener(preference -> {

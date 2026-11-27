@@ -599,6 +599,9 @@ public abstract class XiaomiCoordinator extends AbstractBLEDeviceCoordinator {
         //
         // Health
         //
+        if (this instanceof nodomain.freeyourgadget.gadgetbridge.devices.xiaomi.watches.XiaomiWatchS4Coordinator) {
+            deviceSpecificSettings.addRootScreen(R.xml.devicesettings_xiaomi_wake_guard);
+        }
         if (supportsStressMeasurement(device) && supports(device, FEAT_STRESS) && supportsSpo2(device) && supports(device, FEAT_SPO2)) {
             deviceSpecificSettings.addRootScreen(R.xml.devicesettings_heartrate_sleep_alert_activity_stress_spo2);
         } else if (supportsStressMeasurement(device) && supports(device, FEAT_STRESS)) {

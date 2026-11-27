@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wake_guard_title">Stay awake</string>
+    <string name="wake_guard_test_vibrate">Test vibration now</string>
+    <string name="wake_guard_test_ring">Test ringing for 10 seconds</string>
+    <string name="wake_guard_stop_ring">Stop test / reminder ringing</string>
+    <string name="wake_guard_entry_summary">Weekly awake periods and watch sleep reminders</string>
+    <string name="wake_guard_enabled">Enable sleep reminders</string>
+    <string name="wake_guard_about">Uses the watch’s live sleep detection while worn and not charging. Two or more fresh reports must confirm sleep for the selected duration. Keep the phone connected; unknown or stale data never triggers a reminder. Detection may be delayed by the watch.</string>
+    <string name="wake_guard_status">Monitoring status</string>
+    <string name="wake_guard_timezone">Schedule time zone: %1$s</string>
+    <string name="wake_guard_rules">Weekly awake periods</string>
+    <string name="wake_guard_add">Add awake period</string>
+    <string name="wake_guard_empty">No awake periods. Add the times when you want to stay awake.</string>
+    <string name="wake_guard_name">Period name</string>
+    <string name="wake_guard_days">Repeat on</string>
+    <string name="wake_guard_start">Start</string>
+    <string name="wake_guard_end">End</string>
+    <string name="wake_guard_rule_enabled">Enable this period</string>
+    <string name="wake_guard_mode">Watch reminder</string>
+    <string name="wake_guard_vibrate">Vibrate</string>
+    <string name="wake_guard_ring">Ring for 10 seconds</string>
+    <string name="wake_guard_sound_note">Ringing uses Find watch and follows the watch’s sound settings. Vibration sends a temporary vibration pattern. Both need a test on your watch. Ringing periods take priority when periods overlap.</string>
+    <string name="wake_guard_confirm">Confirm suspected sleep (1–30 minutes)</string>
+    <string name="wake_guard_repeat">Repeat reminder (1–60 minutes)</string>
+    <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · confirm %6$d min · repeat %7$d min</string>
+    <string name="wake_guard_next_day"> next day</string>
+    <string name="wake_guard_paused">Paused · </string>
+    <string name="wake_guard_validation">Enter a name, select at least one day, use different start and end times, and enter minutes within the displayed ranges.</string>
+    <string name="wake_guard_invalid">Saved rules cannot be read. Monitoring is paused; the original rules have been preserved.</string>
+    <string name="wake_guard_limit">Up to 32 awake periods are supported.</string>
+    <string name="wake_guard_delete">Delete this awake period?</string>
+    <string name="wake_guard_state_disabled">Off</string>
+    <string name="wake_guard_state_outside">Outside awake periods</string>
+    <string name="wake_guard_state_stale">Waiting for fresh sleep and wearing data</string>
+    <string name="wake_guard_state_not_worn">Paused: watch is not worn</string>
+    <string name="wake_guard_state_charging">Paused: watch is charging</string>
+    <string name="wake_guard_state_suspected">Suspected sleep: confirming / reminding</string>
+    <string name="wake_guard_state_awake">Watch reports awake</string>
+    <string name="wake_guard_state_disconnected">Paused: watch disconnected or busy</string>
+    <string-array name="wake_guard_weekdays"><item>Mon</item><item>Tue</item><item>Wed</item><item>Thu</item><item>Fri</item><item>Sat</item><item>Sun</item></string-array>
+</resources>
