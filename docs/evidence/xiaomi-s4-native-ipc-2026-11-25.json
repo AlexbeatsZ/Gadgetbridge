@@ -1,0 +1,78 @@
+{
+  "execution": "LIVE_S4_NATIVE_QUICKAPP_PRIVATE_FILE_ABI",
+  "date_mac": "2026-11-25",
+  "date_phone": "2026-11-26",
+  "probe_records": {
+    "version.txt": "NATIVE_IPC_TEST_20261125",
+    "module-load.txt": "",
+    "modules-before.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "modules-after.txt": "",
+    "module-unload.txt": "",
+    "modules-final.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "shell-help.txt": "Hex dump:\n0000: 54 34 48 53 04 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 01 79 34 3d ....-G4,.F4,.y4=\n0040: 49 7a 34 3d 95 7b 34 3d 02 00 00 00 01 00 00 00 Iz4=.{4=........\n0050: 2d 7c 34 3d 05 7d 34 3d 3d 7e 34 3d 00 00 00 00 -|4=.}4==~4=....\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ................\n00f0: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 60 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 `...............\n0110: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0120: 15 80 34 3d 01 00 00 00                         ..4=....\n",
+    "proc-list.txt": "Hex dump:\n0000: 01 81 00 00                                     ....\n",
+    "host-help.txt": "Hex dump:\n0000: 54 43 50 49 05 00 00 00 08 00 00 00 13 00 00 00 TCPI............\n0010: 01 00 00 00 00 00 00 00 08 00 00 00 11 00 00 00 ................\n0020: 00 00 00 00 08 00 00 00 11 00 00 00 01 00 00 00 ................\n0030: 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 ................\n",
+    "fd-help.txt": "Hex dump:\n0000: 54 34 48 53 05 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 06 00 00 00 ................\n0020: 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 01 79 34 3d ....-G4,.F4,.y4=\n0040: 49 7a 34 3d 95 7b 34 3d 03 00 00 00 01 00 00 00 Iz4=.{4=........\n0050: 2d 7c 34 3d 05 7d 34 3d 3d 7e 34 3d 00 00 00 00 -|4=.}4==~4=....\n0060: 00 00 00 00 00 00 00 00 06 00 00 00 28 00 00 00 ............(...\n0070: 00 00 00 00 05 40 00 00 00 00 00 00 06 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 06 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 01 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 00 00 00 49 7a 34 3d 54 02 ff ff ........Iz4=T...\n00e0: 02 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 48 00 00 00 02 00 00 00 02 00 00 00 10 00 00 00 H...............\n0100: 40 00 00 00 06 00 00 00 13 00 00 00 14 00 00 00 @...............\n0110: 12 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 15 80 34 3d 0d 00 00 00                         ..4=....\n",
+    "nfc-proc.txt": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-fds.txt": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-mqueue.txt": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "ready.txt": "ready",
+    "device-list.txt": "Hex dump:\n0000: 99 46 34 2c                                     .F4,\n",
+    "process-list.txt": "Hex dump:\n0000: 2d 47 34 2c                                     -G4,\n",
+    "modules.txt": "Hex dump:\n0000: 01 00 01 00                                     ....\n",
+    "lua-result.txt": "RUN=native-ipc-test; fixed private text only\nPRIVATE_FILE_ABI_PASSED=true\nPROBE_UNLOADED=true",
+    "spp-test-result.txt": "[{\"seq\":1,\"rtt_ms\":122,\"response_matches\":true},{\"seq\":2,\"rtt_ms\":123,\"response_matches\":true},{\"seq\":3,\"rtt_ms\":146,\"response_matches\":true}]",
+    "quickapp-ipc-test.txt": "S4IPC-QUICKAPP-1125",
+    "native-ipc-test.txt": "S4IPC-NATIVE-1125"
+  },
+  "passed": true,
+  "nfc_operations": false,
+  "probe_unloaded": true,
+  "abi": {
+    "firmware": "S4 3.201.79",
+    "execution": "STATIC_FIRMWARE_NSH_CALLSITE_AND_ROM_FINGERPRINT_ANALYSIS",
+    "open": {
+      "entry": "2c55d839",
+      "fingerprint": "0xb590b40e",
+      "evidence": "original cmp at2c2204ba and cp2c22077e"
+    },
+    "read": {
+      "entry": "2c55d5e1",
+      "fingerprint": "0xb085b530",
+      "evidence": "cmp2c220522/cp2c220892"
+    },
+    "write": {
+      "entry": "2c55d61b",
+      "fingerprint_halfwords": [
+        "0xb530",
+        "0xb085"
+      ],
+      "evidence": "cp2c220876"
+    },
+    "close": {
+      "entry": "2c55af95",
+      "fingerprint": "0xaf00b598",
+      "evidence": "cmp2c220514/cp2c2208b6"
+    },
+    "usleep": {
+      "entry": "2c20dc11",
+      "fingerprint": "0xb084b580",
+      "evidence": "NSH usleep handler2c2257da; original converts integer microseconds into timespec"
+    },
+    "flags": {
+      "read": 1,
+      "create_truncate_write": 38,
+      "source": "literal0x26 passed by actual original NSH cp at2c22084e/2c220824; NOT current NuttX master (which differs)"
+    },
+    "private_paths": [
+      "/data/quickapp/files/com.meta.s4nativeprobe/quickapp-ipc-test.txt",
+      "/data/quickapp/files/com.meta.s4nativeprobe/native-ipc-test.txt"
+    ],
+    "runtime_verified": true
+  },
+  "not_verified": [
+    "concurrent native HAL callback -> private-file pump -> quickapp SPP response -> native queue",
+    "latency",
+    "timeout recovery"
+  ]
+}

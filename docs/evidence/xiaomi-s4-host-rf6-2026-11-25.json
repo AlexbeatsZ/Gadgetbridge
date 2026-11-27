@@ -1,0 +1,68 @@
+{
+  "date_mac": "2026-11-25",
+  "date_phone": "2026-11-26",
+  "execution": "LIVE_S4_RF6_HAL_METADATA_AND_GUARDED_RECOVERY",
+  "firmware": "3.201.79",
+  "test_aid": "F0010203040506",
+  "test_select_hex": "00a4040007f001020304050600",
+  "expected_response_hex": "5334544553549000",
+  "user_confirmed_two_presentations": true,
+  "reader": {
+    "stage": "test_select",
+    "errors": [
+      "TagLostException",
+      "TagLostException",
+      "TagLostException"
+    ],
+    "successful_presentations": 0,
+    "reader_mode_disable_request_returned": true
+  },
+  "host": {
+    "activations": 4,
+    "deactivations": 4,
+    "rf_data_events": 0,
+    "exact_select_callbacks": 0,
+    "fixed_send_submissions": 0,
+    "hal_data_frames": 3,
+    "hal_exact_test_select_matches": 3,
+    "last_data_nci_frame_length": 16,
+    "rf_owner_at_data": "0x2c34472d",
+    "hal_detach_reason": 3,
+    "hal_active": 0
+  },
+  "recovery": {
+    "phase": 5,
+    "eSE_flags": "0x8101",
+    "collector": "RUN=host-rf6; guarded post-recovery collect/unload\nCHECKS:words=74,slots=true,phase=5,disc=741623449,rf=741623597,state=65537,ese=33025,raw_idle=true\nCALLBACKS_SLOTS_STATE_RESTORED=true\nnfc-proc.txt:61020c00020003c0e3000003c0e302\nFINAL_ORIGINAL_TABLE=true\nRESIDENT_UNLOADED=true",
+    "modules_final": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n"
+  },
+  "probe_records": {
+    "version.txt": "RECOVERY_SEQUENCE_FINISHED_host-rf6\n",
+    "module-load.txt": "",
+    "modules-before.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "modules-after.txt": "",
+    "module-unload.txt": "",
+    "modules-final.txt": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "shell-help.txt": "Hex dump:\n0000: 54 34 48 53 04 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 31 b9 38 3d ....-G4,.F4,1.8=\n0040: 79 ba 38 3d b5 bb 38 3d 02 00 00 00 01 00 00 00 y.8=..8=........\n0050: 45 bc 38 3d 1d bd 38 3d 55 be 38 3d 00 00 00 00 E.8=..8=U.8=....\n0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0070: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00b0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00d0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ................\n00f0: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0100: 60 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 `...............\n0110: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0120: 15 c0 38 3d 01 00 00 00                         ..8=....\n",
+    "proc-list.txt": "Hex dump:\n0000: 01 81 00 00                                     ....\n",
+    "host-help.txt": "Hex dump:\n0000: 54 34 48 53 05 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 ................\n0020: 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 31 b9 38 3d ....-G4,.F4,1.8=\n0040: 79 ba 38 3d b5 bb 38 3d 03 00 00 00 01 00 00 00 y.8=..8=........\n0050: 45 bc 38 3d 1d bd 38 3d 55 be 38 3d 00 00 00 00 E.8=..8=U.8=....\n0060: 00 00 00 00 00 00 00 00 04 00 00 00 13 00 00 00 ................\n0070: 00 00 00 00 05 40 00 00 04 80 02 00 00 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 01 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 02 04 00 79 ba 38 3d 00 00 00 00 ........y.8=....\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 23 00 00 00 03 00 00 00 03 00 00 00 10 00 00 00 #...............\n0100: 40 00 00 00 06 00 00 00 09 00 00 00 09 00 00 00 @...............\n0110: 0c 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 15 c0 38 3d 02 00 00 00                         ..8=....\n",
+    "fd-help.txt": "Hex dump:\n0000: 54 34 48 53 05 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 ................\n0020: 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 31 b9 38 3d ....-G4,.F4,1.8=\n0040: 79 ba 38 3d b5 bb 38 3d 03 00 00 00 01 00 00 00 y.8=..8=........\n0050: 45 bc 38 3d 1d bd 38 3d 55 be 38 3d 00 00 00 00 E.8=..8=U.8=....\n0060: 00 00 00 00 00 00 00 00 04 00 00 00 13 00 00 00 ................\n0070: 00 00 00 00 05 40 00 00 04 80 02 00 00 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 01 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 02 04 00 79 ba 38 3d 00 00 00 00 ........y.8=....\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 23 00 00 00 03 00 00 00 03 00 00 00 10 00 00 00 #...............\n0100: 40 00 00 00 06 00 00 00 09 00 00 00 09 00 00 00 @...............\n0110: 0c 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 15 c0 38 3d 02 00 00 00                         ..8=....\n",
+    "nfc-proc.txt": "Hex dump:\n0000: 61 02 0c 00 02 00 03 c0 e3 00 00 03 c0 e3 02 00 a...............\n0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-fds.txt": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "nfc-mqueue.txt": "Hex dump:\n0000: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0010: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n0020: 00 00 00 00 00 00 00 00                         ........\n",
+    "ready.txt": "ready",
+    "device-list.txt": "Hex dump:\n0000: 99 46 34 2c                                     .F4,\n",
+    "process-list.txt": "Hex dump:\n0000: 2d 47 34 2c                                     -G4,\n",
+    "modules.txt": "Hex dump:\n0000: 01 00 01 00                                     ....\n",
+    "lua-result.txt": "RUN=host-rf6; guarded post-recovery collect/unload\nCHECKS:words=74,slots=true,phase=5,disc=741623449,rf=741623597,state=65537,ese=33025,raw_idle=true\nCALLBACKS_SLOTS_STATE_RESTORED=true\nnfc-proc.txt:61020c00020003c0e3000003c0e302\nFINAL_ORIGINAL_TABLE=true\nRESIDENT_UNLOADED=true"
+  },
+  "conclusion": "Controller delivers exact synthetic SELECT into host HAL; stock RF sink owns DATA later despite activation-tail reattach. No successful external RAPDU.",
+  "not_verified": [
+    "external fixed-response round trip",
+    "Classic SPP APDU backend",
+    "latency",
+    "WTX",
+    "real transit card use"
+  ],
+  "raw_local_logs_mac": "/tmp/.agents/gadgetbridge-transit-research/routing-notify/host-rf6-final-collect-2026-11-25.log"
+}

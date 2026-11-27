@@ -1,0 +1,135 @@
+-- Reusable Watch S4 Bluetooth NFC Relay watchface (face ID 362991121).
+-- Loads host-relay-session, routes T-Union / Shanghai / PPSE to DH 0x00,
+-- runs 1s pump slices until relay-stop.txt or 180s timeout, then restores everything.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local result={}
+@COMMON_HELPERS@
+local function writeStatus(text)
+ local sf=io.open(base.."/relay-status.txt","w")
+ if sf then sf:write(text);sf:close() end
+end
+local function bind(name,hex,target)
+ local b={};for i=1,4 do b[#b+1]=string.format("%02x",target%256);target=math.floor(target/256)end
+ local patched,count=hex:gsub("dec0adde",table.concat(b))
+ return count==1 and emit(name..".elf",patched)
+end
+local function readRaw(name)
+ local f=io.open(base.."/"..name,"r");if not f then return "" end
+ local s=f:read("*a") or "";f:close();return s
+end
+local function ensureDiscoveryStopped()
+ command("work-state.txt","xd 3c2d4746 4")
+ if words("work-state.txt")[1]==0 then return true end
+ return discovery("stop")
+end
+command("modules-before.txt","lsmod")
+if read("modules-before.txt"):find("gb_host_test",1,true)then
+ local st=readRaw("relay-status.txt")
+ if st:find("starting",1,true) or st:find("setup-failed",1,true)then
+  local addr=moduleData("gb_host_test")
+  if addr and bind("host-test-remove-bound","@REMOVE_HEX@",tonumber(addr))then
+   command("work-heal-rm1.txt","insmod "..base.."/host-test-remove-bound.elf gb_host_remove")
+   command("work-heal-rm2.txt","rmmod gb_host_remove")
+   command("work-heal-slp.txt","sleep 1")
+   command("work-heal-ds1.txt","insmod "..base.."/discovery-start.elf gb_host_restart")
+   command("work-heal-ds2.txt","rmmod gb_host_restart")
+   command("work-heal-ds3.txt","sleep 1")
+   command("work-heal-mod.txt","rmmod gb_host_test")
+   command("modules-before.txt","lsmod")
+  end
+ else
+  return
+ end
+end
+pcall(function() os.remove(base.."/relay-stop.txt") end)
+for _,name in ipairs({"rf-spp-request.txt","rf-spp-response.txt"})do
+ local f=io.open(base.."/"..name,"w");if f then f:write("");f:close() end
+end
+writeStatus("starting")
+local payloads={@PAYLOADS@}
+local prepared=true
+for _,p in ipairs(payloads)do if not emit(p[1]..".elf",p[2])then prepared=false end end
+local started=false
+local failReason="unknown"
+if not prepared then
+ failReason="prep"
+elseif read("modules-before.txt"):find("gb_",1,true)then
+ failReason="mod"
+elseif not ensureDiscoveryStopped()then
+ failReason="disc"
+else
+ command("work-load.txt","insmod "..base.."/host-relay-session.elf gb_host_test")
+ command("work-sleep.txt","sleep 1")
+ local addr=moduleData("gb_host_test")
+ if not addr then
+  failReason="addr"
+ else
+  command("host-help.txt","xd "..addr.." 360");local h=words("host-help.txt")
+  if #h==90 and h[1]==0x53483454 and h[2]==3 and h[5]==1 and h[20]==1 and rawIdle() and
+     bind("host-relay-pump-bound","@PUMP_HEX@",tonumber(addr)) and
+     bind("host-test-arm-bound","@ARM_HEX@",tonumber(addr)) and
+     bind("host-test-remove-bound","@REMOVE_HEX@",tonumber(addr)) and
+     bind("host-test-stop-bound","@STOP_OWNED_HEX@",tonumber(addr))then
+   local script={
+    "insmod "..base.."/relay-route-append.elf gb_route_append",
+    "sleep 1",
+    "insmod "..base.."/discovery-start.elf gb_host_start",
+    "rmmod gb_host_start",
+    "sleep 1",
+    "insmod "..base.."/host-test-arm-bound.elf gb_host_arm",
+    "rmmod gb_host_arm",
+    "sleep 1",
+    "echo active > "..base.."/relay-status.txt",
+   }
+   for i=1,@WINDOW@ do
+    script[#script+1]="insmod "..base.."/host-relay-pump-bound.elf gb_spp_pump"
+    script[#script+1]="rmmod gb_spp_pump"
+   end
+   for i=1,3 do
+    script[#script+1]="insmod "..base.."/host-test-stop-bound.elf gb_host_stop"
+    script[#script+1]="rmmod gb_host_stop"
+    script[#script+1]="sleep 1"
+   end
+   script[#script+1]="insmod "..base.."/get-routing-status.elf gb_host_hal_barrier"
+   script[#script+1]="sleep 1"
+   script[#script+1]="rmmod gb_host_hal_barrier"
+   script[#script+1]="rmmod gb_route_append"
+   script[#script+1]="insmod "..base.."/relay-route-restore.elf gb_route_restore"
+   script[#script+1]="sleep 1"
+   for i=1,3 do
+    script[#script+1]="insmod "..base.."/host-test-remove-bound.elf gb_host_remove"
+    script[#script+1]="rmmod gb_host_remove"
+    script[#script+1]="sleep 1"
+   end
+   script[#script+1]="insmod "..base.."/discovery-start.elf gb_host_restart"
+   script[#script+1]="rmmod gb_host_restart"
+   script[#script+1]="sleep 1"
+   script[#script+1]="insmod "..base.."/get-routing-status.elf gb_host_barrier2"
+   script[#script+1]="sleep 1"
+   script[#script+1]="rmmod gb_host_barrier2"
+   script[#script+1]="rmmod gb_route_restore"
+   script[#script+1]="rmmod gb_host_test"
+   script[#script+1]="echo stopped > "..base.."/relay-status.txt"
+   local f=io.open(base.."/host-relay-background.sh","w")
+   if f then
+    f:write(table.concat(script,"\n").."\n");f:close()
+    local ok,a,b,c=pcall(function()return os.execute("sh "..base.."/host-relay-background.sh > "..base.."/modules-after.txt &")end)
+    started=ok and a==true and c==0
+    if started then
+     writeStatus("bg-launched")
+    else
+     failReason="exec"
+    end
+   else
+    failReason="script"
+   end
+  else
+   failReason="hdr:"..tostring(#h)..":"..tostring(h[2])..":"..tostring(h[5])..":"..tostring(h[20])
+  end
+ end
+end
+if not started then
+ discovery("start")
+ writeStatus("setup-failed:"..failReason)
+end

@@ -11,7 +11,10 @@ p.add_argument('--output', required=True, type=Path)
 p.add_argument('--probe', choices=('stock-ce-rejection', 'get-routing-status', 'get-routing-capture',
                                   'discovery-stop', 'discovery-start', 'test-route-append',
                                   'test-route-restore', 'discovery-slot-check', 'host-test-session',
-                                  'host-test-arm', 'host-test-remove', 'host-test-stop'),
+                                  'host-test-arm', 'host-test-remove', 'host-test-stop', 'native-ipc-test',
+                                  'host-spp-session', 'host-spp-pump',
+                                  'host-relay-session', 'host-relay-pump',
+                                  'relay-route-append', 'relay-route-restore'),
                default='stock-ce-rejection')
 a = p.parse_args()
 source = Path(__file__).resolve().parent
@@ -24,9 +27,14 @@ stem = 'stock-ce' if a.probe == 'stock-ce-rejection' else a.probe
 obj, elf = a.output/(stem+'.o'), a.output/(stem+'.elf')
 probe_source = 'discovery-control' if a.probe in ('discovery-stop', 'discovery-start') else a.probe
 defines = ['-DDISCOVERY_START=1'] if a.probe == 'discovery-start' else []
+if a.probe=='host-spp-session':
+    probe_source='host-test-session';defines=['-DHOST_SPP_BRIDGE=1']
 if a.probe.startswith('test-route-'):
     probe_source = 'test-route-write'
     if a.probe == 'test-route-restore':defines = ['-DRESTORE_ORIGINAL=1']
+if a.probe.startswith('relay-route-'):
+    probe_source = 'relay-route-write'
+    if a.probe == 'relay-route-restore':defines = ['-DRESTORE_ORIGINAL=1']
 if a.probe in ('host-test-arm','host-test-remove','host-test-stop'):
     probe_source = 'host-test-control'
     defines = ['-DREMOVE_SESSION=1'] if a.probe == 'host-test-remove' else []

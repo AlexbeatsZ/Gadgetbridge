@@ -1,0 +1,187 @@
+{
+  "date_mac": "2026-11-25",
+  "execution": "LIVE_S4_RF10_EXTERNAL_READER_THROUGH_K70_SPP_BACKEND",
+  "synthetic_only": true,
+  "test_aid": "F0010203040506",
+  "select_apdu": "00A4040007F001020304050600",
+  "phone_response_hex": "5334544553549000",
+  "backend_location": "K70 app_process, existing GB Classic SPP connection",
+  "mac_per_request_path": false,
+  "local_RF_response_fallback": false,
+  "reader_records": [
+    {
+      "mode": "inspection",
+      "uid": 2000,
+      "nfc_binder_alive": true,
+      "reader_signature": "token,callback,flags,extras,packageName",
+      "tag_callback_transaction": 1
+    },
+    {
+      "mode": "bounded_test_reader",
+      "request_returned": true,
+      "accepted_by_service": "requires_live_service_check",
+      "window_seconds": 300
+    },
+    {
+      "result": "test_select_error",
+      "stage": "test_select",
+      "exception_type": "TagLostException"
+    },
+    {
+      "result": "fixed_test_response_matches",
+      "response_hex": "5334544553549000",
+      "roundtrip_ns": 709344947,
+      "successful_presentations": 1
+    },
+    {
+      "reader_mode_disable_request_returned": true,
+      "successful_presentations": 1
+    }
+  ],
+  "phone_backend_records": [
+    {
+      "backend": "K70_app_process_fixed_only",
+      "bounded_seconds": 330,
+      "real_SE": false
+    },
+    {
+      "backend_request_seq": 1,
+      "agent_exited": true,
+      "agent_exit": 0,
+      "submit_ns": 105764219
+    },
+    {
+      "watch_ack_seq": 1,
+      "watch_rtt_ms": 1160,
+      "fixed_response_matches": true
+    },
+    {
+      "backend_request_seq": 2,
+      "agent_exited": true,
+      "agent_exit": 0,
+      "submit_ns": 102768073
+    },
+    {
+      "watch_ack_seq": 2,
+      "watch_rtt_ms": 559,
+      "fixed_response_matches": true
+    },
+    {
+      "backend_complete": true,
+      "requests": 2,
+      "watch_acks": 2
+    }
+  ],
+  "counts": {
+    "hal_fixed_selects": 2,
+    "request_files_written": 2,
+    "valid_phone_responses_while_active": 1,
+    "original_nfa_response_queued": 1,
+    "native_io_errors": 0,
+    "native_tick_timeouts": 0,
+    "pending_after_background": 0
+  },
+  "acceptance": {
+    "real_external_reader_matches": 1,
+    "reader_tag_lost": 1,
+    "actual_success_roundtrip_ns": [
+      709344947
+    ],
+    "phone_requests": 2,
+    "watch_phone_acks": 2,
+    "fixed_RF_SPP_path_demonstrated": true,
+    "stable_repeated_operation_passed": false,
+    "transit_card_feature_complete": false
+  },
+  "timing_notes": {
+    "watch_reported_ms": [
+      1160,
+      559
+    ],
+    "phone_request_to_watch_ack_log_ms": [
+      165,
+      184
+    ],
+    "jni_submission_ns": [
+      105764219,
+      102768073
+    ],
+    "watch_measurement_scope": "Date.now before interconnect send through private-file write completion; includes watch queue/IO, not pure radio latency",
+    "first_loss_explanation": "consistent with delayed phone result after RF deactivation; native accepted only one reply; exact timeout origin and WTX not measured"
+  },
+  "first_guarded_collection": {
+    "safe_unload_refused": true,
+    "checks": "RUN=host-rf10; guarded post-recovery collect/unload\nCHECKS:words=90,slots=false,phase=4,disc=1029867537,rf=741623597,state=0,ese=33025,raw_idle=true\nCALLBACKS_SLOTS_STATE_RESTORED=false",
+    "snapshot": "Hex dump:\n0000: 54 34 48 53 04 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 ................\n0020: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 11 88 62 3d ....-G4,.F4,..b=\n0040: 59 89 62 3d 9d 8a 62 3d 02 00 00 00 01 00 00 00 Y.b=..b=........\n0050: 35 8b 62 3d 0d 8c 62 3d 49 8d 62 3d 00 00 00 00 5.b=..b=I.b=....\n0060: 00 00 00 00 00 00 00 00 02 00 00 00 0d 00 00 00 ................\n0070: 00 00 00 00 05 40 00 00 04 80 02 00 00 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 02 04 00 59 89 62 3d 54 02 ff ff ........Y.b=T...\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 15 00 00 00 02 00 00 00 02 00 00 00 10 00 00 00 ................\n0100: 40 00 00 00 06 00 00 00 06 00 00 00 06 00 00 00 @...............\n0110: 04 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 61 91 62 3d 03 00 00 00 49 50 50 53 01 00 00 00 a.b=....IPPS....\n0130: c1 8d 62 3d 00 00 00 00 00 00 00 00 0d 00 00 00 ..b=............\n0140: 02 00 00 00 09 00 00 00 02 00 00 00 01 00 00 00 ................\n0150: 01 00 00 00 16 00 00 00 00 00 00 00 00 00 00 00 ................\n0160: 00 00 00 00 00 00 00 00                         ........\n"
+  },
+  "final_recovery": {
+    "verified": true,
+    "checks": "RUN=host-rf10; guarded post-recovery collect/unload\nCHECKS:words=90,slots=true,phase=5,disc=741623449,rf=741623597,state=65537,ese=33025,raw_idle=true\nCALLBACKS_SLOTS_STATE_RESTORED=true\nnfc-proc.txt:61020c00020003c0e3000003c0e302\nFINAL_ORIGINAL_TABLE=true\nRESIDENT_UNLOADED=true",
+    "modules": "NAME                 INIT   UNINIT      ARG NEXPORTS     TEXT     SIZE     DATA     SIZE\n",
+    "result_snapshot": "Hex dump:\n0000: 54 34 48 53 05 00 00 00 00 00 00 00 01 81 00 00 T4HS............\n0010: 01 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 ................\n0020: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................\n0030: 00 00 00 00 2d 47 34 2c 99 46 34 2c 11 88 62 3d ....-G4,.F4,..b=\n0040: 59 89 62 3d 9d 8a 62 3d 03 00 00 00 01 00 00 00 Y.b=..b=........\n0050: 35 8b 62 3d 0d 8c 62 3d 49 8d 62 3d 00 00 00 00 5.b=..b=I.b=....\n0060: 00 00 00 00 00 00 00 00 02 00 00 00 0d 00 00 00 ................\n0070: 00 00 00 00 05 40 00 00 04 80 02 00 00 00 00 00 .....@..........\n0080: 01 00 00 00 e9 0e 34 2c 00 00 c0 00 00 00 34 00 ......4,......4.\n0090: 00 00 34 00 00 00 00 00 00 00 00 00 00 00 00 00 ..4.............\n00a0: 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 ................\n00b0: 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 .`..............\n00c0: 00 00 00 00 05 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n00d0: 01 00 00 00 00 02 04 00 59 89 62 3d 54 02 ff ff ........Y.b=T...\n00e0: 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 ................\n00f0: 15 00 00 00 02 00 00 00 02 00 00 00 10 00 00 00 ................\n0100: 40 00 00 00 06 00 00 00 06 00 00 00 06 00 00 00 @...............\n0110: 04 00 00 00 00 00 00 00 2d 47 34 2c 00 00 00 00 ........-G4,....\n0120: 61 91 62 3d 03 00 00 00 49 50 50 53 01 00 00 00 a.b=....IPPS....\n0130: c1 8d 62 3d 00 00 00 00 00 00 00 00 0d 00 00 00 ..b=............\n0140: 02 00 00 00 09 00 00 00 02 00 00 00 01 00 00 00 ................\n0150: 01 00 00 00 16 00 00 00 00 00 00 00 00 00 00 00 ................\n0160: 00 00 00 00 00 00 00 00                         ........\n"
+  },
+  "not_verified": [
+    "WTX behavior/count",
+    "long repetition and sleep/reconnect recovery",
+    "generic APDU forwarding",
+    "cross-window generation and post-enqueue cross-activation fencing",
+    "authorized phone-SE backend and real card/campus functionality"
+  ],
+  "own_message_timestamps": [
+    "11-26 01:48:05.234 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService(11449): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":1,\"epoch\":3,\"apdu\":\"00a4040007f001020304050600\"}",
+    "11-26 01:48:05.399 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService(11449): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"ack\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":1,\"epoch\":3,\"rtt_ms\":1160,\"response_matches\":true}",
+    "11-26 01:48:09.727 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService(11449): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"request\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":2,\"epoch\":9,\"apdu\":\"00a4040007f001020304050600\"}",
+    "11-26 01:48:09.911 D/n.freeyourgadget.gadgetbridge.service.devices.xiaomi.services.XiaomiRpkService(11449): Wear app com.meta.s4nativeprobe message: {\"probe\":\"s4-spp-test\",\"op\":\"ack\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":2,\"epoch\":9,\"rtt_ms\":559,\"response_matches\":true}"
+  ],
+  "final_device_state": {
+    "gb_pid": 11449,
+    "faces": [
+      {
+        "id": "120917345117",
+        "active": false
+      },
+      {
+        "id": "120917345130",
+        "active": false
+      },
+      {
+        "id": "120917345136",
+        "active": false
+      },
+      {
+        "id": "120917345418",
+        "active": false
+      },
+      {
+        "id": "120917345463",
+        "active": false
+      },
+      {
+        "id": "120917345464",
+        "active": true
+      },
+      {
+        "id": "120917345469",
+        "active": false
+      },
+      {
+        "id": "120917345484",
+        "active": false
+      },
+      {
+        "id": "120917345677",
+        "active": false
+      }
+    ],
+    "original_face_restored": true,
+    "only_test_face_removed": true,
+    "nfc_reader_state": [
+      "mScreenState=OFF_LOCKED",
+      "mTechMask: default",
+      "mEnableReader: false"
+    ],
+    "diagnostic_rpk_retained_inactive": true,
+    "original_pairing_preserved": true,
+    "actual_transit_or_campus_function_tested": false
+  }
+}

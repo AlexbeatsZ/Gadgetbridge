@@ -9,6 +9,19 @@
 #include <cctype>
 
 #define LOG(...) __android_log_print(ANDROID_LOG_INFO, "GBWatchProbe", __VA_ARGS__)
+static bool rfParameters(const std::string& mode,unsigned& seq,unsigned& epoch) {
+    const std::string prefix="spp-rf-reply-";
+    if(mode.rfind(prefix,0)!=0)return false;
+    auto dash=mode.find('-',prefix.size());
+    if(dash!=prefix.size()+1 || mode[prefix.size()]<'1' || mode[prefix.size()]>'3')return false;
+    seq=static_cast<unsigned>(mode[prefix.size()]-'0');epoch=0;
+    if(dash+1>=mode.size() || mode.size()-dash-1>5)return false;
+    for(size_t i=dash+1;i<mode.size();++i) {
+        if(mode[i]<'0' || mode[i]>'9')return false;
+        epoch=epoch*10+static_cast<unsigned>(mode[i]-'0');
+    }
+    return epoch>0 && epoch<=65535;
+}
 static bool check(JNIEnv* env, const char* step) {
     if (!env->ExceptionCheck()) return true;
     LOG("Java exception at %s; aborting probe", step);
@@ -18,8 +31,11 @@ static bool check(JNIEnv* env, const char* step) {
 }
 
 static std::vector<jbyte> command(const std::string& mode) {
- if(mode=="capability") return {8,4,16,0};
+ unsigned seq=0,epoch=0;
+ if(mode=="spp-rf-start" || mode=="spp-rf-stop" || rfParameters(mode,seq,epoch))return {8,20,16,0};
+ if(mode=="capability" || mode=="reconnect-probe") return {8,4,16,0};
  if(mode=="rpk-list") return {8,20,16,0};
+ if(mode=="spp-test-start" || mode=="spp-test-reply-1" || mode=="spp-test-reply-2" || mode=="spp-test-reply-3") return {8,20,16,0};
  if(mode=="install-probe-rpk" || mode=="install-probe-face" || mode=="rpk-launch" || mode=="rpk-delete") return {8,20,16,0};
  std::string id;
  int sub;
@@ -92,6 +108,32 @@ extern "C" JNIEXPORT jint JNICALL Agent_OnAttach(JavaVM* vm, char* options, void
     REQUIRE(load,"loadClass");
     auto commandClass=static_cast<jclass>(env->CallObjectMethod(loader,load,env->NewStringUTF("nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto$Command")));
     if(!check(env,"Command class lookup") || !commandClass) return JNI_ERR;
+    if(mode=="reconnect-probe") {
+        auto helperClass=static_cast<jclass>(env->CallObjectMethod(loader,load,env->NewStringUTF("nodomain.freeyourgadget.gadgetbridge.util.DeviceHelper")));
+        REQUIRE(helperClass,"DeviceHelper class");
+        auto instanceMethod=env->GetStaticMethodID(helperClass,"getInstance","()Lnodomain/freeyourgadget/gadgetbridge/util/DeviceHelper;");
+        REQUIRE(instanceMethod,"DeviceHelper getInstance");
+        auto helper=env->CallStaticObjectMethod(helperClass,instanceMethod);
+        REQUIRE(helper,"DeviceHelper instance");
+        auto find=env->GetMethodID(helperClass,"findAvailableDevice","(Ljava/lang/String;)Lnodomain/freeyourgadget/gadgetbridge/impl/GBDevice;");
+        REQUIRE(find,"findAvailableDevice");
+        auto device=env->CallObjectMethod(helper,find,env->NewStringUTF(address.c_str()));
+        REQUIRE(device,"existing bound target");
+        auto appClass=static_cast<jclass>(env->CallObjectMethod(loader,load,env->NewStringUTF("nodomain.freeyourgadget.gadgetbridge.GBApplication")));
+        REQUIRE(appClass,"GBApplication class");
+        auto getDeviceService=env->GetStaticMethodID(appClass,"deviceService","(Lnodomain/freeyourgadget/gadgetbridge/impl/GBDevice;)Lnodomain/freeyourgadget/gadgetbridge/model/DeviceService;");
+        REQUIRE(getDeviceService,"deviceService");
+        auto deviceService=env->CallStaticObjectMethod(appClass,getDeviceService,device);
+        REQUIRE(deviceService,"target device service");
+        auto deviceServiceClass=env->GetObjectClass(deviceService);
+        REQUIRE(deviceServiceClass,"target device service class");
+        auto connect=env->GetMethodID(deviceServiceClass,"connect","()V");
+        REQUIRE(connect,"existing binding connect");
+        env->CallVoidMethod(deviceService,connect);
+        if(!check(env,"request existing binding reconnect"))return JNI_ERR;
+        LOG("Requested existing binding reconnect; authentication must be checked separately");
+        return JNI_OK;
+    }
     auto field=env->GetFieldID(serviceClass,"deviceStructs","Ljava/util/ArrayList;");
     REQUIRE(field,"deviceStructs field");
     auto listClass=env->FindClass("java/util/ArrayList");
@@ -169,13 +211,64 @@ extern "C" JNIEXPORT jint JNICALL Agent_OnAttach(JavaVM* vm, char* options, void
             REQUIRE(install,"onInstallApp");env->CallVoidMethod(support,install,u,bundle);
             return check(env,"install own diagnostic package") ? JNI_OK : JNI_ERR;
         }
-        if(mode=="rpk-launch" || mode=="rpk-delete") {
+        if(mode=="rpk-launch" || mode=="rpk-delete" || mode.rfind("spp-test-",0)==0 || mode.rfind("spp-rf-",0)==0) {
             auto getRpk=env->GetMethodID(supportClass,"getRpkService","()Lnodomain/freeyourgadget/gadgetbridge/service/devices/xiaomi/services/XiaomiRpkService;");
             REQUIRE(getRpk,"getRpkService");
             auto rpk=env->CallObjectMethod(support,getRpk);
             REQUIRE(rpk,"RPK service");
             auto cls=env->GetObjectClass(rpk);
-            if(mode=="rpk-launch") {
+            if(mode.rfind("spp-test-",0)==0 || mode.rfind("spp-rf-",0)==0) {
+                const bool start=mode=="spp-test-start" || mode=="spp-rf-start";
+                unsigned seq=0,epoch=0;const bool rf=rfParameters(mode,seq,epoch);
+                const std::string body=mode=="spp-rf-stop" ?
+                    "{\"probe\":\"s4-spp-test\",\"op\":\"rf-stop\",\"nonce\":\"s4-spp-rf-20261125\"}" : mode=="spp-rf-start" ?
+                    "{\"probe\":\"s4-spp-test\",\"op\":\"rf-start\",\"nonce\":\"s4-spp-rf-20261125\"}" : rf ?
+                    "{\"probe\":\"s4-spp-test\",\"op\":\"response\",\"nonce\":\"s4-spp-rf-20261125\",\"seq\":"+
+                    std::to_string(seq)+",\"epoch\":"+std::to_string(epoch)+",\"rapdu\":\"5334544553549000\"}" : start ?
+                    "{\"probe\":\"s4-spp-test\",\"op\":\"start\",\"nonce\":\"s4-spp-test-20261125\"}" :
+                    "{\"probe\":\"s4-spp-test\",\"op\":\"response\",\"nonce\":\"s4-spp-test-20261125\",\"seq\":"+
+                    mode.substr(mode.size()-1)+",\"rapdu\":\"5334544553549000\"}";
+                auto payload=env->NewByteArray(body.size());REQUIRE(payload,"fixed SPP payload");
+                env->SetByteArrayRegion(payload,0,body.size(),reinterpret_cast<const jbyte*>(body.data()));
+                if(start) {
+                    if(mode=="spp-rf-start") {
+                        // This bounded probe auto-exits. The production app's
+                        // recent-open heuristic can outlive it; invalidate only
+                        // this probe's ephemeral entry before its explicit start.
+                        auto seenField=env->GetFieldID(cls,"lastSeenOpen","Ljava/util/Map;");
+                        REQUIRE(seenField,"recent probe lifecycle map");
+                        auto seen=env->GetObjectField(rpk,seenField);REQUIRE(seen,"recent lifecycle instance");
+                        auto map=env->FindClass("java/util/Map");REQUIRE(map,"Map class");
+                        auto remove=env->GetMethodID(map,"remove","(Ljava/lang/Object;)Ljava/lang/Object;");
+                        REQUIRE(remove,"remove own recent lifecycle entry");
+                        env->CallObjectMethod(seen,remove,env->NewStringUTF("com.meta.s4nativeprobe"));
+                        if(!check(env,"expire only auto-exited diagnostic lifecycle"))return JNI_ERR;
+                    }
+                    auto send=env->GetMethodID(cls,"sendWearAppMessage","(Ljava/lang/String;[B)V");
+                    REQUIRE(send,"sendWearAppMessage");
+                    env->CallVoidMethod(rpk,send,env->NewStringUTF("com.meta.s4nativeprobe"),payload);
+                } else {
+                    // The installed pre-fix app cannot relaunch an already-open
+                    // RPK. Reuse its original message/session builders directly,
+                    // with only the cached ref of this diagnostic package.
+                    auto shaField=env->GetFieldID(cls,"shaMap","Ljava/util/Map;");REQUIRE(shaField,"shaMap");
+                    auto shaMap=env->GetObjectField(rpk,shaField);REQUIRE(shaMap,"shaMap instance");
+                    auto map=env->FindClass("java/util/Map");REQUIRE(map,"Map class");
+                    auto getSha=env->GetMethodID(map,"get","(Ljava/lang/Object;)Ljava/lang/Object;");REQUIRE(getSha,"Map get");
+                    auto sha=env->CallObjectMethod(shaMap,getSha,env->NewStringUTF("com.meta.s4nativeprobe"));REQUIRE(sha,"cached own RPK ref");
+                    auto refMethod=env->GetStaticMethodID(cls,"rpkRef","(Ljava/lang/String;Lcom/google/protobuf/ByteString;)Lnodomain/freeyourgadget/gadgetbridge/proto/xiaomi/RpkInfoList;");REQUIRE(refMethod,"rpkRef");
+                    auto ref=env->CallStaticObjectMethod(cls,refMethod,env->NewStringUTF("com.meta.s4nativeprobe"),sha);REQUIRE(ref,"own RPK ref");
+                    auto build=env->GetStaticMethodID(cls,"buildMessageCommand","(Lnodomain/freeyourgadget/gadgetbridge/proto/xiaomi/RpkInfoList;[B)Lnodomain/freeyourgadget/gadgetbridge/proto/xiaomi/XiaomiProto$Command;");REQUIRE(build,"message builder");
+                    auto end=env->GetStaticMethodID(cls,"buildSessionEndCommand","(Lnodomain/freeyourgadget/gadgetbridge/proto/xiaomi/RpkInfoList;)Lnodomain/freeyourgadget/gadgetbridge/proto/xiaomi/XiaomiProto$Command;");REQUIRE(end,"session builder");
+                    auto cmd=env->CallStaticObjectMethod(cls,build,ref,payload);REQUIRE(cmd,"fixed response command");
+                    auto session=env->CallStaticObjectMethod(cls,end,ref);REQUIRE(session,"session command");
+                    auto send=env->GetMethodID(supportClass,"sendCommand","(Ljava/lang/String;Lnodomain/freeyourgadget/gadgetbridge/proto/xiaomi/XiaomiProto$Command;)V");REQUIRE(send,"sendCommand");
+                    env->CallVoidMethod(support,send,env->NewStringUTF("synthetic SPP APDU reply"),cmd);
+                    if(!check(env,"fixed response submit"))return JNI_ERR;
+                    env->CallVoidMethod(support,send,env->NewStringUTF("synthetic SPP session end"),session);
+                }
+                LOG("Synthetic SPP operation=%s; submission only",mode.c_str());
+            } else if(mode=="rpk-launch") {
                 auto send=env->GetMethodID(cls,"sendWearAppMessage","(Ljava/lang/String;[B)V");
                 REQUIRE(send,"sendWearAppMessage");auto payload=env->NewByteArray(2);REQUIRE(payload,"RPK ping");
                 const jbyte ping[]={123,125};env->SetByteArrayRegion(payload,0,2,ping);

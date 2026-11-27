@@ -1,0 +1,144 @@
+{
+  "execution": "OFFLINE_COMPILED_PRIVATE_FILE_PROBE",
+  "cases_passed": 5,
+  "cases": [
+    {
+      "case": "success_including_valid_fd_zero",
+      "passed": true,
+      "calls": [
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/quickapp-ipc-test.txt",
+          1,
+          384
+        ],
+        [
+          "read",
+          0,
+          19
+        ],
+        [
+          "close",
+          0
+        ],
+        [
+          "usleep",
+          10000
+        ],
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/native-ipc-test.txt",
+          38,
+          384
+        ],
+        [
+          "write",
+          1,
+          17
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/native-ipc-test.txt",
+          1,
+          384
+        ],
+        [
+          "read",
+          2,
+          17
+        ],
+        [
+          "close",
+          2
+        ]
+      ]
+    },
+    {
+      "case": "missing_seed",
+      "passed": true,
+      "calls": [
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/quickapp-ipc-test.txt",
+          1,
+          384
+        ]
+      ]
+    },
+    {
+      "case": "wrong_seed",
+      "passed": true,
+      "calls": [
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/quickapp-ipc-test.txt",
+          1,
+          384
+        ],
+        [
+          "read",
+          0,
+          20
+        ],
+        [
+          "close",
+          0
+        ]
+      ]
+    },
+    {
+      "case": "partial_write",
+      "passed": true,
+      "calls": [
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/quickapp-ipc-test.txt",
+          1,
+          384
+        ],
+        [
+          "read",
+          0,
+          19
+        ],
+        [
+          "close",
+          0
+        ],
+        [
+          "usleep",
+          10000
+        ],
+        [
+          "open",
+          "/data/quickapp/files/com.meta.s4nativeprobe/native-ipc-test.txt",
+          38,
+          384
+        ],
+        [
+          "write",
+          1,
+          16
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "case": "firmware_mismatch",
+      "passed": true,
+      "calls": []
+    }
+  ],
+  "boundaries": [
+    "POSIX filesystem wrappers",
+    "usleep"
+  ],
+  "real_native_quickapp_ipc": false
+}

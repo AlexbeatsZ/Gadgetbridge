@@ -208,6 +208,63 @@ def main():
     assert m.read32(HAL_SLOT)==ORIGINAL_HAL and m.hal_meta()[1]==2
     passed('passive_hal_get_routing_barrier_detaches_without_any_rf_activation')
     m=HostMachine(image,probe,controls);m.armed();m.activate()
+    m.write32(NFC+4,ORIGINAL_RF) # RF6 live overwrite after activation tail.
+    m.hal_frame(test)
+    assert m.hal_forwarded==[test] and m.rf_meta()[14:16]==[1,1]
+    assert len(m.enqueued)==1 and not m.queue and m.header()[10]==0
+    message=m.enqueued.pop(0)
+    assert bytes(m.cpu.mem_read(message,20))==struct.pack('<4H',0x10C,8,4,0)+bytes(4)+b'S4TEST\x90\x00'
+    assert m.call(0x181334,message)==0 and m.queue[-1]['payload_hex']=='5334544553549000'
+    assert m.read32(NFC+4)==ORIGINAL_RF and m.hal_meta()[0]==0
+    passed('hal_exact_test_with_stock_sink_queues_pointer_free_copy_for_original_nfa_send_action')
+    m=HostMachine(image,probe,controls);m.armed();m.activate();m.hal_frame(test)
+    m.ingress() # Same frame later reaches the original RF consumer.
+    assert m.header()[9:11]==[1,0] and m.freed.count(MESSAGE)==1 and not m.queue
+    assert m.rf_meta()[15]==0 and len(m.enqueued)==1
+    m.call(0x181334,m.enqueued.pop(0));assert len(m.queue)==1
+    passed('hal_reply_suppresses_duplicate_if_same_frame_reaches_rf_callback_and_frees_input_once')
+    m=HostMachine(image,probe,controls);m.armed();m.activate();m.hal_frame(test)
+    message=m.enqueued.pop(0);m.cpu.mem_write(DM+0x4C,b'\x01')
+    assert m.call(0x181334,message)==1 and not m.queue
+    assert m.rf_meta()[14]==1 # Queued does not imply accepted by send action.
+    passed('original_send_action_rejects_queued_reply_after_listen_deactivation')
+    m=HostMachine(image,probe,controls);m.armed();m.activate();m.fail_allocation=True
+    m.hal_frame(test)
+    assert m.header()[12]==1 and not m.enqueued and m.rf_meta()[14:16]==[0,0]
+    assert m.hal_forwarded==[test] and m.read32(NFC+4)==m.header()[16]
+    passed('hal_reply_allocation_failure_preserves_input_forwarding_and_rf_owner')
+    for name,frame in [('other_aid',other),('other_connection',bytes([1])+test[1:]),
+                       ('fragmented',bytes([0x10])+test[1:]),('reserved_header',bytes([0,1])+test[2:])]:
+        m=HostMachine(image,probe,controls);m.armed();m.activate();m.hal_frame(frame)
+        assert not m.enqueued and not m.queue and m.hal_forwarded==[frame]
+        passed('hal_reply_refuses_'+name)
+    for name,edit in [('original_ese_handle',lambda m:m.cpu.mem_write(DM+0x52,bytes(2))),
+                      ('not_listen_active',lambda m:m.cpu.mem_write(DM+0x4C,b'\x01')),
+                      ('no_own_activation',lambda m:m.write32(DATA+24*4,0))]:
+        m=HostMachine(image,probe,controls);m.armed();m.activate();edit(m);m.hal_frame(test)
+        assert not m.enqueued and m.rf_meta()[14]==0 and m.hal_forwarded==[test]
+        passed('hal_reply_refuses_'+name)
+    activation=bytes.fromhex('61050b0102048001000000000000')
+    m=HostMachine(image,probe,controls);m.armed()
+    m.cpu.mem_write(DM+0x4C,b'\x05');m.cpu.mem_write(DM+0x52,b'\xff\xff')
+    m.hal_frame(activation);m.hal_frame(test)
+    assert m.header()[24]==0 and m.rf_meta()[14]==1 and m.rf_meta()[13]==0xffff0254
+    assert m.call(0x181334,m.enqueued.pop(0))==0 and len(m.queue)==1
+    passed('controller_host_activation_and_unassigned_handle_allow_exact_test_queue_without_nfa_listener')
+    for name,frame in [('direct_ese',bytes.fromhex('61050b0100048001000000000000')),
+                       ('poll_mode',bytes.fromhex('61050b0102040001000000000000')),
+                       ('malformed_length',bytes.fromhex('61050a0102048001000000000000')),
+                       ('deactivated',bytes.fromhex('6106020000'))]:
+        m=HostMachine(image,probe,controls);m.armed()
+        m.cpu.mem_write(DM+0x4C,b'\x05');m.cpu.mem_write(DM+0x52,b'\xff\xff')
+        m.hal_frame(activation);m.hal_frame(frame);m.hal_frame(test)
+        assert not m.enqueued and m.rf_meta()[14]==0
+        passed('controller_host_fallback_refuses_'+name)
+    m=HostMachine(image,probe,controls);m.armed();m.hal_frame(activation)
+    m.cpu.mem_write(DM+0x4C,b'\x05');m.cpu.mem_write(DM+0x52,bytes(2));m.hal_frame(test)
+    assert not m.enqueued
+    passed('controller_host_fallback_cannot_override_original_ese_handle')
+    m=HostMachine(image,probe,controls);m.armed();m.activate()
     m.ingress()
     assert m.header()[9:11]==[1,1] and m.rf_meta()[5:7]==[13,7]
     assert m.freed.count(MESSAGE)==1 and m.queue[-1]['payload_hex']=='5334544553549000'

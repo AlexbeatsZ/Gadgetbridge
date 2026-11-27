@@ -55,6 +55,8 @@ public class XiaomiWatchfaceService extends AbstractXiaomiService implements Xia
 
     // Not null if we're installing a firmware
     private XiaomiFWHelper fwHelper = null;
+    private volatile java.util.concurrent.CountDownLatch pendingSetAck = null;
+    private volatile java.util.concurrent.CountDownLatch pendingListAck = null;
 
     public XiaomiWatchfaceService(final XiaomiSupport support) {
         super(support);
@@ -76,6 +78,10 @@ public class XiaomiWatchfaceService extends AbstractXiaomiService implements Xia
                 return;
             case CMD_WATCHFACE_SET:
                 LOG.debug("Got watchface set response, ack={}", cmd.getWatchface().getAck());
+                final java.util.concurrent.CountDownLatch latch = pendingSetAck;
+                if (latch != null) {
+                    latch.countDown();
+                }
                 //requestWatchfaceList();
                 return;
             case CMD_WATCHFACE_DELETE:
@@ -131,6 +137,11 @@ public class XiaomiWatchfaceService extends AbstractXiaomiService implements Xia
             facesCache.add(gbDeviceApp);
         }
 
+        final java.util.concurrent.CountDownLatch latch = pendingListAck;
+        if (latch != null) {
+            latch.countDown();
+        }
+
         final List<GBDeviceApp> appsAndFaces = new ArrayList<>(facesCache);
         appsAndFaces.addAll(getSupport().getRpkService().getInstalledAppsCache());
         final GBDeviceEventAppInfo appInfoCmd = new GBDeviceEventAppInfo();
@@ -163,6 +174,22 @@ public class XiaomiWatchfaceService extends AbstractXiaomiService implements Xia
 
     public void setWatchface(final String watchfaceId) {
         setWatchface(toWatchfaceUUID(watchfaceId));
+    }
+
+    public boolean setWatchfaceAndWait(final String watchfaceId, final long timeoutMs) {
+        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        pendingSetAck = latch;
+        setWatchface(watchfaceId);
+        try {
+            return latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } finally {
+            if (pendingSetAck == latch) {
+                pendingSetAck = null;
+            }
+        }
     }
 
     public void deleteWatchface(final UUID uuid) {
@@ -291,5 +318,39 @@ public class XiaomiWatchfaceService extends AbstractXiaomiService implements Xia
 
     public Collection<? extends GBDeviceApp> getInstalledFacesCache() {
         return Collections.unmodifiableList(facesCache);
+    }
+
+    public UUID getActiveWatchface() {
+        return activeWatchface;
+    }
+
+    public UUID refreshAndGetActiveWatchface(final long timeoutMs) {
+        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        pendingListAck = latch;
+        requestWatchfaceList();
+        try {
+            latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        } finally {
+            if (pendingListAck == latch) {
+                pendingListAck = null;
+            }
+        }
+        return activeWatchface;
+    }
+
+    public boolean hasWatchface(final String watchfaceId) {
+        return allWatchfaces.contains(toWatchfaceUUID(watchfaceId));
+    }
+
+    public UUID getFallbackWatchface(final String excludedWatchfaceId) {
+        final UUID excluded = toWatchfaceUUID(excludedWatchfaceId);
+        for (final UUID candidate : allWatchfaces) {
+            if (!excluded.equals(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 }
