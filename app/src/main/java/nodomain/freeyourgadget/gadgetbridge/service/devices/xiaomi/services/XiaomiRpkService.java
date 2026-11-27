@@ -100,7 +100,12 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
             wakeGuardVibration = new XiaomiWakeGuardVibration(new XiaomiWakeGuardVibration.Transport() {
                 @Override public void prepare(byte[] payload, boolean forceLaunch) {
                     clearPending();
-                    if (forceLaunch) lastSeenOpen.remove(XiaomiWakeGuardVibration.APP);
+                    if (forceLaunch) {
+                        // A foreground app no longer emits LAUNCHED. A harmless prepare can be sent
+                        // directly as well; only a matching fresh READY can commit a vibration.
+                        sendRelayMessage(XiaomiWakeGuardVibration.APP, payload);
+                        lastSeenOpen.remove(XiaomiWakeGuardVibration.APP);
+                    }
                     sendWearAppMessage(XiaomiWakeGuardVibration.APP, payload);
                 }
                 @Override public void direct(byte[] payload) {
@@ -224,6 +229,11 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
             LOG.debug("Wear app {} asked for its phone side, reporting connected", app.getId());
             getSupport().sendCommand("wear app connected " + app.getId(), buildSessionEndCommand(ref));
             return;
+        }
+        if (payloads.stream().anyMatch(bytes -> XiaomiWakeGuardVibration.isMessage(app.getId(),
+                new String(bytes, java.nio.charset.StandardCharsets.UTF_8)))) {
+            // S4 drops messages delivered before its interconnect receives CONNECTED.
+            getSupport().sendCommand("wake guard app connected", buildSessionEndCommand(ref));
         }
         for (final byte[] payload : payloads) {
             getSupport().sendCommand("wear app message " + app.getId(), buildMessageCommand(ref, payload));

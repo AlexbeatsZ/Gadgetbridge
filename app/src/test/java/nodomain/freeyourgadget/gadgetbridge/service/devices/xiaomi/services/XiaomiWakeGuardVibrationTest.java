@@ -113,6 +113,13 @@ public class XiaomiWakeGuardVibrationTest extends TestBase {
                 .setRpk(nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Rpk.newBuilder().setRpkDel(app)).build());
         var commands = org.mockito.ArgumentCaptor.forClass(nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto.Command.class);
         org.mockito.Mockito.verify(support, org.mockito.Mockito.atLeastOnce()).sendCommand(org.mockito.Mockito.anyString(), commands.capture());
+        List<nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.XiaomiProto.Command> launchCommands = commands.getAllValues();
+        int firstMessage = -1, firstConnected = -1;
+        for (int i = 0; i < launchCommands.size(); i++) {
+            if (firstMessage < 0 && launchCommands.get(i).getSubtype() == XiaomiRpkService.CMD_RPK_MESSAGE) firstMessage = i;
+            if (firstConnected < 0 && launchCommands.get(i).getSubtype() == XiaomiRpkService.CMD_RPK_SESSION_END) firstConnected = i;
+        }
+        assertTrue(firstConnected >= 0 && firstConnected < firstMessage);
         JSONObject prepare = commands.getAllValues().stream().filter(c -> c.getSubtype() == XiaomiRpkService.CMD_RPK_MESSAGE)
                 .map(c -> parse(c.getRpk().getRpkMessage().getPayload().toByteArray())).findFirst().orElseThrow();
         assertEquals("prepare", prepare.getString("op"));

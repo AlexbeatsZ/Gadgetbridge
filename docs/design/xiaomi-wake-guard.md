@@ -42,3 +42,5 @@
 - 表端3次API调用后回`executed`，手机试振行显示已调用；无确认10秒后显示检查连接和Dayweave版本。确认仅证明API调用，不证明马达实际运动，效果由用户手腕确认。
 - 旧版/未安装Dayweave不会回ready，不偷偷降级为响铃。监测规则仍归GB，退出Dayweave不停止监测；只有纯振动执行需要临时打开快应用。
 - 协议参考：AstroBox-NG-Module-Pb的`protos/xiaomi/wear_system.proto`中TEST_VIBRATOR=59、VibratorEffect；实机响应优先于通用协议定义。复用现有Dayweave Vela振动接口与Gadgetbridge的前台直发/启动握手，未改中心API或业务状态。
+
+实机补充：冷启动必须在prepare前先送CONNECTED（20/7），否则20/8会在表端连接未就绪时丢失。只为本控制队列补前置CONNECTED；2秒重试同时直发prepare覆盖前台应用不再回20/6的情况。0.2.3的JS侧发送等onopen，不单独依赖该缓冲。
