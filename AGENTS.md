@@ -11,7 +11,7 @@
 - 进行中: 在小米手表 S4 上运行自定义快应用并替换语音助手。任务日志 `~/.agents/xiaomi-watch-s4--custom-apps-voice-assistant/AGENTS.md`,探测快应用项目 `/Users/meta/Developer/S4-Vela-Probe`。
 
 ## Current State
-- 2026-11-26 保持清醒修复进行中：入口补太阳图标；S4 3.201.79实机拒绝原System/59试振（status=1），改走Dayweave Watch本机vibrator并新增两阶段握手/去重/取消/执行确认。手表0.2.2/code4已装入，手机准备2026.11.22/code277；用户已有每天07:00–23:00响铃规则保留，最终端到端试振待确认。
+- 2026-11-26 保持清醒修复进行中：入口补太阳图标；S4 3.201.79实机拒绝原System/59试振（status=1），改走Dayweave Watch本机vibrator并新增两阶段握手/去重/取消/执行确认。手表0.2.3/code5修复onopen前过早发送，已装入，手机准备2026.11.22/code277；用户已有每天07:00–23:00响铃规则保留，最终端到端试振待确认。
 - 2026-11-26 用户授权部署：K70已原位更新2026.11.21/code276（Pixel保持清醒），沿用原debug证书cbde4ad4…，首次安装时间2026-11-10、dynamic主题、设备消息偏好保留，S4恢复连接。GitHub personal v2026.11.21预发布已附APK（47,076,208字节，源码bfd1fbcc68）；已包含inject分支v2026.11.19/code274的NFC转发。Dayweave手表0.2.1/code3圆形图标已装S4并收到安装完成通知，GitHub watch-v0.2.1预发布附RPK；真实睡眠/振动/响铃和手表图标肉眼效果仍待验收。
 - 分支 `feat/app-timezone`(基于上游 master 8976702fc3)。2026-11-25 已合入 `feat/xiaomi-voice-inject`(手机助手、S4 活动通话设备、Gemini 播报、公交卡研究工具与快应用前台直发)，版本 2026.11.18/code273。合并后 Xiaomi、设置外观和主题迁移回归 418 项、0 失败、2 跳过；APK `app/build/outputs/apk/mainline/debug/app-mainline-debug.apk` 已用原 debug 证书 cbde4ad4… 签名。合并前 K70 运行的是 inject 分支的 2026.11.16/code272；2026-11-26 01:02(K70 时间)已覆盖安装 K70(`adb install -r --user current`，首次安装时间 2026-11-10 保留)，S4 原绑定重新认证、手表通话设备恢复 ACTIVE、手表消息开关仍为 true；GitHub 预发布 v2026.11.18 已附 APK。快应用前台回包尚未实机复测(用户暂时不能测试)。`origin` 是 Codeberg 上游，个人发布仓库为 GitHub `AlexbeatsZ/Gadgetbridge`，只推送 `personal`。
 - mainline 名称为「手环」，使用用户提供的新图标及 Google Settings 风格原生设置行。默认动态取色，偏好迁移 73 将旧 system 一次性迁到 dynamic，保留 light/dark 与迁移后手动选择。旧 checkbox 显式布局别名复用新圆角行。设计见 `docs/design/pixel-settings.md`。
