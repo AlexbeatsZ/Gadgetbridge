@@ -503,6 +503,10 @@ public class XiaomiSupport extends AbstractBluetoothDeviceSupport {
         return this.rpkService;
     }
 
+    public XiaomiScheduleService getScheduleService() {
+        return this.scheduleService;
+    }
+
     public XiaomiWatchfaceService getWatchfaceService() {
         return this.watchfaceService;
     }

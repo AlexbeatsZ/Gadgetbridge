@@ -6,8 +6,8 @@
     <string name="wake_guard_minutes">%1$d minutes</string>
     <string name="wake_guard_title">Stay awake</string>
     <string name="wake_guard_test_vibrate">Test vibration now</string>
-    <string name="wake_guard_test_ring">Test ringing for 10 seconds</string>
-    <string name="wake_guard_stop_ring">Stop test / reminder</string>
+    <string name="wake_guard_test_ring">Test watch ringing</string>
+    <string name="wake_guard_stop_ring">Stop reminder / resume monitoring</string>
     <string name="wake_guard_entry_summary">Weekly awake periods and watch sleep reminders</string>
     <string name="wake_guard_enabled">Enable sleep reminders</string>
     <string name="wake_guard_about">Uses the watch’s live sleep detection while worn and not charging. Two or more fresh reports must confirm sleep for the selected duration. Keep the phone connected; unknown or stale data never triggers a reminder. Detection may be delayed by the watch.</string>
@@ -23,15 +23,15 @@
     <string name="wake_guard_rule_enabled">Enable this period</string>
     <string name="wake_guard_mode">Watch reminder</string>
     <string name="wake_guard_vibrate">Vibrate</string>
-    <string name="wake_guard_ring">Ring for 10 seconds</string>
-    <string name="wake_guard_sound_note">Ringing uses Find watch and follows the watch’s sound settings. Silent vibration briefly opens Dayweave Watch 0.2.3 or newer and uses its local motor, without changing sound settings. Ringing periods take priority when periods overlap.</string>
-    <string name="wake_guard_vibration_note">Requires Dayweave Watch 0.2.3 or newer. Briefly opens Dayweave for three silent vibrations.</string>
-    <string name="wake_guard_vibration_pending">Waiting for the watch to execute vibration…</string>
-    <string name="wake_guard_vibration_ok">The watch called its vibration motor three times. Check the vibration on your wrist.</string>
-    <string name="wake_guard_vibration_failed">No execution confirmation. Check the connection and install Dayweave Watch 0.2.3 or newer, then retry.</string>
+    <string name="wake_guard_ring">Ring</string>
+    <string name="wake_guard_sound_note">Confirmed sleep triggers a native watch reminder again at the selected repeat interval. Ringing reuses one local one-shot alarm, scheduled for the next whole minute (up to 60 seconds later); it uses the watch’s preset ringtone. Close the reminder on the watch. The app does not time out or delete it and does not need a close receipt. Ringing periods take priority when periods overlap.</string>
+    <string name="wake_guard_vibration_note">Uses native watch alarm vibration. Close the reminder on the watch.</string>
+    <string name="wake_guard_vibration_pending">Sending the native watch alarm…</string>
+    <string name="wake_guard_vibration_ok">Native watch alarm sent. Check the vibration on your wrist.</string>
+    <string name="wake_guard_vibration_failed">Could not start the native alarm. Check the watch connection and retry.</string>
     <string name="wake_guard_confirm">Confirm suspected sleep (1–30 minutes)</string>
     <string name="wake_guard_repeat">Repeat reminder (1–60 minutes)</string>
-    <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · confirm %6$d min · repeat %7$d min</string>
+    <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · confirm %6$d min · retry %7$d min</string>
     <string name="wake_guard_next_day"> next day</string>
     <string name="wake_guard_paused">Paused · </string>
     <string name="wake_guard_validation">Enter a name, select at least one day, use different start and end times, and enter minutes within the displayed ranges.</string>
@@ -47,4 +47,11 @@
     <string name="wake_guard_state_awake">Watch reports awake</string>
     <string name="wake_guard_state_disconnected">Paused: watch disconnected or busy</string>
     <string-array name="wake_guard_weekdays"><item>Mon</item><item>Tue</item><item>Wed</item><item>Thu</item><item>Fri</item><item>Sat</item><item>Sun</item></string-array>
+    <string name="wake_guard_vibration_native">Native watch alarm sent; no ringtone is played.</string>
+    <string name="wake_guard_alert_busy">Another alarm is using the watch. Try again after it stops.</string>
+    <string name="wake_guard_ring_note">Schedules the watch’s preset alarm for the next whole minute; reuses one alarm.</string>
+    <string name="wake_guard_ring_sent">Native watch alarm updated. It rings at the next whole minute; close it on the watch.</string>
+    <string name="wake_guard_ring_pending">Updating the native watch alarm…</string>
+    <string name="wake_guard_ring_full">No free watch alarm slot. Remove an unused alarm on the watch before trying again.</string>
+    <string name="wake_guard_ring_failed">The watch did not confirm the alarm update. Check the connection and retry.</string>
 </resources>

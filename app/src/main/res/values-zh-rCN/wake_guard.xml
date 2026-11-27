@@ -6,8 +6,8 @@
     <string name="wake_guard_minutes">%1$d 分钟</string>
     <string name="wake_guard_title">保持清醒</string>
     <string name="wake_guard_test_vibrate">立即试振</string>
-    <string name="wake_guard_test_ring">试听响铃 10 秒</string>
-    <string name="wake_guard_stop_ring">停止测试／提醒</string>
+    <string name="wake_guard_test_ring">立即试铃</string>
+    <string name="wake_guard_stop_ring">停止提醒／继续监测</string>
     <string name="wake_guard_entry_summary">每周非睡眠时段与手表睡眠提醒</string>
     <string name="wake_guard_enabled">开启防睡懒觉提醒</string>
     <string name="wake_guard_about">使用手表实时上报的睡眠判断，仅在佩戴且未充电时工作。至少两次新鲜上报、持续达到确认时长后才提醒。需要手机保持连接；未知或过期数据不会触发提醒。手表识别睡眠可能有延迟。</string>
@@ -23,15 +23,15 @@
     <string name="wake_guard_rule_enabled">启用此时段</string>
     <string name="wake_guard_mode">手表提醒方式</string>
     <string name="wake_guard_vibrate">振动</string>
-    <string name="wake_guard_ring">响铃 10 秒</string>
-    <string name="wake_guard_sound_note">响铃使用“寻找手表”，遵循手表声音设置。纯振动通过手表上的 Dayweave 0.2.3 或更新版执行，会短暂打开应用并调用本机振动，不改变声音设置。时段重叠时，响铃规则优先。</string>
-    <string name="wake_guard_vibration_note">需要手表 Dayweave 0.2.3 或更新版；会短暂打开应用，连续纯振动 3 次。</string>
-    <string name="wake_guard_vibration_pending">等待手表执行振动…</string>
-    <string name="wake_guard_vibration_ok">手表已调用 3 次振动，请确认手腕上的实际效果。</string>
-    <string name="wake_guard_vibration_failed">未收到执行确认。请检查连接，安装手表 Dayweave 0.2.3 或更新版后重试。</string>
+    <string name="wake_guard_ring">响铃</string>
+    <string name="wake_guard_sound_note">持续确认仍在睡觉时，按重复间隔再次请求原生提醒，不依赖关闭回传。响铃复用一个表内一次性闹钟，安排到下一个整分钟（最多延迟60秒），使用手表预置铃声。在手表上关闭提醒，应用不定时停止或删除闹钟。时段重叠时响铃优先。</string>
+    <string name="wake_guard_vibration_note">使用手表原生闹钟振动，在手表上关闭提醒。</string>
+    <string name="wake_guard_vibration_pending">正在发送手表原生闹钟…</string>
+    <string name="wake_guard_vibration_ok">已发送手表原生闹钟，请确认手腕振感。</string>
+    <string name="wake_guard_vibration_failed">未能启动原生闹钟，请检查手表连接后重试。</string>
     <string name="wake_guard_confirm">疑似睡眠确认时长（1–30 分钟）</string>
     <string name="wake_guard_repeat">重复提醒间隔（1–60 分钟）</string>
-    <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · 确认 %6$d 分钟 · 每 %7$d 分钟提醒</string>
+    <string name="wake_guard_rule_summary">%1$s · %2$s–%3$s%4$s\n%5$s · 确认 %6$d 分钟 · 重试间隔 %7$d 分钟</string>
     <string name="wake_guard_next_day"> 次日</string>
     <string name="wake_guard_paused">已停用 · </string>
     <string name="wake_guard_validation">请填写名称、至少选择一天，起止时间不能相同，分钟数须在标注范围内。</string>
@@ -47,4 +47,11 @@
     <string name="wake_guard_state_awake">手表报告当前清醒</string>
     <string name="wake_guard_state_disconnected">手表已断开或正忙，已暂停</string>
     <string-array name="wake_guard_weekdays"><item>周一</item><item>周二</item><item>周三</item><item>周四</item><item>周五</item><item>周六</item><item>周日</item></string-array>
+    <string name="wake_guard_vibration_native">已发送手表原生闹钟，不播放铃声。</string>
+    <string name="wake_guard_alert_busy">手表正在提醒其他闹钟，请结束后重试。</string>
+    <string name="wake_guard_ring_note">使用表内预置铃声，下个整分钟起响；重复请求复用同一个闹钟。</string>
+    <string name="wake_guard_ring_sent">表内闹钟已更新，下个整分钟起响；请在手表上关闭。</string>
+    <string name="wake_guard_ring_pending">正在更新手表原生闹钟…</string>
+    <string name="wake_guard_ring_full">手表闹钟已满，请先在表上移除一个不用的闹钟再试。</string>
+    <string name="wake_guard_ring_failed">未收到手表的闹钟更新确认，请检查连接后重试。</string>
 </resources>

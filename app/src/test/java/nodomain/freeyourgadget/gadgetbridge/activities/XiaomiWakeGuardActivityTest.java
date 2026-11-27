@@ -46,7 +46,7 @@ public class XiaomiWakeGuardActivityTest extends TestBase {
             assertTrue(containsTitle(screen, "Morning"));
             assertTrue(containsTitle(screen, activity.getString(R.string.wake_guard_test_vibrate)));
             assertTrue(containsTitle(screen, activity.getString(R.string.wake_guard_test_ring)));
-            assertTrue(containsTitle(screen, activity.getString(R.string.wake_guard_stop_ring)));
+            assertNull(fragment.findPreference(STOP_RING));
             fragment.addPreferencesFromResource(R.xml.devicesettings_xiaomi_wake_guard);
             assertNotNull(fragment.findPreference(PREF_SCREEN).getIcon());
         }

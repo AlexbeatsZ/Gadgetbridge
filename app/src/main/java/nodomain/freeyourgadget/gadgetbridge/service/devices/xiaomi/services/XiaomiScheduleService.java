@@ -44,6 +44,7 @@ import nodomain.freeyourgadget.gadgetbridge.entities.DaoSession;
 import nodomain.freeyourgadget.gadgetbridge.entities.Device;
 import nodomain.freeyourgadget.gadgetbridge.entities.User;
 import nodomain.freeyourgadget.gadgetbridge.model.Alarm;
+import nodomain.freeyourgadget.gadgetbridge.model.DeviceType;
 import nodomain.freeyourgadget.gadgetbridge.model.NotificationSpec;
 import nodomain.freeyourgadget.gadgetbridge.model.NotificationType;
 import nodomain.freeyourgadget.gadgetbridge.model.DeviceService;
@@ -103,12 +104,29 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
         // TODO map everything
     }};
 
-    // Map of alarm position to Alarm/Reminder, as returned by the watch, indexed by GB position (0-indexed),
-    // does NOT match the ID returned by the watch, but should be offset by 1
+    // Map by GB position. S4 IDs start at zero; the other supported watches use one.
     private final Map<Integer, Alarm> watchAlarms = new HashMap<>();
     private final Map<Integer, AlarmDetails> watchAlarmDetails = new HashMap<>();
     private final Map<String, Reminder> watchReminders = new HashMap<>();
     private final Map<Integer, PhoneAlarm> phoneAlarms = new HashMap<>();
+    private PhoneAlarm wakeGuardAlarm;
+    private Runnable wakeGuardDismissed;
+    private int nextWakeGuardId = 0x57470000;
+    private nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Alarms nativeAlarmSnapshot;
+
+    private XiaomiWakeGuardClock wakeGuardClock;
+
+    private XiaomiWakeGuardClock wakeGuardClock() {
+        if (wakeGuardClock == null) wakeGuardClock = new XiaomiWakeGuardClock(
+                GBApplication.getDeviceSpecificSharedPrefs(getSupport().getDevice().getAddress()),
+                cmd -> getSupport().sendCommand("wake guard native clock", cmd), java.time.ZonedDateTime::now,
+                () -> { if (queuedAlarms != null) requestAlarms(); });
+        return wakeGuardClock;
+    }
+
+    public synchronized boolean requestWakeGuardRing() {
+        return phoneAlarms.isEmpty() && pendingAlarmAcks == 0 && queuedAlarms == null && wakeGuardClock().request();
+    }
 
     private int pendingAlarmAcks = 0;
     private boolean alarmsInitialized = false;
@@ -120,7 +138,8 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
     }
 
     @Override
-    public void handleCommand(final XiaomiProto.Command cmd) {
+    public synchronized void handleCommand(final XiaomiProto.Command cmd) {
+        if (wakeGuardClock != null && wakeGuardClock.onAck(cmd)) return;
         final boolean failed = (cmd.hasStatus() && cmd.getStatus() != 0) ||
                 (cmd.hasSchedule() && cmd.getSchedule().hasClockError());
         if (failed) {
@@ -164,7 +183,13 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
                 }
                 return;
             case CMD_PHONE_ALARM:
-                // Acknowledgements and watch-side interactions do not mutate stored watch alarms.
+                if (cmd.hasSchedule() && cmd.getSchedule().hasPhoneAlarmOperation()) {
+                    final PhoneAlarm.Operation operation = cmd.getSchedule().getPhoneAlarmOperation();
+                    if (wakeGuardAlarm != null && operation.getPhoneAlarm().getId() == wakeGuardAlarm.getId()
+                            && operation.getOpCode() != PhoneAlarm.OpCode.ALERT) {
+                        releaseWakeGuardAlarm();
+                    }
+                }
                 LOG.debug("Got phone alarm response");
                 return;
             case CMD_REMINDERS_CREATE:
@@ -183,7 +208,8 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
     }
 
     @Override
-    public void initialize() {
+    public synchronized void initialize() {
+        nativeAlarmSnapshot = null;
         watchAlarms.clear();
         watchAlarmDetails.clear();
         alarmsInitialized = false;
@@ -217,10 +243,13 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
         getSupport().sendCommand("request reminders", COMMAND_TYPE, CMD_REMINDERS_GET);
     }
 
-    public boolean onPhoneAlarm(final NotificationSpec notification) {
+    public synchronized boolean onPhoneAlarm(final NotificationSpec notification) {
         if (notification.getType() != NotificationType.GENERIC_ALARM_CLOCK) {
             return false;
         }
+        // A real phone alarm takes over the watch's shared alarm surface. Never let our old
+        // timeout dismiss it: S4's DISMISS handler closes that surface regardless of the ID.
+        releaseWakeGuardAlarm();
         final PhoneAlarm alarm = PhoneAlarm.newBuilder()
                 .setId(notification.getId())
                 .setAlertTime((int) (notification.getWhen() / 1000L))
@@ -231,7 +260,59 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
         return true;
     }
 
-    public boolean onDeletePhoneAlarm(final int id) {
+    public synchronized boolean startWakeGuardAlarm(final String label, final Runnable dismissed) {
+        if (!phoneAlarms.isEmpty()) return false;
+        if (wakeGuardAlarm != null) {
+            sendPhoneAlarm(PhoneAlarm.OpCode.ALERT, wakeGuardAlarm);
+            return true;
+        }
+        if (!canStartWakeGuardAlert()) return false;
+        do { nextWakeGuardId++; } while (phoneAlarms.containsKey(nextWakeGuardId));
+        wakeGuardAlarm = PhoneAlarm.newBuilder().setId(nextWakeGuardId)
+                .setAlertTime((int) (System.currentTimeMillis() / 1000L)).setLabel(label).build();
+        wakeGuardDismissed = dismissed;
+        sendPhoneAlarm(PhoneAlarm.OpCode.ALERT, wakeGuardAlarm);
+        return true;
+    }
+
+    public synchronized boolean canStartWakeGuardAlert() {
+        if (!phoneAlarms.isEmpty() || wakeGuardAlarm != null || nativeAlarmSnapshot == null) return false;
+        // S4 uses one shared native alarm surface. Its one-shot is disabled as it rings;
+        // guard nearby local alarms even when disabled and before the editor's ID mapping.
+        final java.time.ZonedDateTime now = java.time.ZonedDateTime.now();
+        final int minute = now.getHour() * 60 + now.getMinute();
+        for (AlarmInfo alarm : nativeAlarmSnapshot.getAlarmList()) {
+            if (!alarm.hasAlarmDetails() || !alarm.getAlarmDetails().hasTime()) return false;
+            AlarmDetails details = alarm.getAlarmDetails();
+            int delta = Math.floorMod(details.getTime().getHour() * 60
+                    + details.getTime().getMinute() - minute + 720, 1440) - 720;
+            if (Math.abs(delta) <= 2) return false;
+        }
+        return true;
+    }
+
+    public synchronized void stopWakeGuardAlarm(final boolean connected) {
+        final PhoneAlarm owned = wakeGuardAlarm;
+        wakeGuardAlarm = null;
+        wakeGuardDismissed = null;
+        if (owned != null && connected) sendPhoneAlarm(PhoneAlarm.OpCode.DISMISS, owned);
+    }
+
+    private void releaseWakeGuardAlarm() {
+        final Runnable dismissed = wakeGuardDismissed;
+        wakeGuardAlarm = null;
+        wakeGuardDismissed = null;
+        if (dismissed != null) dismissed.run();
+    }
+
+    @Override public synchronized void onDisconnect() {
+        nativeAlarmSnapshot = null;
+        if (wakeGuardClock != null) wakeGuardClock.disconnect();
+        wakeGuardDismissed = null; // reconnect rebinds; disconnection is not wearer dismissal
+        wakeGuardAlarm = null;
+    }
+
+    public synchronized boolean onDeletePhoneAlarm(final int id) {
         final PhoneAlarm alarm = phoneAlarms.remove(id);
         if (alarm == null) {
             return false;
@@ -501,8 +582,8 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
         // TODO map the world clock codes
     }
 
-    public void onSetAlarms(final ArrayList<? extends Alarm> alarms) {
-        if (!alarmsInitialized || pendingAlarmAcks > 0) {
+    public synchronized void onSetAlarms(final ArrayList<? extends Alarm> alarms) {
+        if (!alarmsInitialized || pendingAlarmAcks > 0 || (wakeGuardClock != null && wakeGuardClock.isBusy())) {
             queuedAlarms = new ArrayList<>(alarms);
             if (!alarmsInitialized && pendingAlarmAcks == 0) {
                 requestAlarms();
@@ -523,7 +604,7 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
 
             if (alarm.getUnused() && watchAlarm != null) {
                 // Delete from watch
-                alarmsToDelete.add(watchAlarm.getPosition() + 1); // watch positions, not GB
+                alarmsToDelete.add(watchAlarm.getPosition() + alarmIdOffset()); // watch positions, not GB
                 LOG.debug("Delete alarm {} from watch", alarm.getPosition());
                 continue;
             }
@@ -543,7 +624,7 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
                 LOG.debug("Update alarm {}", alarm.getPosition());
                 schedule.setEditAlarm(
                     AlarmInfo.newBuilder()
-                        .setId(alarm.getPosition() + 1)
+                        .setId(alarm.getPosition() + alarmIdOffset())
                         .setAlarmDetails(alarmDetails)
                         .build()
                 );
@@ -620,15 +701,22 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
         return details.build();
     }
 
+    private int alarmIdOffset() {
+        // Verified on S4 3.201.79: both create ACK and list return id=0 for the first slot.
+        return getSupport().getDevice().getType() == DeviceType.XIAOMI_WATCH_S4 ? 0 : 1;
+    }
+
     public void requestAlarms() {
         getSupport().sendCommand("get alarms", COMMAND_TYPE, CMD_ALARMS_GET);
     }
 
-    public void handleAlarms(final nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Alarms alarms) {
+    public synchronized void handleAlarms(final nodomain.freeyourgadget.gadgetbridge.proto.xiaomi.Alarms alarms) {
+        nativeAlarmSnapshot = alarms;
+        if (wakeGuardClock != null) wakeGuardClock.onAlarms(alarms);
         LOG.debug("Got {} alarms from the watch", alarms.getAlarmCount());
 
         for (final AlarmInfo alarm : alarms.getAlarmList()) {
-            if (!alarm.hasId() || alarm.getId() <= 0 || !alarm.hasAlarmDetails() ||
+            if (!alarm.hasId() || alarm.getId() < alarmIdOffset() || !alarm.hasAlarmDetails() ||
                     !alarm.getAlarmDetails().hasTime()) {
                 LOG.warn("Ignoring malformed alarm list");
                 return;
@@ -648,7 +736,7 @@ public class XiaomiScheduleService extends AbstractXiaomiService {
         for (final var alarm : alarms.getAlarmList()) {
             final nodomain.freeyourgadget.gadgetbridge.entities.Alarm gbAlarm = new nodomain.freeyourgadget.gadgetbridge.entities.Alarm();
             gbAlarm.setUnused(false); // If the band sent it, it's not unused
-            gbAlarm.setPosition(alarm.getId() - 1); // band id starts at 1
+            gbAlarm.setPosition(alarm.getId() - alarmIdOffset());
             gbAlarm.setEnabled(alarm.getAlarmDetails().getEnabled());
             gbAlarm.setSmartWakeup(alarm.getAlarmDetails().getSmart() == ALARM_SMART);
             gbAlarm.setHour(alarm.getAlarmDetails().getTime().getHour());

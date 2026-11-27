@@ -35,6 +35,93 @@ public class XiaomiScheduleServiceTest extends TestBase {
     private XiaomiScheduleService service;
     private GBDevice device;
 
+    private void emptyNativeAlarms() {
+        service.handleCommand(XiaomiProto.Command.newBuilder().setType(17).setSubtype(0)
+                .setSchedule(Schedule.newBuilder().setAlarms(Alarms.newBuilder().setMaxAlarms(10))).build());
+    }
+
+    @Test public void wakeGuardIsTransientAndRealPhoneAlarmTakesOverWithoutDismiss() {
+        emptyNativeAlarms();
+        Runnable ended = mock(Runnable.class);
+        assertTrue(service.startWakeGuardAlarm("Stay awake", ended));
+        final XiaomiProto.Command command = sentCommands().get(0);
+        assertEquals(16, command.getSubtype());
+        assertEquals("Stay awake", command.getSchedule().getPhoneAlarmOperation().getPhoneAlarm().getLabel());
+        assertTrue(service.startWakeGuardAlarm("Other", ended));
+        NotificationSpec real = new NotificationSpec(42, System.currentTimeMillis());
+        real.setType(NotificationType.GENERIC_ALARM_CLOCK);
+        service.onPhoneAlarm(real);
+        verify(ended).run();
+        service.stopWakeGuardAlarm(true);
+        assertEquals(3, sentCommands().size());
+        assertFalse(service.startWakeGuardAlarm("Stay awake", ended));
+    }
+
+    @Test public void wakeGuardDismissesOnlyOwnedCurrentAlarmAndDisconnectDoesNotQueue() {
+        emptyNativeAlarms();
+        Runnable ended = mock(Runnable.class);
+        assertTrue(service.startWakeGuardAlarm("Stay awake", ended));
+        service.stopWakeGuardAlarm(true);
+        assertEquals(PhoneAlarm.OpCode.DISMISS, sentCommands().get(1).getSchedule().getPhoneAlarmOperation().getOpCode());
+        service.stopWakeGuardAlarm(true);
+        assertEquals(2, sentCommands().size());
+        assertTrue(service.startWakeGuardAlarm("Stay awake", ended));
+        service.onDisconnect();
+        verify(ended, never()).run();
+        service.stopWakeGuardAlarm(false);
+        assertEquals(3, sentCommands().size());
+        assertFalse(service.startWakeGuardAlarm("Stay awake", ended));
+    }
+
+    @Test public void nativeWatchDismissReleasesOnlyMatchingWakeGuard() {
+        emptyNativeAlarms();
+        Runnable ended = mock(Runnable.class);
+        assertTrue(service.startWakeGuardAlarm("Stay awake", ended));
+        PhoneAlarm alarm = sentCommands().get(0).getSchedule().getPhoneAlarmOperation().getPhoneAlarm();
+        service.handleCommand(XiaomiProto.Command.newBuilder().setType(17).setSubtype(16)
+                .setSchedule(Schedule.newBuilder().setPhoneAlarmOperation(PhoneAlarm.Operation.newBuilder()
+                        .setPhoneAlarm(alarm).setOpCode(PhoneAlarm.OpCode.DISMISS))).build());
+        verify(ended).run();
+        service.stopWakeGuardAlarm(true);
+        assertEquals(1, sentCommands().size());
+    }
+
+    @Test public void wakeGuardDoesNotOverlapNearbyLocalAlarmIncludingS4ZeroId() {
+        final java.time.ZonedDateTime now = java.time.ZonedDateTime.now();
+        service.handleCommand(XiaomiProto.Command.newBuilder().setType(17).setSubtype(0)
+                .setSchedule(Schedule.newBuilder().setAlarms(Alarms.newBuilder().addAlarm(
+                        AlarmInfo.newBuilder().setId(0).setAlarmDetails(AlarmDetails.newBuilder()
+                                .setTime(WearCommon.HourMinute.newBuilder().setHour(now.getHour()).setMinute(now.getMinute()))
+                                .setEnabled(false))))).build());
+        assertFalse(service.startWakeGuardAlarm("Stay awake", mock(Runnable.class)));
+        verify(support, never()).sendCommand(anyString(), any(XiaomiProto.Command.class));
+    }
+
+    @Test public void s4ZeroSlotImportsAndTogglesTheSameIdWithoutDeletingOtherAlarms() {
+        service.handleCommand(XiaomiProto.Command.newBuilder().setType(17).setSubtype(0)
+                .setSchedule(Schedule.newBuilder().setAlarms(Alarms.newBuilder().addAlarm(
+                        AlarmInfo.newBuilder().setId(0).setAlarmDetails(AlarmDetails.newBuilder()
+                                .setTime(WearCommon.HourMinute.newBuilder().setHour(7).setMinute(30))
+                                .setEnabled(true).setRepeatMode(0).setSmart(2))))).build());
+        ArrayList<Alarm> alarms = new ArrayList<>(DBHelper.getAlarmsWithDefaults(device));
+        assertFalse(alarms.get(0).getUnused()); alarms.get(0).setEnabled(false);
+        service.onSetAlarms(alarms);
+        assertEquals(5, sentCommands().get(0).getSubtype());
+        assertEquals(0, sentCommands().get(0).getSchedule().getEditAlarm().getId());
+        assertEquals(1, sentCommands().size());
+    }
+
+    @Test public void nonS4AlarmsRetainOneBasedMapping() {
+        device = new GBDevice("C4:57:81:00:00:02", "Xiaomi Watch S3", null, null, DeviceType.XIAOMI_WATCH_S3);
+        when(support.getDevice()).thenReturn(device);
+        GBApplication.getDeviceSpecificSharedPrefs(device.getAddress()).edit().putInt("alarm_slots", 10).commit();
+        service.handleCommand(listReply(5,31)); // raw id 3 is GB position 2
+        ArrayList<Alarm> alarms = new ArrayList<>(DBHelper.getAlarmsWithDefaults(device));
+        assertFalse(alarms.get(2).getUnused()); alarms.get(2).setEnabled(false);
+        service.onSetAlarms(alarms);
+        assertEquals(3, sentCommands().get(0).getSchedule().getEditAlarm().getId());
+    }
+
     @Before
     public void setupService() {
         device = new GBDevice("C4:57:81:00:00:01", "Xiaomi Watch S4 0001", null, null, DeviceType.XIAOMI_WATCH_S4);
@@ -71,7 +158,7 @@ public class XiaomiScheduleServiceTest extends TestBase {
         service.onSetAlarms(alarms);
         final XiaomiProto.Command command = sentCommands().get(0);
         assertEquals(5, command.getSubtype());
-        assertEquals(4, command.getSchedule().getEditAlarm().getId());
+        assertEquals(3, command.getSchedule().getEditAlarm().getId());
         assertFalse(command.getSchedule().getEditAlarm().getAlarmDetails().getEnabled());
         service.handleCommand(XiaomiProto.Command.newBuilder().setType(17).setSubtype(5).setStatus(0).build());
         verify(support).sendCommand("get alarms", 17, 0);
@@ -194,7 +281,7 @@ public class XiaomiScheduleServiceTest extends TestBase {
     private XiaomiProto.Command listReply(final int repeatMode, final int repeatFlags) {
         return XiaomiProto.Command.newBuilder().setType(17).setSubtype(0).setSchedule(Schedule.newBuilder()
                 .setAlarms(Alarms.newBuilder().setMaxAlarms(10).setSupportsSmartWakeup(false)
-                        .addAlarm(AlarmInfo.newBuilder().setId(4).setAlarmDetails(AlarmDetails.newBuilder()
+                        .addAlarm(AlarmInfo.newBuilder().setId(3).setAlarmDetails(AlarmDetails.newBuilder()
                                 .setTime(WearCommon.HourMinute.newBuilder().setHour(7).setMinute(30))
                                 .setEnabled(true).setSmart(2).setLabel("Class")
                                 .setNextRingTimestamp(1794900000L)

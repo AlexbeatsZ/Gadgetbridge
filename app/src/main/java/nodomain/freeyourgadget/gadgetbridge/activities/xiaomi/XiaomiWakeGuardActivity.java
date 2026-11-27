@@ -65,6 +65,7 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
                 updateStatus();
             }
             if (XiaomiWakeGuardConfig.PREF_VIBRATION_STATUS.equals(key)) updateVibrationStatus();
+            if (XiaomiWakeGuardConfig.PREF_RING_STATUS.equals(key)) updateRingStatus();
         };
 
         @Override
@@ -80,6 +81,7 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
             prefs.registerOnSharedPreferenceChangeListener(listener);
             updateStatus();
             updateVibrationStatus();
+            updateRingStatus();
         }
 
         @Override public void onPause() {
@@ -163,7 +165,6 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
             screen.addPreference(tests);
             addTest(tests, R.string.wake_guard_test_vibrate, XiaomiWakeGuardConfig.TEST_VIBRATE);
             addTest(tests, R.string.wake_guard_test_ring, XiaomiWakeGuardConfig.TEST_RING);
-            addTest(tests, R.string.wake_guard_stop_ring, XiaomiWakeGuardConfig.STOP_RING);
             updateStatus();
         }
 
@@ -177,16 +178,29 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
             });
             screen.addPreference(test);
             if (XiaomiWakeGuardConfig.TEST_VIBRATE.equals(action)) updateVibrationStatus();
+            if (XiaomiWakeGuardConfig.TEST_RING.equals(action)) updateRingStatus();
         }
 
         private void updateVibrationStatus() {
             Preference test = findPreference(XiaomiWakeGuardConfig.TEST_VIBRATE);
             if (test == null) return;
             switch (prefs.getString(XiaomiWakeGuardConfig.PREF_VIBRATION_STATUS, "")) {
-                case "pending": test.setSummary(R.string.wake_guard_vibration_pending); break;
-                case "ok": test.setSummary(R.string.wake_guard_vibration_ok); break;
-                case "failed": test.setSummary(R.string.wake_guard_vibration_failed); break;
+                case "native_sent": test.setSummary(R.string.wake_guard_vibration_native); break;
+                case "busy": test.setSummary(R.string.wake_guard_alert_busy); break;
                 default: test.setSummary(R.string.wake_guard_vibration_note);
+            }
+        }
+
+        private void updateRingStatus() {
+            Preference test = findPreference(XiaomiWakeGuardConfig.TEST_RING);
+            if (test == null) return;
+            switch (prefs.getString(XiaomiWakeGuardConfig.PREF_RING_STATUS, "")) {
+                case "pending": test.setSummary(R.string.wake_guard_ring_pending); break;
+                case "scheduled": test.setSummary(R.string.wake_guard_ring_sent); break;
+                case "full": test.setSummary(R.string.wake_guard_ring_full); break;
+                case "failed": test.setSummary(R.string.wake_guard_ring_failed); break;
+                case "busy": test.setSummary(R.string.wake_guard_alert_busy); break;
+                default: test.setSummary(R.string.wake_guard_ring_note);
             }
         }
 
