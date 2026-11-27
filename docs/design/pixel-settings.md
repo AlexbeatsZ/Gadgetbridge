@@ -32,3 +32,9 @@ Use existing Material/AndroidX components, large page titles, semantic surface c
 - Explicit `light`, `dark`, `dynamic`, accent, AMOLED and other saved preferences retain their values. Once migration 73 completes, a later manual `system` selection survives subsequent starts.
 - Regression coverage includes the registered migration chain, unrelated saved preferences, explicit theme choices, repeated startup after a manual change, and the production application startup path followed by light/dark theme selection.
 - Existing XML and programmatic settings explicitly reference `preference_checkbox`, overriding theme-provided layouts. Its old renderer has been replaced by a layout alias to `preference_settings`, retaining the resource ID and widget contract across existing callers. The real Settings Activity regression checks these rows resolve to the shared layout with 20dp corners and `colorSurfaceContainerLow`.
+
+## S4 保持清醒（2026-11-26）
+
+- 规则列表及规则编辑必须继承共用设置Activity/Fragment，复用`activity_settings`的大标题/边距、`preference_settings`圆角行与主题Material开关；不能只使用相同颜色却另写一套表单。
+- 名称、重复星期、提醒方式、确认/重复时长沿用共用Material偏好对话框；起止时间用MaterialTimePicker。编辑草稿和保存/返回语义保留。
+- 监测说明收进说明对话框，主页面以状态、规则、提醒测试三部分呈现。真实截图由安装后的K70截取，不再用手工网页示意代表Pixel主题。

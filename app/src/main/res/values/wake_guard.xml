@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="wake_guard_edit">Edit awake period</string>
+    <string name="wake_guard_help">About monitoring</string>
+    <string name="wake_guard_test">Test reminders</string>
+    <string name="wake_guard_minutes">%1$d minutes</string>
     <string name="wake_guard_title">Stay awake</string>
     <string name="wake_guard_test_vibrate">Test vibration now</string>
     <string name="wake_guard_test_ring">Test ringing for 10 seconds</string>

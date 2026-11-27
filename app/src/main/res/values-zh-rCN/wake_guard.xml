@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="wake_guard_edit">编辑时段</string>
+    <string name="wake_guard_help">监测说明</string>
+    <string name="wake_guard_test">测试提醒</string>
+    <string name="wake_guard_minutes">%1$d 分钟</string>
     <string name="wake_guard_title">保持清醒</string>
     <string name="wake_guard_test_vibrate">立即试振</string>
     <string name="wake_guard_test_ring">试听响铃 10 秒</string>
