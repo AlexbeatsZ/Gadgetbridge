@@ -1,0 +1,135 @@
+-- Always-armed Watch S4 Direct-SPP NFC Relay loader watchface (face ID 362991121).
+-- Loads resident host-daemon-relay.elf (v3), writes 5-AID-first routes trying NXP S4
+-- screen-off+locked power_state 0xE1 first (fallback 0x39 -> 0x01), arms hooks in a 2s
+-- NSH script, and exits. Supports safe hot-upgrade from v2 or stopped v3 after S4CTL:STOP.
+local base="/data/quickapp/files/com.meta.s4nativeprobe"
+local ready=io.open(base.."/ready.txt","r");if not ready then return end;ready:close()
+local result={}
+@COMMON_HELPERS@
+local function writeStatus(text)
+ local sf=io.open(base.."/relay-status.txt","w")
+ if sf then sf:write(text);sf:close() end
+end
+local function bindTag(name,hex,tag,value)
+ local b={};for i=1,4 do b[#b+1]=string.format("%02x",value%256);value=math.floor(value/256)end
+ local patched,count=hex:gsub(tag,table.concat(b))
+ return count==1 and emit(name..".elf",patched)
+end
+local function bind(name,hex,target)
+ return bindTag(name,hex,"dec0adde",target)
+end
+local function ensureDiscoveryStopped()
+ command("work-state.txt","xd 3c2d4746 4")
+ if words("work-state.txt")[1]==0 then return true end
+ return discovery("stop")
+end
+command("modules-before.txt","lsmod")
+local payloads={@PAYLOADS@}
+if read("modules-before.txt"):find("gb_host_test",1,true)then
+ local addr=moduleData("gb_host_test")
+ if addr then
+  command("host-help.txt","xd "..addr.." 360");local h=words("host-help.txt")
+  if #h==90 and h[1]==0x53483454 and h[2]==4 and h[76]==3 then
+   writeStatus("daemon-armed-v3")
+   return
+  end
+  -- Safe hot-unload of older v2 (ipc[1]==2) or stopped v3 (ipc[1]==0) daemon after S4CTL:STOP.
+  if #h==90 and h[1]==0x53483454 and (h[76]==2 or h[76]==0) then
+   local prep=true
+   for _,p in ipairs(payloads)do if not emit(p[1]..".elf",p[2])then prep=false end end
+   if prep and bind("host-test-stop-bound","@STOP_OWNED_HEX@",tonumber(addr)) and
+      bind("host-test-remove-bound","@REMOVE_HEX@",tonumber(addr)) then
+    command("work-state.txt","xd 3c2d4746 4")
+    if words("work-state.txt")[1]~=0 then
+     invoke("host-test-stop-bound","gb_host_st","work-st.txt",false)
+     for i=1,3 do
+      command("work-sleep.txt","sleep 1");command("work-state.txt","xd 3c2d4746 4")
+      if words("work-state.txt")[1]==0 then break end
+     end
+    end
+    invoke("host-test-remove-bound","gb_host_rm","work-rm.txt",false)
+    command("work-sleep.txt","sleep 1")
+    command("host-help.txt","xd "..addr.." 360");local h2=words("host-help.txt")
+    if #h2==90 and h2[2]==5 and rawIdle() then
+     command("work-unload.txt","rmmod gb_host_test")
+     command("modules-before.txt","lsmod")
+    end
+   end
+  end
+ end
+ if read("modules-before.txt"):find("gb_host_test",1,true)then
+  discovery("start")
+  writeStatus("daemon-busy")
+  return
+ end
+end
+writeStatus("daemon-starting")
+local prepared=true
+for _,p in ipairs(payloads)do if not emit(p[1]..".elf",p[2])then prepared=false end end
+local started=false
+local failReason="unknown"
+local routeMode="none"
+local routePower=0
+if not prepared then
+ failReason="prep"
+elseif read("modules-before.txt"):find("gb_",1,true)then
+ failReason="mod"
+elseif not ensureDiscoveryStopped()then
+ failReason="disc"
+else
+ -- Try Watch S4 NXP screen-off+locked power_state 0xE1 first, then NCI2 0x39, then 0x01.
+ local candidates={{"relay-route-append-nxp","0xe1",0xe1},{"relay-route-append-screenoff","0x39",0x39},{"relay-route-append","0x01",0x01}}
+ for _,c in ipairs(candidates)do
+  local r=invoke(c[1],"gb_route_ap","work-route.txt",true)
+  if r and r[1]==0x54414944 and r[2]==3 and r[12]==0 and r[13]==0x00010141 then
+   routeMode=c[2];routePower=c[3];break
+  end
+ end
+ if routeMode=="none" then
+  failReason="route"
+ elseif not bindTag("host-daemon-relay-bound","@DAEMON_HEX@","dfc0adde",routePower) then
+  failReason="bind"
+ else
+  command("work-load.txt","insmod "..base.."/host-daemon-relay-bound.elf gb_host_test")
+  command("work-sleep.txt","sleep 1")
+  local addr=moduleData("gb_host_test")
+  if not addr then
+   failReason="addr"
+  else
+   command("host-help.txt","xd "..addr.." 360");local h=words("host-help.txt")
+   if #h==90 and h[1]==0x53483454 and h[2]==3 and h[5]==1 and h[20]==1 and h[76]==3 and h[90]~=0 and rawIdle() and
+      bind("host-test-arm-bound","@ARM_HEX@",tonumber(addr)) and
+      bind("host-test-remove-bound","@REMOVE_HEX@",tonumber(addr)) and
+      bind("host-test-stop-bound","@STOP_OWNED_HEX@",tonumber(addr))then
+    local script={
+     "insmod "..base.."/discovery-start.elf gb_host_start",
+     "rmmod gb_host_start",
+     "sleep 1",
+     "insmod "..base.."/host-test-arm-bound.elf gb_host_arm",
+     "rmmod gb_host_arm",
+     "sleep 1",
+     "echo daemon-armed-v3:"..routeMode.." > "..base.."/relay-status.txt",
+    }
+    local f=io.open(base.."/host-daemon-arm.sh","w")
+    if f then
+     f:write(table.concat(script,"\n").."\n");f:close()
+     local ok,a,b,c=pcall(function()return os.execute("sh "..base.."/host-daemon-arm.sh > "..base.."/modules-after.txt &")end)
+     started=ok and a==true and c==0
+     if started then
+      writeStatus("daemon-arming-v3:"..routeMode)
+     else
+      failReason="exec"
+     end
+    else
+     failReason="script"
+    end
+   else
+    failReason="hdr:"..tostring(#h)..":"..tostring(h[2])..":"..tostring(h[76])..":"..tostring(h[90])
+   end
+  end
+ end
+end
+if not started then
+ discovery("start")
+ writeStatus("daemon-failed:"..failReason)
+end

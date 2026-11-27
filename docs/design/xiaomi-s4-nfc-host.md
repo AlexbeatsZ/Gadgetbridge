@@ -289,3 +289,23 @@ Lua表盘本轮观察到首次加载时ready目录未就绪会直接return，点
 3. **验证边界**：
    - 已通过：K70 `local.meta.esenfc` 22 项单测与 `ApduRelayService` 实机建连；GB 定向单测、`verify_companion.mjs` 17 项、`verify_host_relay.py` 5 项 Unicorn 离线执行；K70 + S4 真机冷启动至 `S4 watch relay status=active`。
    - 待用户实机验收：真实地铁/公交/校园读卡器贴近时的整段射频时延、WTX 行为以及 `80 50`/`80 54` 在 OMAPI 有线通道的兼容性。
+
+## 后台常驻直连 SPP 守护架构（v3，2026-11-27）
+
+为解决用户「不想每次刷卡都先手动点开手表快应用」的体验问题，将手表端从快应用 + 文件轮询升级为**常驻 C 原生直连 SPP 守护进程**（`host-daemon-relay.c` + `relay-daemon.lua.in` + `S4NfcRelay-daemon-v3.face`）：
+
+1. **手表侧零快应用/零轮询通道（固件 `3.201.79` ROM 指纹全核验）**：
+   - `DATA_PROXY_TOPICS = 0x3c2fe464`（双向链表查 `kind=0, dir=0, type=0x14, subtype=8` 的订阅者 `0x2c480b21` `miwear_pb_msg_send_phone_msg`），武装时原子替换订阅槽 1 word 为 `pb_recv_hook`，非 `S4R1:`/`S4CTL:` 消息（如 Dayweave、快应用 JSON）原样透传给 `0x2c480b21`。
+   - `DATA_PROXY_LOOP_PTR = 0x3c2fe57c`（`g_data_proxy_loop`），首次 `S4CTL:PING` 在 `g_data_proxy_loop` 线程上懒初始化 `sem_init`（`0x2c1ff7fd`）、`uv_async_init`（`0x2c254fa1`）与同任务组 `relay_worker` 线程（`pthread_create` `0x2c20732d`）。
+   - 上行路径：`hal_receive`（`nfc_readerTask`）收到 DH ISO-DEP C-APDU → `sem_post`（`0x2c1f1613`，微秒级零阻塞）→ `relay_worker` → `uv_async_send`（`0x2c254429`）→ `relay_async_cb` → `quickapp_send_wearmsg`（`0x2c47e919`）直发紧凑帧 `S4Q1:<seq>:<epoch>:<capdu_hex>`（`type=20, subtype=9`）。
+   - 下行路径：Gadgetbridge `XiaomiRpkService.sendDirectRelayMessage` 直发 `CMD_RPK_MESSAGE`（`type=20, subtype=8`，不发 `CMD_RPK_LAUNCH` 也不附带 `CMD_RPK_SESSION_END`）→ `pb_recv_hook` 解析 `S4R1:<seq>:<epoch>:<rapdu_hex>` → 校验 `host_guard()` 与 `epoch` → `nfa_sys_sendmsg` 入原 NFA `0x10c` 发送队列。
+2. **现场排查并修复的 4 项真机根因**：
+   - **NXP 息屏/锁屏电源状态位**：反汇编 `nfa_ee_lmrt_to_nfcc`（`0x2c34258e..0x2c3425b0`）证实 S4 `SN100` 用 `0x01 | 0x20 | 0x40(ScreenOff) | 0x80(ScreenLock)` = **`0xE1`**（原生 eSE 为 `0xE3`），原 `0x39` 缺 `0x40|0x80` 导致息屏漏配落回手表自有 eSE 并弹卡；现优先写 `0xE1`（自动降级 `0x39`/`0x01`），实机 `S4CTL:DIAG` 已确认 **`routePower=0xE1`** 生效。
+   - **5 条 AID 完整路由**：在交通联合 `A000000632010105`、上海 `A0000000032005464D53484D4F43`、PPSE `2PAY.SYS.DDF01` 基础上补齐 PSE `1PAY.SYS.DDF01` 与旧版交通/PBOC `A00000000386980701`，防止门禁/闸机先试探 PSE 时命中手表自有 eSE。
+   - **高速读卡器 `61 05` + `SELECT` 紧邻竞态**：拆分为 `hal_capture_guard()`（校验 `hal_host_active`，不要求 `nfc_task` 已同步更新 `DM+0x4c=5`）与 `host_guard()`（回发 `0x10c` 前校验 `DM+0x4c==5`）。
+   - **连接自动武装与诊断协议**：`XiaomiRpkService.initialize()` 连接认证后自动 `requestRpkList()` → `XiaomiNfcRelayBridge.onWatchConnected()` 发 `S4CTL:PING` + `S4CTL:DIAG`；未武装时短暂切至 `362991121` 装载后立即切回日常表盘「昼与夜」（`120917345464`），再执行单次只读 `S4CTL:SELFTEST` 预热并验证 `eSE1`。
+3. **实机验证结果（2026-11-27）**：
+   - 离线：`verify_host_daemon.py` 9/9 Unicorn ARM 通过、`luac -p` 通过、Gadgetbridge 单测通过。
+   - 真机冷启动与重连：Watch S4 重启重连后自动完成冷武装并恢复「昼与夜」表盘，`S4CTL:PONG phase=4 uv=1 hal=1 tx=0`、`S4CTL:DIAG routePower=0xE1`、`SELFTEST_OK len=53 sw=9000`（整段 231–284 ms）；连续驻留 >21 小时无断连/无重启。
+   - 真机 13.56MHz 射频端到端 3-APDU（K70 临时只读 `S4TransitDeskReader` 贴靠息屏日常表盘 Watch S4，无快应用打开）：`SAK=0x28`、`ATQA=0400`；`SELECT A000000632010105` → 53 B `SW=9000`（412 ms），`00 B0 95 00 00` → 32 B `SW=9000` 卡号尾号 `8213`（146 ms），`80 5C 00 02 04` → 6 B `SW=9000` 余额 `¥25.00`（78 ms），总计 636 ms 一次通过（临时读卡 DEX 已删除）。
+   - 仍待真实读卡器验收：多模校内门禁遇到 `SAK=0x28`（表内同时有门禁卡 MIFARE 位）时是否优先 ISO-DEP，以及地铁/公交实际扣款 `80 50`/`80 54` 的有线通道兼容性。

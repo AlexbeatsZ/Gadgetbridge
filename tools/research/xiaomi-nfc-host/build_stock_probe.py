@@ -14,7 +14,10 @@ p.add_argument('--probe', choices=('stock-ce-rejection', 'get-routing-status', '
                                   'host-test-arm', 'host-test-remove', 'host-test-stop', 'native-ipc-test',
                                   'host-spp-session', 'host-spp-pump',
                                   'host-relay-session', 'host-relay-pump',
-                                  'relay-route-append', 'relay-route-restore'),
+                                  'host-daemon-relay',
+                                  'relay-route-append', 'relay-route-append-screenoff',
+                                  'relay-route-append-nxp',
+                                  'relay-route-restore'),
                default='stock-ce-rejection')
 a = p.parse_args()
 source = Path(__file__).resolve().parent
@@ -35,6 +38,8 @@ if a.probe.startswith('test-route-'):
 if a.probe.startswith('relay-route-'):
     probe_source = 'relay-route-write'
     if a.probe == 'relay-route-restore':defines = ['-DRESTORE_ORIGINAL=1']
+    elif a.probe == 'relay-route-append-screenoff':defines = ['-DDH_POWER_STATE=0x39']
+    elif a.probe == 'relay-route-append-nxp':defines = ['-DDH_POWER_STATE=0xe1']
 if a.probe in ('host-test-arm','host-test-remove','host-test-stop'):
     probe_source = 'host-test-control'
     defines = ['-DREMOVE_SESSION=1'] if a.probe == 'host-test-remove' else []

@@ -3,7 +3,7 @@
 本文件和 `docs/` 随个人分支提交到 GitHub `personal`,不进入给上游的 PR。
 
 ## Goal
-- 让 K70 上的复旦大学联名交通卡通过 S4 使用：用户最新决定优先蓝牙代理（S4 NFC主机前端→Classic SPP→手机），A真实迁移暂停。2026-11-26 已在 `feat/xiaomi-voice-inject` 接入完整蓝牙刷卡链路（`local.meta.esenfc` `ApduRelayService` 0.6.0/code7 + Gadgetbridge `XiaomiNfcRelayBridge` 2026.11.19/code274 + S4 `host-relay-session`/`host-relay-pump` 表盘 `362991121` + 「NFC 刷卡」伴侣 RPK 1.1.1/code18），冷启动端到端实测到达 `S4 watch relay status=active`；真机刷卡门禁/闸机射频验收待用户实测。保护原卡、余额、校园绑定和配对，白名单限制交通联合/上海/PPSE/PSE AID 与 Gadgetbridge 证书。
+- 让 K70 上的复旦大学联名交通卡通过 S4 使用：用户最新决定优先蓝牙代理（S4 NFC主机前端→Classic SPP→手机），A真实迁移暂停。2026-11-27 已升级为**后台常驻直连 SPP 守护架构（v3，免开手表快应用、免文件轮询）**：K70 `local.meta.esenfc` `0.6.0/code7` + Gadgetbridge `2026.11.24/code279`（已无损合入 `2026.11.23` 保持清醒原生闹钟提醒）+ Watch S4 `host-daemon-relay.elf` 表盘 `362991121`（5 条 AID + NXP `0xE1` 息屏/锁屏电源状态位，重连/重启后自动装载并切回日常表盘「昼与夜」`120917345464`）。K70 桌上 13.56MHz 真实射频 3-APDU 端到端实测通过（`SELECT A000000632010105` 412ms + 读卡号末四位 `8213` 146ms + 读余额 78ms，均 `SW=9000`）；真实地铁/公交/校园门禁扣款（`80 50`/`80 54`）与 `SAK=0x28` 在多模门禁上的表现待用户实机刷卡最终验收。保护原卡、余额、校园绑定和配对，白名单限制交通联合/上海/PPSE/PSE AID 与 Gadgetbridge 证书。
 - 在上游 Gadgetbridge(codeberg.org/Freeyourgadget/Gadgetbridge)基础上做个人定制功能.
 - 已做: 设置中可指定 app 使用的时区,并同步到手表.
 - 已做: 小米设备配对时可用 Root 从同一手机上的小米运动健康导入密钥。
@@ -59,6 +59,8 @@
 - 3.201.79 Lua表盘可执行shell；首次装入ready未就绪会return，不能靠点亮保证重跑；同ID直接覆盖可能code5，先准备companion目录再恢复原表盘/删除旧测试项/重装同ID。快应用私有目录是`/data/quickapp/files/<package>/`。此固件shell不接受`2>&1`。表盘上传完成后的即时列表可能早于安装；必须等type4/subtype5结果并重新查询，code3表示已安装启用，不能当错误码。
 - S4 上 `CMD_WATCHFACE_SET` 切表盘不会关闭前台快应用，且 `main.lua` 在切表盘响应前同步执行；从快应用触发 Lua 表盘必须先由快应用 `terminate()`（`yield-for-face`）让出前台，切表盘并等待后台脚本启动后再 `CMD_RPK_LAUNCH` 重开。
 - 含异步 NFA 回调的模块（`get-routing-status.elf`、`relay-route-*.elf`）必须 `sleep 1` 后再 `rmmod`，过早卸载会引发回调 UAF 重启；NuttX 系统 tick 为 10 ms，1 秒切片需按 `100 x 10 ms` 计。
+- Watch S4 `SN100` 路由表使用 NXP 专有 `power_state` 位（`0x01` SwitchedOn | `0x20` OnUnlocked | `0x40` ScreenOff | `0x80` ScreenLocked），DH 息屏/锁屏必须写 `0xE1`（原生 eSE 为 `0xE3`），写标准 NCI 2.0 的 `0x39` 在息屏时会漏配落回手表自有 eSE。
+- NuttX 扁平构建下 `.bss` 信号量全局可见但 fd 表按任务组隔离，从 `nfc_readerTask` 跨任务组唤醒 `g_data_proxy_loop` 需走 `sem_post -> 同任务组 worker pthread -> uv_async_send`；同时 `nfc_readerTask` 可能在 `nfc_task` 更新 `DM+0x4c=5` 前即收到 `61 05` 后紧邻的 `SELECT`，捕获守卫不得同步卡死 `DM+0x4c==5`，只在回发 `0x10c` 时校验。
 
 ## Docs Index
 - `docs/design/xiaomi-wake-guard.md`。S4非睡眠时段、实时睡眠确认与振动/响铃所有权。
