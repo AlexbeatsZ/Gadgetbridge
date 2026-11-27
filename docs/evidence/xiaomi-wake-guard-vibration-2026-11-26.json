@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-26",
+  "phone": "Redmi K70",
+  "watch": "Xiaomi Watch S4",
+  "firmware": "3.201.79",
+  "oldProtocol": {
+    "query": "0802102EA00601",
+    "test": "0802103BA00601",
+    "result": "status=1; no vibration as reported by user"
+  },
+  "gadgetbridge": {
+    "version": "2026.11.22",
+    "code": 277,
+    "sourceCommit": "5b3aebb46a08b21ce79ad04ee89b5c03fd1f9592",
+    "installed": true
+  },
+  "dayweaveWatch": {
+    "version": "0.2.3",
+    "code": 5,
+    "sourceCommit": "d9a39015beb917ba73dd5ae0821d7ff439979d25",
+    "installed": true,
+    "rpkSize": 36817
+  },
+  "finalSettingsAction": {
+    "phoneLocalTime": "2026-11-27 11:59:19",
+    "readyAt": "2026-11-27 11:59:21.896",
+    "executedAt": "2026-11-27 11:59:24.100",
+    "id": "427b39e2-01f5-4507-b605-675d61027131",
+    "vibrationStatus": "ok",
+    "temporaryWireAssist": false,
+    "apiCalls": 3,
+    "physicalMotorConfirmedByUser": false
+  },
+  "preserved": [
+    "weekly rules",
+    "enabled state",
+    "dynamic theme",
+    "settings migration 73",
+    "original first install time",
+    "pairing"
+  ],
+  "tests": {
+    "phoneTargetedBeforeFinalOrderingFix": 83,
+    "phoneRecheckedAfterOrderingFix": 27,
+    "watch": 11,
+    "failures": 0,
+    "existingLintErrors": 21
+  }
+}
