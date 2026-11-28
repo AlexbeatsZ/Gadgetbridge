@@ -42,7 +42,7 @@ public final class XiaomiWakeGuardManager {
         this.support = support;
         this.system = system;
         this.wallClock = wallClock;
-        this.probe = new XiaomiWakeGuardSleepProbe(support.getContext());
+        this.probe = new XiaomiWakeGuardSleepProbe(support::getContext);
     }
     private SharedPreferences prefs() {
         return GBApplication.getDeviceSpecificSharedPrefs(support.getDevice().getAddress());

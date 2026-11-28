@@ -135,4 +135,11 @@ public class XiaomiWakeGuardManagerTest extends TestBase {
         verify(health, never()).ackRecordedData(any());
         manager.dispose();
     }
+    @Test public void probeLogUsesContextResolvedAfterConstruction() {
+        when(support.getContext()).thenReturn(null);
+        XiaomiWakeGuardSleepProbe probe = new XiaomiWakeGuardSleepProbe(support::getContext);
+        when(support.getContext()).thenReturn(getContext());
+        probe.log("hello");
+        assertTrue(new java.io.File(getContext().getFilesDir(), "wake-guard-probe/probe.log").length() > 0);
+    }
 }

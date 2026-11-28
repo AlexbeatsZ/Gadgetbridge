@@ -47,11 +47,18 @@ public final class XiaomiWakeGuardSleepProbe {
         }
     }
 
-    private final File dir;
+    private final java.util.function.Supplier<Context> context;
     private long lastBedTime = -1, lastWakeupTime = -1, lastAdvanceSec = -1;
 
-    public XiaomiWakeGuardSleepProbe(@Nullable Context context) {
-        this.dir = context == null ? null : new File(context.getFilesDir(), "wake-guard-probe");
+    /** The context is resolved lazily: XiaomiSupport has none yet when services are constructed. */
+    public XiaomiWakeGuardSleepProbe(@Nullable java.util.function.Supplier<Context> context) {
+        this.context = context;
+    }
+
+    @Nullable
+    private File dir() {
+        Context c = context == null ? null : context.get();
+        return c == null ? null : new File(c.getFilesDir(), "wake-guard-probe");
     }
 
     public void reset() {
@@ -112,6 +119,7 @@ public final class XiaomiWakeGuardSleepProbe {
 
     void log(String message) {
         LOG.info("Wake guard probe: {}", message);
+        File dir = dir();
         if (dir == null) return;
         try {
             //noinspection ResultOfMethodCallIgnored
@@ -134,6 +142,7 @@ public final class XiaomiWakeGuardSleepProbe {
     }
 
     void saveRaw(XiaomiActivityFileId fileId, byte[] bytes) {
+        File dir = dir();
         if (dir == null) return;
         try {
             //noinspection ResultOfMethodCallIgnored
