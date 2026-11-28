@@ -97,6 +97,11 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
         super(support);
     }
 
+    @Override
+    public void initialize() {
+        requestRpkList();
+    }
+
     private final List<GBDeviceApp> apps = new ArrayList<>();
     private final Map<String, ByteString> shaMap = new HashMap<>();
 
@@ -208,6 +213,11 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
                 }
 
                 @Override
+                public void sendDirectMessage(final String appId, final byte[] payload) {
+                    sendDirectRelayMessage(appId, payload);
+                }
+
+                @Override
                 public void relaunchApp(final String appId) {
                     relaunchRelayApp(appId);
                 }
@@ -255,6 +265,19 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
         getSupport().sendCommand("wear app session end " + appId, buildSessionEndCommand(ref));
     }
 
+    private void sendDirectRelayMessage(final String appId, final byte[] payload) {
+        final ByteString sha;
+        synchronized (this) {
+            sha = shaMap.get(appId);
+        }
+        if (sha == null) {
+            LOG.warn("Dropping direct relay message for {} before sha is known", appId);
+            return;
+        }
+        final RpkInfoList ref = rpkRef(appId, sha);
+        getSupport().sendCommand("wear relay direct " + appId, buildMessageCommand(ref, payload));
+    }
+
     private void relaunchRelayApp(final String appId) {
         synchronized (this) {
             pendingMessages.remove(appId);
@@ -271,11 +294,14 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
     private void onWearAppMessage(final RpkMessage message) {
         final String appId = message.getApp().getId();
         final String payload = message.getPayload().toStringUtf8();
+        final boolean directDaemon = XiaomiNfcRelayBridge.isDirectDaemonMessage(appId, payload);
         synchronized (this) {
             if (!shaMap.containsKey(appId) && !message.getApp().getSha().isEmpty()) {
                 shaMap.put(appId, message.getApp().getSha());
             }
-            lastSeenOpen.put(appId, monotonicMillis.getAsLong());
+            if (!directDaemon) {
+                lastSeenOpen.put(appId, monotonicMillis.getAsLong());
+            }
         }
         if (XiaomiNfcRelayBridge.isRelayMessage(appId, payload)) {
             final XiaomiNfcRelayBridge bridge = getNfcRelayBridge();
@@ -433,6 +459,12 @@ public class XiaomiRpkService extends AbstractXiaomiService implements XiaomiDat
         getSupport().evaluateGBDeviceEvent(appInfoCmd);
 
         launchAwaitingApps();
+        if (shaMap.containsKey(XiaomiNfcRelayBridge.RELAY_APP_ID)) {
+            final XiaomiNfcRelayBridge bridge = getNfcRelayBridge();
+            if (bridge != null) {
+                bridge.onWatchConnected();
+            }
+        }
     }
 
 
