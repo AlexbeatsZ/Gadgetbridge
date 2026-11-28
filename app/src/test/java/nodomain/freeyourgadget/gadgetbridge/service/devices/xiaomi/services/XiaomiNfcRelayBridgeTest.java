@@ -4,7 +4,9 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -80,7 +82,7 @@ public class XiaomiNfcRelayBridgeTest {
         }
     }
 
-    private static final class FakeBackend implements XiaomiNfcRelayBridge.ApduBackend {
+    private static class FakeBackend implements XiaomiNfcRelayBridge.ApduBackend {
         boolean openOk = true;
         int openCalls = 0;
         int closeCalls = 0;
@@ -379,5 +381,68 @@ public class XiaomiNfcRelayBridgeTest {
         Assert.assertEquals(XiaomiNfcRelayBridge.RELAY_WATCHFACE_ID, transport.setFaces.get(1));
         Assert.assertEquals(1, transport.relaunches.size());
         bridge.dispose();
+    }
+
+    @Test
+    public void summarizeCapduLogsSelectAidAndRedactsNonSelectPayload() {
+        Assert.assertEquals("hdr=00A40400 aid=A000000632010105",
+                XiaomiNfcRelayBridge.summarizeCapdu(GB.hexStringToByteArray("00a4040008a00000063201010500")));
+        Assert.assertEquals("hdr=00B09500",
+                XiaomiNfcRelayBridge.summarizeCapdu(GB.hexStringToByteArray("00b095001e")));
+        Assert.assertEquals("hdr=80500102",
+                XiaomiNfcRelayBridge.summarizeCapdu(GB.hexStringToByteArray("805001020b0100000001112233445566")));
+        Assert.assertEquals("hdr=00A40000",
+                XiaomiNfcRelayBridge.summarizeCapdu(GB.hexStringToByteArray("00a40000023f00")));
+    }
+
+    @Test
+    public void persistentTraceRecordsMetadataOnlyAndRfWakePrewarmsBackend() throws Exception {
+        final File tempDir = Files.createTempDirectory("s4-relay-trace").toFile();
+        final File traceFile = new File(tempDir, XiaomiNfcRelayBridge.TRACE_FILE_NAME);
+        final CountDownLatch openLatch = new CountDownLatch(1);
+        final FakeTransport transport = new FakeTransport(2);
+        final FakeBackend backend = new FakeBackend() {
+            @Override
+            public boolean open() {
+                final boolean ok = super.open();
+                openLatch.countDown();
+                return ok;
+            }
+        };
+        backend.nextRapdu = GB.hexStringToByteArray("01020304050607089000");
+
+        final XiaomiNfcRelayBridge bridge = new XiaomiNfcRelayBridge(
+                transport, backend, traceFile, 512L, 0L, 0L, 0L, 200L);
+        try {
+            bridge.handleWatchMessage(XiaomiNfcRelayBridge.RELAY_APP_ID, "S4CTL:RF:59:132224");
+            Assert.assertTrue(openLatch.await(2, TimeUnit.SECONDS));
+            Assert.assertEquals(1, backend.openCalls);
+
+            bridge.handleWatchMessage(XiaomiNfcRelayBridge.RELAY_APP_ID,
+                    "S4Q1:1:10:00a4040008a00000063201010500");
+            bridge.handleWatchMessage(XiaomiNfcRelayBridge.RELAY_APP_ID,
+                    "S4Q1:2:10:805001020b0100000001deadbeefcafe");
+
+            Assert.assertTrue(transport.latch.await(2, TimeUnit.SECONDS));
+            final String log = new String(Files.readAllBytes(traceFile.toPath()), StandardCharsets.UTF_8);
+            Assert.assertTrue(log.contains("RF_WAKE S4CTL:RF:59:132224"));
+            Assert.assertTrue(log.contains("APDU seq=1 epoch=10 hdr=00A40400 aid=A000000632010105"));
+            Assert.assertTrue(log.contains("APDU seq=2 epoch=10 hdr=80500102 inLen=16 outLen=10 sw=9000"));
+            Assert.assertFalse("Must not leak non-SELECT C-APDU payload", log.toLowerCase().contains("deadbeef"));
+            Assert.assertFalse("Must not leak R-APDU card payload", log.toLowerCase().contains("0102030405060708"));
+
+            // Trigger rotation past 512-byte cap
+            for (int i = 0; i < 12; i++) {
+                bridge.handleWatchMessage(XiaomiNfcRelayBridge.RELAY_APP_ID, "S4CTL:DIAG:225:" + i + ":132224:0");
+            }
+            final File backup = new File(tempDir, XiaomiNfcRelayBridge.TRACE_FILE_NAME + ".1");
+            Assert.assertTrue("Trace file should rotate to .1 when over maxTraceBytes", backup.exists());
+        } finally {
+            bridge.dispose();
+            for (final File f : tempDir.listFiles()) {
+                f.delete();
+            }
+            tempDir.delete();
+        }
     }
 }

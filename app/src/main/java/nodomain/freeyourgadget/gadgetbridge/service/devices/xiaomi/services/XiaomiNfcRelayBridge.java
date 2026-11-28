@@ -32,7 +32,12 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -159,9 +164,13 @@ public class XiaomiNfcRelayBridge {
     private static final long DEFAULT_DAEMON_CONNECT_DELAY_MS = 1500L;
     private static final long DEFAULT_DAEMON_ARM_SETTLE_MS = 3500L;
     private static final long DEFAULT_PING_TIMEOUT_MS = 2000L;
+    static final String TRACE_FILE_NAME = "s4-nfc-relay.log";
+    private static final long DEFAULT_MAX_TRACE_BYTES = 64L * 1024L;
 
     private final RelayTransport transport;
     private final ApduBackend backend;
+    private final File traceFile;
+    private final long maxTraceBytes;
     private final long faceSwitchSettleMs;
     private final long connectDelayMs;
     private final long daemonArmSettleMs;
@@ -172,6 +181,7 @@ public class XiaomiNfcRelayBridge {
     private final AtomicBoolean armInFlight = new AtomicBoolean(false);
     private final AtomicLong incomingSeq = new AtomicLong(0L);
     private final Object ctlLock = new Object();
+    private final Object traceLock = new Object();
 
     private CountDownLatch pendingPongLatch = null;
     private volatile PongStatus lastPong = null;
@@ -181,6 +191,7 @@ public class XiaomiNfcRelayBridge {
     private volatile SelftestStatus lastSelftest = null;
     private volatile boolean daemonArmed = false;
     private volatile boolean eseOpen = false;
+    private long lastDirectApduNs = 0L;
 
     private long ignoreRelayOpenUpToSeq = 0L;
     private long lastFaceTriggerNs = 0L;
@@ -188,27 +199,46 @@ public class XiaomiNfcRelayBridge {
     private boolean switchedWatchface = false;
 
     public XiaomiNfcRelayBridge(final Context context, final RelayTransport transport) {
-        this(transport, new BoundEseBackend(context), DEFAULT_FACE_SWITCH_SETTLE_MS,
-                DEFAULT_DAEMON_CONNECT_DELAY_MS, DEFAULT_DAEMON_ARM_SETTLE_MS, DEFAULT_PING_TIMEOUT_MS);
+        this(transport, new BoundEseBackend(context), resolveTraceFile(context), DEFAULT_MAX_TRACE_BYTES,
+                DEFAULT_FACE_SWITCH_SETTLE_MS, DEFAULT_DAEMON_CONNECT_DELAY_MS,
+                DEFAULT_DAEMON_ARM_SETTLE_MS, DEFAULT_PING_TIMEOUT_MS);
     }
 
     XiaomiNfcRelayBridge(final RelayTransport transport, final ApduBackend backend) {
-        this(transport, backend, DEFAULT_FACE_SWITCH_SETTLE_MS, 0L, 0L, 200L);
+        this(transport, backend, null, DEFAULT_MAX_TRACE_BYTES, DEFAULT_FACE_SWITCH_SETTLE_MS, 0L, 0L, 200L);
     }
 
     XiaomiNfcRelayBridge(final RelayTransport transport, final ApduBackend backend, final long faceSwitchSettleMs) {
-        this(transport, backend, faceSwitchSettleMs, 0L, 0L, 200L);
+        this(transport, backend, null, DEFAULT_MAX_TRACE_BYTES, faceSwitchSettleMs, 0L, 0L, 200L);
     }
 
     XiaomiNfcRelayBridge(final RelayTransport transport, final ApduBackend backend,
                          final long faceSwitchSettleMs, final long connectDelayMs,
                          final long daemonArmSettleMs, final long pingTimeoutMs) {
+        this(transport, backend, null, DEFAULT_MAX_TRACE_BYTES,
+                faceSwitchSettleMs, connectDelayMs, daemonArmSettleMs, pingTimeoutMs);
+    }
+
+    XiaomiNfcRelayBridge(final RelayTransport transport, final ApduBackend backend,
+                         final File traceFile, final long maxTraceBytes,
+                         final long faceSwitchSettleMs, final long connectDelayMs,
+                         final long daemonArmSettleMs, final long pingTimeoutMs) {
         this.transport = transport;
         this.backend = backend;
+        this.traceFile = traceFile;
+        this.maxTraceBytes = Math.max(512L, maxTraceBytes);
         this.faceSwitchSettleMs = Math.max(0L, faceSwitchSettleMs);
         this.connectDelayMs = Math.max(0L, connectDelayMs);
         this.daemonArmSettleMs = Math.max(0L, daemonArmSettleMs);
         this.pingTimeoutMs = Math.max(50L, pingTimeoutMs);
+    }
+
+    private static File resolveTraceFile(final Context context) {
+        if (context == null) {
+            return null;
+        }
+        final File dir = context.getExternalFilesDir(null);
+        return dir != null ? new File(dir, TRACE_FILE_NAME) : new File(context.getFilesDir(), TRACE_FILE_NAME);
     }
 
     public static boolean isDirectDaemonMessage(final String appId, final String payload) {
@@ -276,6 +306,7 @@ public class XiaomiNfcRelayBridge {
                     daemonArmed = true;
                 }
                 LOG.info("S4 NFC daemon PONG {}", status);
+                appendTrace("PONG", status.toString());
                 if (latch != null) {
                     latch.countDown();
                 }
@@ -297,6 +328,7 @@ public class XiaomiNfcRelayBridge {
                     latch = pendingDiagLatch;
                 }
                 LOG.info("S4 NFC daemon DIAG {}", diag);
+                appendTrace("DIAG", diag.toString());
                 if (latch != null) {
                     latch.countDown();
                 }
@@ -316,8 +348,11 @@ public class XiaomiNfcRelayBridge {
                     lastSelftest = st;
                     latch = pendingSelftestLatch;
                 }
+                final String swHex = String.format(Locale.ROOT, "%04X", st.sw & 0xFFFF);
                 LOG.info("S4 NFC daemon SELFTEST_OK len={} sw={} phase={} uv={}",
-                        st.rapduLen, String.format(Locale.ROOT, "%04X", st.sw & 0xFFFF), st.phase, st.uvInited);
+                        st.rapduLen, swHex, st.phase, st.uvInited);
+                appendTrace("SELFTEST_OK", "len=" + st.rapduLen + " sw=" + swHex
+                        + " phase=" + st.phase + " uv=" + st.uvInited);
                 if (latch != null) {
                     latch.countDown();
                 }
@@ -332,12 +367,24 @@ public class XiaomiNfcRelayBridge {
                 latch = pendingSelftestLatch;
             }
             LOG.warn("S4 NFC daemon {}", payload);
+            appendTrace("SELFTEST_ERR", payload);
             if (latch != null) {
                 latch.countDown();
+            }
+        } else if (payload.equals("S4CTL:RF") || payload.startsWith("S4CTL:RF:")) {
+            LOG.info("S4 NFC daemon RF wake {}", payload);
+            appendTrace("RF_WAKE", payload);
+            if (!eseOpen && !disposed.get()) {
+                executor.execute(() -> {
+                    if (!disposed.get() && !eseOpen) {
+                        eseOpen = backend.open();
+                    }
+                });
             }
         } else if (payload.startsWith("S4CTL:STOPPED:")) {
             daemonArmed = false;
             LOG.info("S4 NFC daemon {}", payload);
+            appendTrace("STOPPED", payload);
         } else {
             LOG.debug("S4 NFC daemon control: {}", payload);
         }
@@ -403,13 +450,17 @@ public class XiaomiNfcRelayBridge {
             if (latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
                 final SelftestStatus st = lastSelftest;
                 if (st != null && st.ok) {
+                    final long rttMs = (System.nanoTime() - startNs) / 1_000_000L;
                     LOG.info("S4 NFC daemon selftest roundtrip OK len={} sw={} rttMs={}",
-                            st.rapduLen, String.format(Locale.ROOT, "%04X", st.sw & 0xFFFF),
-                            (System.nanoTime() - startNs) / 1_000_000L);
+                            st.rapduLen, String.format(Locale.ROOT, "%04X", st.sw & 0xFFFF), rttMs);
+                    appendTrace("SELFTEST_RTT", "len=" + st.rapduLen
+                            + " sw=" + String.format(Locale.ROOT, "%04X", st.sw & 0xFFFF)
+                            + " rttMs=" + rttMs);
                 }
                 return st;
             }
             LOG.warn("S4 NFC daemon selftest timed out after {}ms", timeoutMs);
+            appendTrace("SELFTEST_TIMEOUT", "timeoutMs=" + timeoutMs);
             return null;
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -440,6 +491,7 @@ public class XiaomiNfcRelayBridge {
                     daemonArmed = true;
                     eseOpen = backend.open();
                     LOG.info("S4 NFC daemon already armed v3 ({}, {}), eseOpen={}", existing, diag, eseOpen);
+                    appendTrace("ARMED_EXISTING", existing + " " + diag + " eseOpen=" + eseOpen);
                     if (eseOpen) {
                         runDaemonSelftest(Math.max(pingTimeoutMs * 2L, 3000L));
                     }
@@ -449,6 +501,7 @@ public class XiaomiNfcRelayBridge {
             // Either an older v2 daemon (no S4CTL:DIAG) or an unhooked daemon (hal=0) answered PONG;
             // send S4CTL:STOP first so relay_worker/uv_async/pb_recv_hook detach cleanly before reloading.
             LOG.info("S4 NFC daemon needs reload ({}); requesting S4CTL:STOP", existing);
+            appendTrace("ARM_RELOAD", existing.toString());
             transport.sendDirectMessage(RELAY_APP_ID, "S4CTL:STOP".getBytes(StandardCharsets.US_ASCII));
             sleepQuietly(Math.min(daemonArmSettleMs, 1800L));
         }
@@ -492,11 +545,13 @@ public class XiaomiNfcRelayBridge {
             eseOpen = backend.open();
             LOG.info("S4 NFC daemon armed and daily watchface restored ({}, {}), eseOpen={}",
                     armedPong, diag, eseOpen);
+            appendTrace("ARMED_COLD", armedPong + " " + diag + " eseOpen=" + eseOpen);
             if (eseOpen) {
                 runDaemonSelftest(Math.max(pingTimeoutMs * 2L, 4000L));
             }
         } else {
             LOG.warn("S4 NFC daemon did not confirm PONG after arming (last={})", armedPong);
+            appendTrace("ARM_FAILED", "last=" + armedPong);
         }
     }
 
@@ -522,6 +577,7 @@ public class XiaomiNfcRelayBridge {
         if (seq <= 0 || epoch <= 0 || epoch > 65535 || apduHex.length() < 8
                 || (apduHex.length() & 1) != 0 || apduHex.length() > 522) {
             LOG.warn("Rejected invalid direct APDU seq={} epoch={} len={}", seq, epoch, apduHex.length());
+            appendTrace("APDU_REJECT", "seq=" + seq + " epoch=" + epoch + " hexLen=" + apduHex.length());
             return;
         }
         final byte[] capdu;
@@ -529,22 +585,34 @@ public class XiaomiNfcRelayBridge {
             capdu = GB.hexStringToByteArray(apduHex);
         } catch (final Exception e) {
             LOG.warn("Rejected non-hex direct APDU seq={} epoch={}", seq, epoch);
+            appendTrace("APDU_REJECT", "seq=" + seq + " epoch=" + epoch + " reason=non_hex");
             return;
         }
 
         final long startNs = System.nanoTime();
+        final long prevNs = lastDirectApduNs;
+        lastDirectApduNs = startNs;
+        final long gapMs = (prevNs > 0L && (startNs - prevNs) < TimeUnit.SECONDS.toNanos(60))
+                ? (startNs - prevNs) / 1_000_000L : -1L;
+
         if (!eseOpen) {
             eseOpen = backend.open();
         }
+        final long eseStartNs = System.nanoTime();
         final byte[] rapdu = backend.transceive(seq, epoch, capdu);
+        final long eseMs = (System.nanoTime() - eseStartNs) / 1_000_000L;
         final byte[] safeRapdu = (rapdu != null && rapdu.length >= 2) ? rapdu : new byte[]{(byte) 0x6F, 0x00};
         final String reply = DIRECT_RSP_PREFIX + seq + ":" + epoch + ":" + toLowerHex(safeRapdu);
         transport.sendDirectMessage(appId, reply.getBytes(StandardCharsets.US_ASCII));
-        LOG.info("S4 NFC direct APDU seq={} epoch={} inLen={} outLen={} sw={} ms={}",
-                seq, epoch, capdu.length, safeRapdu.length,
-                String.format(Locale.ROOT, "%02X%02X", safeRapdu[safeRapdu.length - 2] & 0xFF,
-                        safeRapdu[safeRapdu.length - 1] & 0xFF),
-                (System.nanoTime() - startNs) / 1_000_000L);
+        final long totalMs = (System.nanoTime() - startNs) / 1_000_000L;
+        final String swHex = String.format(Locale.ROOT, "%02X%02X",
+                safeRapdu[safeRapdu.length - 2] & 0xFF, safeRapdu[safeRapdu.length - 1] & 0xFF);
+        final String summary = summarizeCapdu(capdu);
+        LOG.info("S4 NFC direct APDU seq={} epoch={} {} inLen={} outLen={} sw={} eseMs={} totalMs={} gapMs={}",
+                seq, epoch, summary, capdu.length, safeRapdu.length, swHex, eseMs, totalMs, gapMs);
+        appendTrace("APDU", "seq=" + seq + " epoch=" + epoch + " " + summary
+                + " inLen=" + capdu.length + " outLen=" + safeRapdu.length
+                + " sw=" + swHex + " eseMs=" + eseMs + " totalMs=" + totalMs + " gapMs=" + gapMs);
     }
 
     private void processJsonMessage(final String appId, final String payload, final long msgSeq) {
@@ -726,6 +794,7 @@ public class XiaomiNfcRelayBridge {
         final long cutoff = incomingSeq.get();
         daemonArmed = false;
         eseOpen = false;
+        appendTrace("DISCONNECT", "cutoff=" + cutoff);
         executor.execute(() -> {
             ignoreRelayOpenUpToSeq = Math.max(ignoreRelayOpenUpToSeq, cutoff);
             lastFaceTriggerNs = 0L;
@@ -752,6 +821,59 @@ public class XiaomiNfcRelayBridge {
             previousWatchface = null;
             if (prev != null) {
                 transport.setWatchface(prev);
+            }
+        }
+    }
+
+    /**
+     * Metadata-only summary of a C-APDU (CLA/INS/P1/P2 plus public AID for 00 A4 04 SELECT).
+     * Never emits command payload bytes for non-SELECT APDUs or any R-APDU card data.
+     */
+    static String summarizeCapdu(final byte[] capdu) {
+        if (capdu == null || capdu.length < 4) {
+            return "hdr=INVALID";
+        }
+        final StringBuilder sb = new StringBuilder(48);
+        sb.append(String.format(Locale.ROOT, "hdr=%02X%02X%02X%02X",
+                capdu[0] & 0xFF, capdu[1] & 0xFF, capdu[2] & 0xFF, capdu[3] & 0xFF));
+        if ((capdu[0] & 0xFC) == 0 && capdu[1] == (byte) 0xA4 && capdu[2] == 0x04 && capdu.length >= 5) {
+            final int lc = capdu[4] & 0xFF;
+            if (lc >= 5 && lc <= 16 && capdu.length >= 5 + lc) {
+                sb.append(" aid=");
+                for (int i = 0; i < lc; i++) {
+                    sb.append(String.format(Locale.ROOT, "%02X", capdu[5 + i] & 0xFF));
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    private void appendTrace(final String event, final String detail) {
+        if (traceFile == null) {
+            return;
+        }
+        synchronized (traceLock) {
+            try {
+                final File parent = traceFile.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+                if (traceFile.exists() && traceFile.length() >= maxTraceBytes) {
+                    final File backup = new File(traceFile.getParentFile(), traceFile.getName() + ".1");
+                    if (backup.exists()) {
+                        backup.delete();
+                    }
+                    if (!traceFile.renameTo(backup)) {
+                        traceFile.delete();
+                    }
+                }
+                final String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.ROOT).format(new Date());
+                final String line = ts + " " + event + " " + (detail != null ? detail : "") + "\n";
+                try (FileOutputStream fos = new FileOutputStream(traceFile, true)) {
+                    fos.write(line.getBytes(StandardCharsets.UTF_8));
+                }
+            } catch (final IOException ignored) {
+                // Tracing must never interfere with low-latency APDU relay.
             }
         }
     }
@@ -824,6 +946,11 @@ public class XiaomiNfcRelayBridge {
                 @Override
                 public void onServiceDisconnected(final ComponentName name) {
                     serviceMessenger = null;
+                }
+
+                @Override
+                public void onBindingDied(final ComponentName name) {
+                    unbindQuietly();
                 }
             };
             final Intent intent = new Intent().setComponent(new ComponentName(ADAPTER_PACKAGE, RELAY_SERVICE));
