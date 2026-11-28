@@ -213,7 +213,7 @@ public class XiaomiWakeGuardActivity extends AbstractSettingsActivityV2 {
                     && !device.isInitialized()) value = "disconnected";
             else if ("awake".equals(value) || "suspected".equals(value)) {
                 long age = java.lang.System.currentTimeMillis() - prefs.getLong(XiaomiWakeGuardConfig.PREF_SAMPLE_AT, 0);
-                if (age < 0 || age > 90_000) value = "stale";
+                if (age < 0 || age > nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGuardEngine.MAX_SAMPLE_AGE_MS) value = "stale";
             }
             int resource;
             switch (value) {

@@ -93,7 +93,7 @@ public class XiaomiWakeGuardManagerTest extends TestBase {
         verify(schedule,times(2)).requestWakeGuardRing();manager.dispose();
     }
     @Test public void staleDisconnectedAndInvalidDataNeverTrigger() throws Exception {
-        enable(Mode.RING);manager.observe(true,true,false);idle(120_000);
+        enable(Mode.RING);manager.observe(true,true,false);idle(12 * 60_000);
         assertEquals("stale",prefs.getString(PREF_STATUS,""));
         device.setState(GBDevice.State.NOT_CONNECTED);idle(30_000);
         assertEquals("disconnected",prefs.getString(PREF_STATUS,""));
@@ -105,5 +105,34 @@ public class XiaomiWakeGuardManagerTest extends TestBase {
     @Test public void externalAlarmBlocksNewRequests() throws Exception {
         when(system.canWakeGuardAlert()).thenReturn(false);enable(Mode.RING);confirmSleep();
         verify(schedule,never()).requestWakeGuardRing();manager.dispose();
+    }
+    @Test public void advancingWatchSleepFileRingsWithoutAckingIt() throws Exception {
+        XiaomiHealthService health = mock(XiaomiHealthService.class);
+        nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileFetcher fetcher =
+                mock(nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileFetcher.class);
+        when(support.getHealthService()).thenReturn(health); when(health.getActivityFetcher()).thenReturn(fetcher);
+        when(schedule.requestWakeGuardRing()).thenReturn(true);
+        long bed = now.toEpochSecond() - 7 * 3600;
+        nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileId sleep =
+                new nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileId(
+                        new java.util.Date(bed * 1000L), 32, 0, 8, 1, 4);
+        ArgumentCaptor<java.util.function.Consumer> list = ArgumentCaptor.forClass(java.util.function.Consumer.class);
+        ArgumentCaptor<java.util.function.Consumer> read = ArgumentCaptor.forClass(java.util.function.Consumer.class);
+        when(health.listFilesForWakeGuard(any())).thenReturn(true);
+        when(fetcher.probe(any(), any())).thenReturn(true);
+        enable(Mode.RING); idle(1);
+        for (int i = 0; i < 3; i++) {
+            if (i > 0) { now = now.plusMinutes(5); idle(5 * 60_000); }
+            verify(health, times(i + 1)).listFilesForWakeGuard(list.capture());
+            list.getValue().accept(java.util.Collections.singletonList(sleep));
+            verify(fetcher, times(i + 1)).probe(eq(sleep), read.capture());
+            java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(40).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            b.put(sleep.toBytes()).put((byte) 0).put((byte) 0).put((byte) 0)
+                    .putInt((int) bed).putInt((int) (now.toEpochSecond() - 30));
+            read.getValue().accept(b.array());
+        }
+        verify(schedule, times(1)).requestWakeGuardRing();
+        verify(health, never()).ackRecordedData(any());
+        manager.dispose();
     }
 }

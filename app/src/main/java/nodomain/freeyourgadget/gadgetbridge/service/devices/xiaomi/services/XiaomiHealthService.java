@@ -1062,7 +1062,42 @@ public class XiaomiHealthService extends AbstractXiaomiService {
         );
     }
 
+    private java.util.function.Consumer<List<XiaomiActivityFileId>> wakeGuardListCallback;
+    private final List<XiaomiActivityFileId> wakeGuardListed = new ArrayList<>();
+    private final android.os.Handler wakeGuardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    /** Lists today's and past activity files for wake guard without starting a sync. */
+    public boolean listFilesForWakeGuard(final java.util.function.Consumer<List<XiaomiActivityFileId>> callback) {
+        if (wakeGuardListCallback != null || activityFetcher.isFetching() || getSupport().getDevice().isBusy()) {
+            return false;
+        }
+        wakeGuardListCallback = callback;
+        wakeGuardListed.clear();
+        wakeGuardHandler.postDelayed(() -> finishWakeGuardList(true), 8000L);
+        fetchRecordedDataToday();
+        return true;
+    }
+
+    private void finishWakeGuardList(final boolean timedOut) {
+        wakeGuardHandler.removeCallbacksAndMessages(null);
+        final java.util.function.Consumer<List<XiaomiActivityFileId>> callback = wakeGuardListCallback;
+        wakeGuardListCallback = null;
+        if (callback == null) return;
+        if (timedOut) LOG.warn("Wake guard file list timed out with {} files", wakeGuardListed.size());
+        callback.accept(new ArrayList<>(wakeGuardListed));
+    }
+
     public void handleActivityFetchResponse(final int subtype, final byte[] recordIds) {
+        if (wakeGuardListCallback != null && (recordIds.length % 7) == 0) {
+            final ByteBuffer wbuf = ByteBuffer.wrap(recordIds).order(ByteOrder.LITTLE_ENDIAN);
+            while (wbuf.position() < wbuf.limit()) {
+                final XiaomiActivityFileId fileId = XiaomiActivityFileId.from(wbuf);
+                if (fileId.getTimestamp().getTime() != 0 || fileId.getVersion() != 0) wakeGuardListed.add(fileId);
+            }
+            if (subtype == CMD_ACTIVITY_FETCH_TODAY) fetchRecordedDataPast();
+            else finishWakeGuardList(false);
+            return;
+        }
         if ((recordIds.length % 7) != 0) {
             LOG.warn("recordIds {} length = {}, not a multiple of 7, can't parse", GB.hexdump(recordIds), recordIds.length);
             return;

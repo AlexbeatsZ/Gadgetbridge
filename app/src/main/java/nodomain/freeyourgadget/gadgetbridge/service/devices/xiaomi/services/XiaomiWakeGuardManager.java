@@ -22,6 +22,8 @@ import nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGua
 public final class XiaomiWakeGuardManager {
     private static final Logger LOG = LoggerFactory.getLogger(XiaomiWakeGuardManager.class);
     private static final long POLL_MS = 30_000;
+    static final long PROBE_IN_RULE_MS = 5 * 60_000;
+    static final long PROBE_OUTSIDE_RULE_MS = 15 * 60_000;
     private final XiaomiSupport support;
     private final XiaomiSystemService system;
     private final Supplier<ZonedDateTime> wallClock;
@@ -30,6 +32,8 @@ public final class XiaomiWakeGuardManager {
     private XiaomiWakeGuardConfig config = new XiaomiWakeGuardConfig(false, Collections.emptyList());
     private boolean running;
     private final Runnable poll = this::tick;
+    private final XiaomiWakeGuardSleepProbe probe;
+    private long lastProbeAt = -1;
 
     public XiaomiWakeGuardManager(XiaomiSupport support, XiaomiSystemService system) {
         this(support, system, ZonedDateTime::now);
@@ -38,6 +42,7 @@ public final class XiaomiWakeGuardManager {
         this.support = support;
         this.system = system;
         this.wallClock = wallClock;
+        this.probe = new XiaomiWakeGuardSleepProbe(support.getContext());
     }
     private SharedPreferences prefs() {
         return GBApplication.getDeviceSpecificSharedPrefs(support.getDevice().getAddress());
@@ -48,6 +53,8 @@ public final class XiaomiWakeGuardManager {
     }
     public synchronized void configure() {
         engine.reset();
+        probe.reset();
+        lastProbeAt = -1;
         handler.removeCallbacks(poll);
         try {
             config = new XiaomiWakeGuardConfig(prefs().getBoolean(XiaomiWakeGuardConfig.PREF_ENABLED, false),
@@ -74,11 +81,47 @@ public final class XiaomiWakeGuardManager {
             long elapsed = SystemClock.elapsedRealtime();
             engine.evaluate(config, now, elapsed, false);
             setStatus(engine.status(config, now, elapsed));
-            if (config.activeRule(now) != null) support.sendCommand("wake guard live state",
-                    XiaomiSystemService.COMMAND_TYPE, XiaomiSystemService.CMD_DEVICE_STATE_GET);
+            long interval = config.activeRule(now) != null ? PROBE_IN_RULE_MS : PROBE_OUTSIDE_RULE_MS;
+            if (lastProbeAt < 0 || elapsed - lastProbeAt >= interval) startProbe(elapsed);
         }
         handler.removeCallbacks(poll);
         handler.postDelayed(poll, POLL_MS);
+    }
+    private void startProbe(long elapsed) {
+        XiaomiHealthService health = support.getHealthService();
+        if (health == null) return;
+        if (!health.listFilesForWakeGuard(this::onFilesListed)) {
+            probe.log("skip: regular sync running");
+            return;
+        }
+        lastProbeAt = elapsed;
+    }
+    private synchronized void onFilesListed(java.util.List<nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileId> ids) {
+        if (!running || !config.enabled) return;
+        long nowSec = wallClock.get().toEpochSecond();
+        nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileId sleep =
+                XiaomiWakeGuardSleepProbe.pickSleepFile(ids, nowSec);
+        probe.log("listed " + ids.size() + " files: " + ids + " -> sleep=" + sleep);
+        if (sleep == null) { onSleepJudged(probe.judge(null, nowSec)); return; }
+        XiaomiHealthService health = support.getHealthService();
+        boolean started = health != null && health.getActivityFetcher().probe(sleep, bytes -> onSleepBytes(sleep, bytes));
+        if (!started) probe.log("skip read: regular sync running");
+    }
+    private synchronized void onSleepBytes(nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.activity.XiaomiActivityFileId id, byte[] bytes) {
+        if (!running || !config.enabled) return;
+        if (bytes == null) { probe.log("read timed out for " + id); return; }
+        probe.saveRaw(id, bytes);
+        long nowSec = wallClock.get().toEpochSecond();
+        XiaomiWakeGuardSleepProbe.Header h = XiaomiWakeGuardSleepProbe.parseHeader(id, bytes);
+        Boolean asleep = probe.judge(h, nowSec);
+        probe.log("read " + bytes.length + " bytes v" + id.getVersion() + (h == null ? " unparsed"
+                : " isAwakeFlag=" + h.isAwakeFlag + " bed=" + h.bedTime + " wake=" + h.wakeupTime
+                + " lagSec=" + (nowSec - h.wakeupTime)) + " -> asleep=" + asleep);
+        onSleepJudged(asleep);
+    }
+    private void onSleepJudged(Boolean asleep) {
+        // Only the watch's own sleep record is used; a sleep record implies the watch is worn.
+        if (asleep != null) observe(asleep, true, false);
     }
     public synchronized void observe(Boolean asleep, Boolean worn, Boolean charging) {
         if (!running || !config.enabled) return;

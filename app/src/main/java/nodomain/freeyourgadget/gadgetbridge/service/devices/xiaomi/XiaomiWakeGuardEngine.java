@@ -7,7 +7,8 @@ import java.util.Objects;
 
 /** Uses live firmware sleep classification, never historical sleep files or inactivity alone. */
 public final class XiaomiWakeGuardEngine {
-    public static final long MAX_SAMPLE_AGE_MS = 90_000;
+    /** Sleep-file probes run every 5 minutes inside a rule, so evidence stays valid a little longer. */
+    public static final long MAX_SAMPLE_AGE_MS = 11 * 60_000;
     private Boolean asleep, worn, charging;
     private long sleepAt = -1, wornAt = -1, chargingAt = -1;
     private long candidateAt = -1, lastAlertAt = -1;

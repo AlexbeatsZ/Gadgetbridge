@@ -64,6 +64,9 @@ public class XiaomiActivityFileFetcher {
     private final AtomicBoolean queueHeld = new AtomicBoolean(false);
 
     private final Handler timeoutHandler = new Handler(Looper.getMainLooper());
+    private final Handler probeHandler = new Handler(Looper.getMainLooper());
+    private XiaomiActivityFileId probeTarget;
+    private java.util.function.Consumer<byte[]> probeCallback;
 
     public XiaomiActivityFileFetcher(final XiaomiHealthService healthService) {
         this.mHealthService = healthService;
@@ -71,6 +74,7 @@ public class XiaomiActivityFileFetcher {
 
     public void dispose() {
         clearTimeout();
+        clearProbe();
         awaitingPastResponse = false;
         queueHeld.set(false);
     }
@@ -142,6 +146,14 @@ public class XiaomiActivityFileFetcher {
         final byte[] fileIdBytes = Arrays.copyOfRange(data, 0, 7);
         final XiaomiActivityFileId fileId = XiaomiActivityFileId.from(fileIdBytes);
 
+        if (probeTarget != null && Arrays.equals(probeTarget.toBytes(), fileIdBytes)) {
+            // Read-only probe for wake guard: no ack, no parse, the regular sync still gets the file
+            final java.util.function.Consumer<byte[]> callback = probeCallback;
+            clearProbe();
+            if (callback != null) callback.accept(data);
+            return;
+        }
+
         dumpBytesToExternalStorage(fileId, data);
 
         if (!XiaomiPreferences.keepActivityDataOnDevice(mHealthService.getSupport().getDevice())) {
@@ -172,6 +184,31 @@ public class XiaomiActivityFileFetcher {
         }
 
         triggerNextFetch();
+    }
+
+    public boolean isFetching() {
+        return isFetching;
+    }
+
+    /** Reads one file without acking it. Returns false while a regular sync is running. */
+    public boolean probe(final XiaomiActivityFileId fileId, final java.util.function.Consumer<byte[]> callback) {
+        if (isFetching || probeTarget != null) return false;
+        probeTarget = fileId;
+        probeCallback = callback;
+        probeHandler.postDelayed(() -> {
+            LOG.warn("Timed out waiting for probed activity file {}", fileId);
+            final java.util.function.Consumer<byte[]> cb = probeCallback;
+            clearProbe();
+            if (cb != null) cb.accept(null);
+        }, 8000L);
+        mHealthService.requestRecordedData(fileId);
+        return true;
+    }
+
+    private void clearProbe() {
+        probeHandler.removeCallbacksAndMessages(null);
+        probeTarget = null;
+        probeCallback = null;
     }
 
     public void setAwaitingPastResponse(final boolean awaiting) {

@@ -15,6 +15,7 @@ import static org.junit.Assert.*;
 import static nodomain.freeyourgadget.gadgetbridge.service.devices.xiaomi.XiaomiWakeGuardConfig.*;
 
 public class XiaomiWakeGuardTest extends TestBase {
+    private static final long GAP = XiaomiWakeGuardEngine.MAX_SAMPLE_AGE_MS + 30_000;
     private Rule rule(String id, int days, int start, int end, Mode mode) {
         return new Rule(id, id, true, days, start, end, mode, 1, 5);
     }
@@ -84,18 +85,18 @@ public class XiaomiWakeGuardTest extends TestBase {
         engine.observe(true, true, false, 0);
         assertNull(engine.evaluate(c, monday, 0, true));
         assertNull(engine.evaluate(c, monday.plusMinutes(1), 60_000, false));
-        assertNull(engine.evaluate(c, monday.plusMinutes(2), 120_000, false));
-        assertEquals("stale", engine.status(c, monday, 120_000));
-        assertNull(snapshot(engine, c, 120_000, true, true, false));
-        assertNotNull(snapshot(engine, c, 180_000, true, true, false));
+        assertNull(engine.evaluate(c, monday.plusMinutes(2), GAP, false));
+        assertEquals("stale", engine.status(c, monday, GAP));
+        assertNull(snapshot(engine, c, GAP, true, true, false));
+        assertNotNull(snapshot(engine, c, GAP + 60_000, true, true, false));
     }
 
     @Test public void gapWithoutTimerTickStillRestartsConfirmation() {
         XiaomiWakeGuardEngine engine = new XiaomiWakeGuardEngine();
         XiaomiWakeGuardConfig c = config(weekday());
         assertNull(snapshot(engine, c, 0, true, true, false));
-        assertNull(snapshot(engine, c, 120_000, true, true, false));
-        assertNotNull(snapshot(engine, c, 180_000, true, true, false));
+        assertNull(snapshot(engine, c, GAP, true, true, false));
+        assertNotNull(snapshot(engine, c, GAP + 60_000, true, true, false));
     }
 
     @Test public void awakeUnwornAndChargingEachResetConfirmation() {
@@ -105,7 +106,7 @@ public class XiaomiWakeGuardTest extends TestBase {
             assertNull(snapshot(engine, c, 0, true, true, false));
             assertNull(snapshot(engine, c, 30_000, condition != 0, condition != 1, condition == 2));
             assertNull(snapshot(engine, c, 60_000, true, true, false));
-            assertNotNull(snapshot(engine, c, 120_000, true, true, false));
+            assertNotNull(snapshot(engine, c, GAP, true, true, false));
         }
     }
 
@@ -116,9 +117,9 @@ public class XiaomiWakeGuardTest extends TestBase {
         assertNull(engine.evaluate(c, monday, 0, true));
         assertEquals("stale", engine.status(c, monday, 0));
         snapshot(engine, c, 10_000, true, true, false);
-        engine.observe(true, null, null, 120_000);
-        assertNull(engine.evaluate(c, monday, 120_000, true));
-        assertEquals("stale", engine.status(c, monday, 120_000));
+        engine.observe(true, null, null, GAP);
+        assertNull(engine.evaluate(c, monday, GAP, true));
+        assertEquals("stale", engine.status(c, monday, GAP));
     }
 
     @Test public void scheduleExitAndNextOccurrenceRestartConfirmation() {
